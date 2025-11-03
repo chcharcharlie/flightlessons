@@ -10,7 +10,7 @@ export const RegisterPage: React.FC = () => {
   const [role, setRole] = useState<UserRole>('STUDENT')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  
+
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
@@ -29,15 +29,18 @@ export const RegisterPage: React.FC = () => {
       await signUp(email, password, displayName, role)
       navigate('/')
     } catch (error: any) {
-      console.error('Registration error:', error)
       if (error.code === 'auth/email-already-in-use') {
         setError('Email is already registered')
       } else if (error.code === 'auth/invalid-email') {
         setError('Invalid email address')
       } else if (error.code === 'auth/operation-not-allowed') {
-        setError('Email/password authentication is not enabled. Please enable it in Firebase Console.')
+        setError(
+          'Email/password authentication is not enabled. Please enable it in Firebase Console.'
+        )
       } else {
-        setError(`Failed to create account: ${error.message || 'Unknown error'}`)
+        setError(
+          `Failed to create account: ${error.message || 'Unknown error'}`
+        )
       }
     } finally {
       setLoading(false)
@@ -69,7 +72,10 @@ export const RegisterPage: React.FC = () => {
           )}
           <div className="space-y-4">
             <div>
-              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="displayName"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Full Name
               </label>
               <input
@@ -85,7 +91,10 @@ export const RegisterPage: React.FC = () => {
               />
             </div>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email Address
               </label>
               <input
@@ -101,7 +110,10 @@ export const RegisterPage: React.FC = () => {
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <input

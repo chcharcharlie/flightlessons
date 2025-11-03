@@ -7,7 +7,15 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, addDoc, collection, updateDoc, serverTimestamp } from 'firebase/firestore'
+import {
+  doc,
+  getDoc,
+  setDoc,
+  addDoc,
+  collection,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
 import { User, UserRole } from '@/types'
 
@@ -45,20 +53,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setFirebaseUser(firebaseUser)
-      
+
       if (firebaseUser) {
         // Fetch user data from Firestore
         const userDocRef = doc(db, 'users', firebaseUser.uid)
         const userDoc = await getDoc(userDocRef)
-        
+
         if (userDoc.exists()) {
           setUser(userDoc.data() as User)
         } else {
           // Check if this is a new user with pending role
-          const pendingRole = localStorage.getItem(`pending_role_${firebaseUser.uid}`)
-          
+          const pendingRole = localStorage.getItem(
+            `pending_role_${firebaseUser.uid}`
+          )
+
           if (pendingRole) {
-            console.log('Creating Firestore documents for new user')
             try {
               // Create user document
               const newUserData = {
@@ -74,35 +83,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                   },
                 },
               }
-              
+
               await setDoc(userDocRef, newUserData)
-              console.log('User document created')
-              
+
               // If CFI, create workspace
               if (pendingRole === 'CFI') {
-                const workspaceRef = await addDoc(collection(db, 'workspaces'), {
-                  cfiUid: firebaseUser.uid,
-                  name: `${firebaseUser.displayName}'s Flight School`,
-                  createdAt: serverTimestamp(),
-                  studentCount: 0,
-                  settings: {
-                    defaultLessonDuration: {
-                      ground: 60,
-                      flight: 1.5,
+                const workspaceRef = await addDoc(
+                  collection(db, 'workspaces'),
+                  {
+                    cfiUid: firebaseUser.uid,
+                    name: firebaseUser.displayName + "'s Flight School",
+                    createdAt: serverTimestamp(),
+                    studentCount: 0,
+                    settings: {
+                      defaultLessonDuration: {
+                        ground: 60,
+                        flight: 1.5,
+                      },
                     },
-                  },
-                })
-                
+                  }
+                )
+
                 // Update user with workspace ID
                 await updateDoc(userDocRef, {
                   cfiWorkspaceId: workspaceRef.id,
                 })
-                
-                // Update local user data
-                (newUserData as any).cfiWorkspaceId = workspaceRef.id
+
+                // Update local user data with workspace ID
+                setUser({
+                  ...newUserData,
+                  cfiWorkspaceId: workspaceRef.id,
+                } as User)
+              } else {
+                setUser(newUserData as User)
               }
-              
-              setUser(newUserData as User)
+
               localStorage.removeItem(`pending_role_${firebaseUser.uid}`)
             } catch (error) {
               console.error('Error creating Firestore documents:', error)
@@ -111,7 +126,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               setUser(null)
             }
           } else {
-            console.warn('User exists in Auth but not in Firestore and no pending role. Signing out.')
+            console.warn(
+              'User exists in Auth but not in Firestore and no pending role. Signing out.'
+            )
             await signOut(auth)
             setUser(null)
           }
@@ -119,7 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         setUser(null)
       }
-      
+
       setLoading(false)
     })
 
@@ -137,15 +154,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       email,
       password
     )
-    
+
     // Update display name
     await updateProfile(userCredential.user, { displayName })
-    
+
     // Store the role temporarily in localStorage since Firestore might not be ready
     localStorage.setItem(`pending_role_${userCredential.user.uid}`, role)
-    
+
     // Don't try to create Firestore documents here - let the onAuthStateChanged handle it
-    console.log('User created in Firebase Auth. Firestore documents will be created on next auth state change.')
   }
 
   const signIn = async (email: string, password: string) => {
