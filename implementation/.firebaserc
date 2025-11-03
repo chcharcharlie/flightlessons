@@ -1,6 +1,7 @@
 {
   "projects": {
-    "flightlessons": "flightlessons-8b9bd"
+    "flightlessons": "flightlessons-8b9bd",
+    "default": "flightlessons-8b9bd"
   },
   "targets": {},
   "etags": {}

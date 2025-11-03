@@ -53,13 +53,13 @@ Since you're using live Firebase, you need to deploy the security rules and Clou
 
 2. **Login to Firebase**:
    ```bash
-   firebase login
+   firebase login --account ccehshmily@gmail.com
    ```
 
 3. **Initialize Firebase in your project**:
    ```bash
    cd implementation
-   firebase init
+   firebase init --account ccehshmily@gmail.com
    ```
    - Select: Firestore, Functions, Storage, Hosting
    - Use existing project (select your project)
@@ -69,7 +69,8 @@ Since you're using live Firebase, you need to deploy the security rules and Clou
 
 4. **Deploy Security Rules**:
    ```bash
-   firebase deploy --only firestore:rules,storage:rules
+   firebase deploy --only firestore:rules --account ccehshmily@gmail.com
+   firebase deploy --only storage:rules --account ccehshmily@gmail.com
    ```
 
 5. **Deploy Cloud Functions**:
@@ -77,7 +78,7 @@ Since you're using live Firebase, you need to deploy the security rules and Clou
    cd functions
    npm install
    cd ..
-   firebase deploy --only functions
+   firebase deploy --only functions --account ccehshmily@gmail.com
    ```
 
 ## Running Without Emulators
