@@ -1,5 +1,7 @@
-import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { beforeUserCreated } from 'firebase-functions/v2/identity';
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -8,7 +10,10 @@ const db = admin.firestore();
 const auth = admin.auth();
 
 // User creation trigger - create user document and workspace
-export const onUserCreated = functions.auth.user().onCreate(async (user) => {
+export const onUserCreated = beforeUserCreated(async (event) => {
+  const user = event.data;
+  if (!user) return;
+  
   const { uid, email, displayName } = user;
   
   try {
@@ -35,16 +40,16 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
 });
 
 // Set user role (called during registration)
-export const setUserRole = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+export const setUserRole = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
   
-  const { role } = data;
-  const uid = context.auth.uid;
+  const { role } = request.data;
+  const uid = request.auth.uid;
   
   if (!['CFI', 'STUDENT'].includes(role)) {
-    throw new functions.https.HttpsError('invalid-argument', 'Invalid role');
+    throw new HttpsError('invalid-argument', 'Invalid role');
   }
   
   try {
@@ -58,7 +63,7 @@ export const setUserRole = functions.https.onCall(async (data, context) => {
     if (role === 'CFI') {
       const workspace = await db.collection('workspaces').add({
         cfiUid: uid,
-        name: `${context.auth.token.name || 'CFI'}'s Workspace`,
+        name: `${request.auth.token.name || 'CFI'}'s Workspace`,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         studentCount: 0,
         settings: {
@@ -78,27 +83,27 @@ export const setUserRole = functions.https.onCall(async (data, context) => {
     return { success: true };
   } catch (error) {
     console.error('Error setting user role:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to set user role');
+    throw new HttpsError('internal', 'Failed to set user role');
   }
 });
 
 // Invite student
-export const inviteStudent = functions.https.onCall(async (data, context) => {
-  if (!context.auth || context.auth.token.role !== 'CFI') {
-    throw new functions.https.HttpsError('permission-denied', 'Only CFIs can invite students');
+export const inviteStudent = onCall(async (request) => {
+  if (!request.auth || request.auth.token.role !== 'CFI') {
+    throw new HttpsError('permission-denied', 'Only CFIs can invite students');
   }
   
-  const { email, workspaceId } = data;
+  const { email, workspaceId } = request.data;
   
   if (!email || !workspaceId) {
-    throw new functions.https.HttpsError('invalid-argument', 'Email and workspace ID required');
+    throw new HttpsError('invalid-argument', 'Email and workspace ID required');
   }
   
   try {
     // Verify workspace ownership
     const workspace = await db.collection('workspaces').doc(workspaceId).get();
-    if (!workspace.exists || workspace.data()?.cfiUid !== context.auth.uid) {
-      throw new functions.https.HttpsError('permission-denied', 'Invalid workspace');
+    if (!workspace.exists || workspace.data()?.cfiUid !== request.auth.uid) {
+      throw new HttpsError('permission-denied', 'Invalid workspace');
     }
     
     // TODO: Send invitation email
@@ -106,7 +111,7 @@ export const inviteStudent = functions.https.onCall(async (data, context) => {
     await db.collection('invitations').add({
       email,
       workspaceId,
-      cfiUid: context.auth.uid,
+      cfiUid: request.auth.uid,
       status: 'pending',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -114,17 +119,17 @@ export const inviteStudent = functions.https.onCall(async (data, context) => {
     return { success: true };
   } catch (error) {
     console.error('Error inviting student:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to invite student');
+    throw new HttpsError('internal', 'Failed to invite student');
   }
 });
 
 // Record progress
-export const recordProgress = functions.https.onCall(async (data, context) => {
-  if (!context.auth || context.auth.token.role !== 'CFI') {
-    throw new functions.https.HttpsError('permission-denied', 'Only CFIs can record progress');
+export const recordProgress = onCall(async (request) => {
+  if (!request.auth || request.auth.token.role !== 'CFI') {
+    throw new HttpsError('permission-denied', 'Only CFIs can record progress');
   }
   
-  const { studentUid, cfiWorkspaceId, itemId, score, scoreType, lessonId, notes } = data;
+  const { studentUid, cfiWorkspaceId, itemId, score, scoreType, lessonId, notes } = request.data;
   
   try {
     // Verify student enrollment
@@ -136,7 +141,7 @@ export const recordProgress = functions.https.onCall(async (data, context) => {
       .get();
       
     if (!enrollment.exists) {
-      throw new functions.https.HttpsError('permission-denied', 'Student not enrolled');
+      throw new HttpsError('permission-denied', 'Student not enrolled');
     }
     
     // Create progress record
@@ -149,21 +154,19 @@ export const recordProgress = functions.https.onCall(async (data, context) => {
       lessonId: lessonId || null,
       notes: notes || '',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      createdBy: context.auth.uid,
+      createdBy: request.auth.uid,
     });
     
     return { success: true, progressId: progressRef.id };
   } catch (error) {
     console.error('Error recording progress:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to record progress');
+    throw new HttpsError('internal', 'Failed to record progress');
   }
 });
 
 // Update progress aggregations when new progress is created
-export const onProgressCreated = functions.firestore
-  .document('progress/{progressId}')
-  .onCreate(async (snap, context) => {
-    const progress = snap.data();
+export const onProgressCreated = onDocumentCreated('progress/{progressId}', async (event) => {
+    const progress = event.data?.data();
     
     // TODO: Update student progress aggregations
     // TODO: Check for milestone achievements

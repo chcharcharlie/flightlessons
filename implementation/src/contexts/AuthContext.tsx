@@ -7,7 +7,7 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, addDoc, collection, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, addDoc, collection, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
 import { User, UserRole } from '@/types'
 
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       email: email,
       displayName: displayName,
       role: role,
-      createdAt: new Date(),
+      createdAt: serverTimestamp(),
       settings: {
         notifications: {
           email: true,
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const workspaceRef = await addDoc(collection(db, 'workspaces'), {
         cfiUid: userCredential.user.uid,
         name: `${displayName}'s Flight School`,
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
         studentCount: 0,
         settings: {
           defaultLessonDuration: {

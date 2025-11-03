@@ -29,12 +29,15 @@ export const RegisterPage: React.FC = () => {
       await signUp(email, password, displayName, role)
       navigate('/')
     } catch (error: any) {
+      console.error('Registration error:', error)
       if (error.code === 'auth/email-already-in-use') {
         setError('Email is already registered')
       } else if (error.code === 'auth/invalid-email') {
         setError('Invalid email address')
+      } else if (error.code === 'auth/operation-not-allowed') {
+        setError('Email/password authentication is not enabled. Please enable it in Firebase Console.')
       } else {
-        setError('Failed to create account')
+        setError(`Failed to create account: ${error.message || 'Unknown error'}`)
       }
     } finally {
       setLoading(false)
