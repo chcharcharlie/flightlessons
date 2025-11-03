@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isCFI() {
+      return isSignedIn() && request.auth.token.role == 'CFI';
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Reference materials for study items
+    match /workspaces/{workspaceId}/materials/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isCFI() && 
+        firestore.get(/databases/(default)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
+    }
+    
+    // User profile pictures
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+    }
+    
+    // Lesson attachments
+    match /lessons/{lessonId}/attachments/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isCFI();
+    }
+  }
+}

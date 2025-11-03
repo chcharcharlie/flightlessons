@@ -1,42 +1,43 @@
 # System Architecture
 
 ## Overview
-The FlightLessons system follows a modern three-tier architecture with a React-based frontend, Node.js/Express backend API, and PostgreSQL database. The system is designed for scalability, maintainability, and optimal performance on mobile devices.
+The FlightLessons system follows a serverless architecture using Google Firebase services. This provides a fully managed, scalable solution with minimal operational overhead, perfect for a flight instruction management system.
 
 ## Technology Stack
 
 ### Frontend
 - **Framework**: React 18 with TypeScript
-- **State Management**: Redux Toolkit for global state, React Query for server state
+- **State Management**: Zustand for global state, React Query for Firebase data
 - **UI Framework**: Tailwind CSS with HeadlessUI components
 - **Routing**: React Router v6
 - **Build Tool**: Vite
 - **Testing**: Vitest + React Testing Library
+- **Hosting**: Firebase Hosting
 
-**Rationale**: React provides excellent mobile web performance with its virtual DOM, while TypeScript ensures type safety across the large codebase. Tailwind enables rapid, consistent styling.
+**Rationale**: React provides excellent mobile web performance, while Firebase SDK handles real-time data sync. Zustand is lighter than Redux and works well with Firebase.
 
 ### Backend  
-- **Runtime**: Node.js 20 LTS
-- **Framework**: Express.js with TypeScript
-- **Authentication**: JWT with refresh tokens
+- **Functions**: Firebase Cloud Functions (Node.js TypeScript)
+- **Authentication**: Firebase Auth
 - **Validation**: Zod for request/response validation
-- **ORM**: Prisma for type-safe database access
-- **Testing**: Jest + Supertest
+- **Admin SDK**: Firebase Admin for privileged operations
+- **Testing**: Jest with Firebase emulators
 
-**Rationale**: Node.js allows JavaScript across the stack, Express is battle-tested, and Prisma provides excellent TypeScript integration with PostgreSQL.
+**Rationale**: Cloud Functions provide serverless compute that scales automatically. Firebase Auth handles all authentication complexity.
 
 ### Database
-- **Primary**: PostgreSQL 15
-- **Caching**: Redis for sessions and frequently accessed data
-- **File Storage**: AWS S3 for PDFs and materials
+- **Primary**: Cloud Firestore (NoSQL)
+- **Real-time**: Firestore real-time listeners
+- **File Storage**: Firebase Storage for PDFs and materials
+- **Offline**: Firestore offline persistence
 
-**Rationale**: PostgreSQL handles complex relational data well, supports JSON for flexible fields, and scales reliably.
+**Rationale**: Firestore provides real-time sync, offline support, and scales automatically. Perfect for collaborative features and mobile use.
 
 ### Infrastructure
-- **Hosting**: AWS (EC2 + RDS + S3)
-- **CDN**: CloudFront for static assets
-- **Monitoring**: DataDog
-- **Email**: SendGrid
+- **Hosting**: Firebase Hosting (CDN included)
+- **Functions**: Cloud Functions for Firebase
+- **Monitoring**: Firebase Performance & Crashlytics
+- **Email**: Firebase Extensions (Trigger Email)
 
 ## Components
 
@@ -146,22 +147,35 @@ The FlightLessons system follows a modern three-tier architecture with a React-b
 
 ## Data Architecture
 
-### Core Entities
+### Firestore Collections Structure
 ```typescript
-// Simplified schema
+// Root collections
 interface User {
-  id: string;
+  uid: string; // Firebase Auth UID
   email: string;
-  name: string;
+  displayName: string;
   role: 'CFI' | 'STUDENT';
-  createdAt: Date;
+  cfiWorkspaceId?: string; // For students
+  createdAt: firebase.firestore.Timestamp;
+  settings: UserSettings;
 }
 
+interface CFIWorkspace {
+  id: string;
+  cfiUid: string;
+  name: string;
+  createdAt: firebase.firestore.Timestamp;
+  studentCount: number;
+  settings: WorkspaceSettings;
+}
+
+// Subcollections under CFIWorkspace
 interface StudyArea {
   id: string;
-  cfiId: string;
   name: string;
   order: number;
+  itemCount: number;
+  createdAt: firebase.firestore.Timestamp;
 }
 
 interface StudyItem {
@@ -171,106 +185,215 @@ interface StudyItem {
   type: 'GROUND' | 'FLIGHT' | 'BOTH';
   description: string;
   evaluationCriteria: string;
-  acsMapping: ACSMapping[];
+  acsCodeMappings: string[]; // Array of ACS codes
+  referenceMaterials: ReferenceMaterial[];
+  createdAt: firebase.firestore.Timestamp;
 }
 
-interface StudentProgress {
+interface LessonTemplate {
   id: string;
-  studentId: string;
-  itemId: string;
-  score: number | GroundStatus;
-  lessonId?: string;
-  notes: string;
-  createdAt: Date;
+  title: string;
+  motivation: string;
+  objectives: string[];
+  itemIds: string[]; // References to study items
+  preStudyMaterials: string[];
+  estimatedDuration: {
+    ground: number; // minutes
+    flight: number; // hours
+  };
+  createdAt: firebase.firestore.Timestamp;
 }
 
+interface Student {
+  uid: string; // Same as User uid
+  enrollmentDate: firebase.firestore.Timestamp;
+  status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED';
+  currentCertificate: 'PRIVATE' | 'INSTRUMENT' | 'COMMERCIAL';
+}
+
+// Separate collection for progress (better query performance)
+interface Progress {
+  id: string;
+  studentUid: string;
+  cfiWorkspaceId: string;
+  itemId: string;
+  score: number | 'NOT_TAUGHT' | 'NEEDS_REINFORCEMENT' | 'LEARNED';
+  scoreType: 'GROUND' | 'FLIGHT';
+  lessonId?: string;
+  notes?: string;
+  createdAt: firebase.firestore.Timestamp;
+  createdBy: string; // CFI uid
+}
+
+// Separate collection for lessons
 interface Lesson {
   id: string;
+  cfiWorkspaceId: string;
+  studentUid: string;
   templateId?: string;
-  studentId: string;
-  cfiId: string;
-  scheduledDate: Date;
-  completedDate?: Date;
+  scheduledDate: firebase.firestore.Timestamp;
+  completedDate?: firebase.firestore.Timestamp;
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+  plannedRoute?: string;
+  actualRoute?: string;
+  weatherNotes?: string;
+  aircraft?: string;
+  preNotes?: string;
+  postNotes?: string;
   items: LessonItem[];
+  createdAt: firebase.firestore.Timestamp;
+}
+
+interface LessonItem {
+  itemId: string;
+  planned: boolean;
+  completed: boolean;
+  score?: number | string;
+  notes?: string;
+}
+
+// Global ACS collection (shared across all users)
+interface ACSElement {
+  id: string; // e.g., "PA.I.A.K1"
+  certificate: 'PA' | 'IR' | 'CA';
+  area: string;
+  areaNumber: string;
+  task: string;
+  taskLetter: string;
+  elementType: 'K' | 'R' | 'S';
+  elementNumber: number;
+  description: string;
+  aircraftClass?: string[];
 }
 ```
 
-### Database Design Principles
-- Normalize to 3NF for consistency
-- Use JSON columns for flexible fields
-- Index foreign keys and frequently queried fields
-- Implement soft deletes for audit trail
+### Firestore Design Principles
+- Denormalize for read performance
+- Use subcollections for 1-to-many relationships
+- Aggregate counts in parent documents
+- Optimize for common query patterns
+- Use composite indexes for complex queries
 
-## API Design
+## Cloud Functions Design
 
-### RESTful Endpoints
+### Function Groups
+```typescript
+// Authentication triggers
+export const onUserCreated = functions.auth.user().onCreate(async (user) => {
+  // Create user document in Firestore
+  // Set up initial workspace for CFIs
+});
+
+// CFI Operations
+export const inviteStudent = functions.https.onCall(async (data, context) => {
+  // Send invitation email
+  // Create pending enrollment
+});
+
+export const createStudyArea = functions.https.onCall(async (data, context) => {
+  // Validate CFI ownership
+  // Create area with proper ordering
+});
+
+// Student Operations
+export const acceptInvitation = functions.https.onCall(async (data, context) => {
+  // Validate invitation token
+  // Create student enrollment
+});
+
+// Progress Tracking
+export const recordProgress = functions.https.onCall(async (data, context) => {
+  // Validate CFI permission
+  // Record score with history
+  // Update aggregations
+});
+
+// Scheduled Functions
+export const sendLessonReminders = functions.pubsub
+  .schedule('every day 09:00')
+  .onRun(async (context) => {
+    // Send reminder emails for upcoming lessons
+  });
+
+// Firestore Triggers
+export const onProgressCreated = functions.firestore
+  .document('progress/{progressId}')
+  .onCreate(async (snap, context) => {
+    // Update student progress aggregations
+    // Check for milestone achievements
+  });
 ```
-Authentication:
-POST   /api/auth/register
-POST   /api/auth/login
-POST   /api/auth/refresh
-POST   /api/auth/logout
 
-CFI Operations:
-GET    /api/cfi/students
-POST   /api/cfi/students/invite
-GET    /api/cfi/study-areas
-POST   /api/cfi/study-areas
-PUT    /api/cfi/study-areas/:id
-DELETE /api/cfi/study-areas/:id
+### Direct Firestore Access
+Instead of REST endpoints, the frontend will use Firestore SDK for:
+- Real-time data subscriptions
+- Offline support
+- Optimistic updates
+- Automatic caching
 
-Student Operations:  
-GET    /api/student/dashboard
-GET    /api/student/progress
-GET    /api/student/lessons
-GET    /api/student/study-items
-
-Lessons:
-GET    /api/lessons/templates
-POST   /api/lessons/templates
-GET    /api/lessons/actual
-POST   /api/lessons/actual
-PUT    /api/lessons/actual/:id/complete
-
-Progress:
-POST   /api/progress/score
-GET    /api/progress/history/:itemId
-GET    /api/progress/analytics
-
-ACS:
-GET    /api/acs/certificates
-GET    /api/acs/search
-POST   /api/acs/map-item
-GET    /api/acs/coverage/:studentId
-```
-
-### WebSocket Events
-```
-// Real-time updates
-socket.on('progress:updated', (data) => {})
-socket.on('lesson:scheduled', (data) => {})
-socket.on('material:added', (data) => {})
+Example:
+```typescript
+// Subscribe to student's progress
+const unsubscribe = firestore
+  .collection('progress')
+  .where('studentUid', '==', studentUid)
+  .where('cfiWorkspaceId', '==', workspaceId)
+  .onSnapshot((snapshot) => {
+    // Update UI with real-time changes
+  });
 ```
 
 ## Security Architecture
 
-### Authentication Flow
-1. User submits credentials
-2. Server validates and generates JWT + refresh token
-3. JWT stored in httpOnly cookie
-4. Refresh token used to generate new JWT when expired
+### Firebase Authentication
+1. User signs in with email/password
+2. Firebase Auth handles token management
+3. Custom claims set for role (CFI/STUDENT)
+4. Automatic token refresh
 
-### Authorization
-- Role-based access control (RBAC)
-- Resource-level permissions
-- CFI workspace isolation
-- API rate limiting per user
+### Firestore Security Rules
+```javascript
+// Example security rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read their own profile
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Only through Cloud Functions
+    }
+    
+    // CFI workspace access
+    match /workspaces/{workspaceId} {
+      allow read: if request.auth != null && 
+        (resource.data.cfiUid == request.auth.uid ||
+         exists(/databases/$(database)/documents/workspaces/$(workspaceId)/students/$(request.auth.uid)));
+      
+      // Study items subcollection
+      match /studyItems/{itemId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && 
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
+      }
+    }
+    
+    // Progress records
+    match /progress/{progressId} {
+      allow read: if request.auth != null && 
+        (resource.data.studentUid == request.auth.uid ||
+         resource.data.createdBy == request.auth.uid);
+      allow create: if request.auth != null && 
+        request.auth.token.role == 'CFI';
+    }
+  }
+}
+```
 
 ### Data Protection
-- All traffic over HTTPS
-- Encryption at rest for sensitive data
-- Input validation and sanitization
-- SQL injection prevention via parameterized queries
+- HTTPS enforced by Firebase
+- Encryption at rest automatic
+- Input validation in Cloud Functions
+- Firestore rules prevent unauthorized access
 
 ## Performance Optimization
 
@@ -296,36 +419,63 @@ socket.on('material:added', (data) => {})
 ## Deployment Architecture
 
 ### Development
-- Local Docker Compose setup
-- Hot reloading for frontend/backend
-- Seeded test data
+- Firebase Local Emulator Suite
+- Hot reloading with Vite
+- Emulated Auth, Firestore, Functions, Storage
 
 ### Production
-- Frontend: S3 + CloudFront
-- Backend: EC2 with load balancer
-- Database: RDS PostgreSQL
-- Auto-scaling groups
+- Frontend: Firebase Hosting (global CDN)
+- Functions: Automatic scaling
+- Database: Cloud Firestore (multi-region)
+- Storage: Firebase Storage with CDN
+
+### CI/CD
+```bash
+# Deploy everything
+firebase deploy
+
+# Deploy specific services
+firebase deploy --only hosting
+firebase deploy --only functions
+firebase deploy --only firestore:rules
+```
 
 ## Monitoring & Observability
 
 ### Application Monitoring
-- DataDog APM for performance
-- Sentry for error tracking
-- Custom CloudWatch metrics
+- Firebase Performance Monitoring
+- Firebase Crashlytics
+- Firebase Analytics
 
 ### Infrastructure Monitoring
-- AWS CloudWatch for resources
-- Uptime monitoring
-- Database performance insights
+- Firebase Console dashboards
+- Cloud Monitoring for Functions
+- Firestore usage metrics
+
+## Cost Optimization
+
+### Firebase Pricing Considerations
+- **Firestore**: Document reads/writes/deletes
+- **Storage**: Storage size and bandwidth
+- **Functions**: Invocations and compute time
+- **Auth**: Monthly active users
+
+### Optimization Strategies
+- Aggregate data to reduce reads
+- Use Firestore bundles for static data
+- Enable offline persistence
+- Implement proper caching
+- Use Cloud CDN for Storage files
 
 ## Future Scalability
 
-### Microservices Migration Path
-- Services already loosely coupled
-- Can extract to separate deployments
-- Message queue ready (SQS/RabbitMQ)
+### Regional Expansion
+- Multi-region Firestore replication
+- Regional Cloud Functions deployment
+- Localized content delivery
 
-### Multi-tenancy Enhancements
-- Partition by CFI workspace
-- Separate database schemas
+### Enterprise Features
 - Custom domains per flight school
+- SAML/SSO integration
+- Advanced analytics
+- API for third-party integrations

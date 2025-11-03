@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isCFI() {
+      return isSignedIn() && request.auth.token.role == 'CFI';
+    }
+    
+    function isStudent() {
+      return isSignedIn() && request.auth.token.role == 'STUDENT';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Only through Cloud Functions
+    }
+    
+    // CFI Workspaces
+    match /workspaces/{workspaceId} {
+      allow read: if isSignedIn() && (
+        resource.data.cfiUid == request.auth.uid ||
+        exists(/databases/$(database)/documents/workspaces/$(workspaceId)/students/$(request.auth.uid))
+      );
+      allow create: if isCFI() && request.auth.uid == request.resource.data.cfiUid;
+      allow update: if isCFI() && resource.data.cfiUid == request.auth.uid;
+      allow delete: if false;
+      
+      // Study Areas subcollection
+      match /studyAreas/{areaId} {
+        allow read: if isSignedIn();
+        allow write: if isCFI() && 
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
+      }
+      
+      // Study Items subcollection
+      match /studyItems/{itemId} {
+        allow read: if isSignedIn();
+        allow write: if isCFI() && 
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
+      }
+      
+      // Lesson Templates subcollection
+      match /lessonTemplates/{templateId} {
+        allow read: if isSignedIn();
+        allow write: if isCFI() && 
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
+      }
+      
+      // Students subcollection
+      match /students/{studentId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid ||
+          request.auth.uid == studentId
+        );
+        allow write: if isCFI() && 
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
+      }
+    }
+    
+    // Progress collection (separate for better querying)
+    match /progress/{progressId} {
+      allow read: if isSignedIn() && (
+        resource.data.studentUid == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        (isCFI() && exists(/databases/$(database)/documents/workspaces/$(resource.data.cfiWorkspaceId)/students/$(resource.data.studentUid)))
+      );
+      allow create: if isCFI();
+      allow update: if isCFI() && resource.data.createdBy == request.auth.uid;
+      allow delete: if false;
+    }
+    
+    // Lessons collection
+    match /lessons/{lessonId} {
+      allow read: if isSignedIn() && (
+        resource.data.studentUid == request.auth.uid ||
+        (isCFI() && exists(/databases/$(database)/documents/workspaces/$(resource.data.cfiWorkspaceId)))
+      );
+      allow write: if isCFI() && 
+        exists(/databases/$(database)/documents/workspaces/$(request.resource.data.cfiWorkspaceId));
+    }
+    
+    // ACS Elements (read-only, populated by admin)
+    match /acsElements/{elementId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+  }
+}

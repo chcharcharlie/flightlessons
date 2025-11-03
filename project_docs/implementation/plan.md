@@ -1,46 +1,47 @@
 # Implementation Plan
 
-## Phase 1: Foundation (Infrastructure & Authentication)
+## Phase 1: Foundation (Firebase Setup & Authentication)
 
 ### Task 1.1: Project Setup
-- Description: Initialize monorepo with frontend and backend projects, configure TypeScript, ESLint, and basic tooling
+- Description: Initialize project with Vite + React + TypeScript, configure Firebase SDK, set up folder structure
 - Dependencies: None
 - Estimated time: 20 min
 - Acceptance criteria:
-  - Monorepo structure created with /frontend and /backend
-  - TypeScript configured for both projects  
-  - Linting and formatting tools configured
-  - Git hooks for code quality
+  - Vite project with React 18 and TypeScript
+  - Firebase SDK installed and configured
+  - Folder structure for features
+  - ESLint and Prettier configured
 
-### Task 1.2: Database Setup
-- Description: Set up PostgreSQL with Docker, create Prisma schema for core entities (User, StudyArea, StudyItem, etc.)
+### Task 1.2: Firebase Project Setup
+- Description: Create Firebase project, enable services (Auth, Firestore, Functions, Storage, Hosting), set up local emulators
 - Dependencies: [1.1]
 - Estimated time: 25 min
 - Acceptance criteria:
-  - Docker Compose with PostgreSQL and Redis
-  - Prisma schema matching data models
-  - Migration scripts created
-  - Seed data for testing
+  - Firebase project created in console
+  - All required services enabled
+  - Firebase CLI configured locally
+  - Emulator suite running
 
-### Task 1.3: Authentication Backend
-- Description: Implement JWT-based authentication with register, login, refresh token, and logout endpoints
+### Task 1.3: Authentication Implementation
+- Description: Implement Firebase Auth with email/password, create auth context, protected routes
 - Dependencies: [1.2]
 - Estimated time: 30 min
 - Acceptance criteria:
-  - User registration with email validation
-  - Secure login with JWT generation
-  - Refresh token mechanism
-  - Password hashing with bcrypt
+  - Sign up with email/password
+  - Sign in/out functionality
+  - Auth state persistence
+  - Protected route wrapper
+  - Custom claims for CFI/Student roles
 
-### Task 1.4: Frontend Auth Flow
-- Description: Create login/register pages with React, integrate with auth API, implement protected routes
+### Task 1.4: User Profile Setup
+- Description: Create Cloud Function for user creation trigger, set up Firestore user documents and CFI workspaces
 - Dependencies: [1.3]
 - Estimated time: 25 min
 - Acceptance criteria:
-  - Login and registration forms with validation
-  - JWT storage and management
-  - Protected route wrapper
-  - Logout functionality
+  - Cloud Function creates user doc on signup
+  - CFI workspace created for CFI users
+  - Role-based UI routing
+  - Profile management UI
 
 ### Task 1.5: Base UI Components
 - Description: Set up Tailwind CSS and create reusable components (Button, Input, Card, Modal) per design system
@@ -54,55 +55,55 @@
 
 ## Phase 2: Core Features - Study Management
 
-### Task 2.1: Study Area API
-- Description: Create CRUD endpoints for study areas with CFI workspace isolation
-- Dependencies: [1.3]
+### Task 2.1: Firestore Data Layer
+- Description: Create Firestore service layer with hooks for study areas and items, implement real-time subscriptions
+- Dependencies: [1.4]
 - Estimated time: 20 min
 - Acceptance criteria:
-  - Create, read, update, delete areas
-  - Automatic CFI association
-  - Ordering support
-  - Validation middleware
+  - Study area CRUD with real-time updates
+  - Study item CRUD with ordering
+  - Optimistic UI updates
+  - Error handling
 
-### Task 2.2: Study Item API
-- Description: Implement study item CRUD with ACS mapping support and type categorization
+### Task 2.2: Study Area Management
+- Description: Build study area UI with create, edit, delete, and reorder functionality
 - Dependencies: [2.1]
 - Estimated time: 25 min
 - Acceptance criteria:
-  - Full CRUD for study items
-  - Ground/Flight/Both categorization
-  - Many-to-many ACS mappings
-  - Reference material attachments
+  - Tree view of areas
+  - Add/edit/delete areas
+  - Drag-drop reordering
+  - Item count badges
 
-### Task 2.3: Study Management UI
-- Description: Build the study item management interface with tree view, drag-drop, and editing modals
-- Dependencies: [2.1, 2.2]
-- Estimated time: 35 min
+### Task 2.3: Study Item Management
+- Description: Implement study item UI with full CRUD, type selection, and evaluation criteria
+- Dependencies: [2.2]
+- Estimated time: 30 min
 - Acceptance criteria:
-  - Hierarchical tree view
-  - Drag and drop reordering
-  - Create/edit modals
-  - Search and filter functionality
+  - Item list with filtering
+  - Create/edit modal
+  - Type categorization (Ground/Flight/Both)
+  - Evaluation criteria editor
 
-### Task 2.4: ACS Database Import
-- Description: Import ACS data from analyzed PDFs, create database structure for certificates/areas/tasks/elements
+### Task 2.4: ACS Data Import
+- Description: Create Cloud Function to import ACS data, build Firestore collection with all elements
 - Dependencies: [1.2]
 - Estimated time: 25 min
 - Acceptance criteria:
-  - All 2,943+ ACS elements imported
-  - Hierarchical structure preserved
-  - Searchable interface
-  - Version tracking
+  - Parse and import 2,943+ ACS elements
+  - Hierarchical structure in Firestore
+  - Efficient querying structure
+  - Admin function to update ACS data
 
-### Task 2.5: ACS Mapping UI
-- Description: Create the ACS selector component for mapping study items to ACS requirements
+### Task 2.5: ACS Mapping Interface
+- Description: Build ACS selector component for mapping study items to requirements
 - Dependencies: [2.4, 2.3]
 - Estimated time: 20 min
 - Acceptance criteria:
-  - Hierarchical ACS browser
-  - Multi-select capability
-  - Search/filter by code or text
-  - Visual mapping indicators
+  - Searchable ACS browser
+  - Multi-select with checkboxes
+  - Filter by certificate/area/task
+  - Save mappings to study items
 
 ## Phase 3: Student Management & Progress Tracking
 
