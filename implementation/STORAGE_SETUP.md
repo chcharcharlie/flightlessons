@@ -1,6 +1,10 @@
-# Firebase Storage Setup
+# Firebase Storage Setup - RESOLVED
 
-Since Firebase Storage rules deployment is failing, you need to set up Storage in the Firebase Console first:
+The storage rules deployment error was due to incorrect syntax. Use:
+- ✅ `firebase deploy --only storage`
+- ❌ `firebase deploy --only storage:rules`
+
+## If Storage is Not Yet Enabled
 
 1. **Go to Firebase Console**: https://console.firebase.google.com/project/flightlessons-8b9bd/storage
 2. **Click "Get Started"** if Storage hasn't been activated yet

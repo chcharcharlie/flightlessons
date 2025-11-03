@@ -70,8 +70,10 @@ Since you're using live Firebase, you need to deploy the security rules and Clou
 4. **Deploy Security Rules**:
    ```bash
    firebase deploy --only firestore:rules --account ccehshmily@gmail.com
-   firebase deploy --only storage:rules --account ccehshmily@gmail.com
+   firebase deploy --only storage --account ccehshmily@gmail.com
    ```
+   
+   Note: For storage, use `--only storage` not `--only storage:rules`
 
 5. **Deploy Cloud Functions**:
    ```bash

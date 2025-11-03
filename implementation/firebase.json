@@ -30,8 +30,7 @@
     ]
   },
   "storage": {
-    "rules": "storage.rules",
-    "bucket": "flightlessons-8b9bd.appspot.com"
+    "rules": "storage.rules"
   },
   "emulators": {
     "auth": {
