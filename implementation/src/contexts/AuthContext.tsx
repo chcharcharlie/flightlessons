@@ -7,7 +7,7 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, addDoc, collection, updateDoc } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
 import { User, UserRole } from '@/types'
 
@@ -77,8 +77,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // Update display name
     await updateProfile(userCredential.user, { displayName })
     
-    // The user document will be created by a Cloud Function trigger
-    // We'll implement this in the functions folder
+    // For now, directly create the user document since Cloud Functions might not be deployed yet
+    // This is temporary until functions are deployed
+    const userDoc = {
+      uid: userCredential.user.uid,
+      email: email,
+      displayName: displayName,
+      role: role,
+      createdAt: new Date(),
+      settings: {
+        notifications: {
+          email: true,
+          lessonReminders: true,
+        },
+      },
+    }
+    
+    await setDoc(doc(db, 'users', userCredential.user.uid), userDoc)
+    
+    // If CFI, create workspace
+    if (role === 'CFI') {
+      const workspaceRef = await addDoc(collection(db, 'workspaces'), {
+        cfiUid: userCredential.user.uid,
+        name: `${displayName}'s Flight School`,
+        createdAt: new Date(),
+        studentCount: 0,
+        settings: {
+          defaultLessonDuration: {
+            ground: 60,
+            flight: 1.5,
+          },
+        },
+      })
+      
+      await updateDoc(doc(db, 'users', userCredential.user.uid), {
+        cfiWorkspaceId: workspaceRef.id,
+      })
+    }
   }
 
   const signIn = async (email: string, password: string) => {

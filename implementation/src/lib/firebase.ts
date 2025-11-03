@@ -29,11 +29,10 @@ export const storage = getStorage(app)
 // Initialize Analytics (only in production)
 export const analytics = import.meta.env.PROD ? getAnalytics(app) : null
 
-// Enable emulators in development
-if (import.meta.env.DEV) {
-  // Uncomment these lines when you have emulators running
-  // connectAuthEmulator(auth, 'http://localhost:9099')
-  // connectFirestoreEmulator(db, 'localhost', 8080)
-  // connectFunctionsEmulator(functions, 'localhost', 5001)
-  // connectStorageEmulator(storage, 'localhost', 9199)
-}
+// Enable emulators in development (commented out - using live Firebase)
+// if (import.meta.env.DEV) {
+//   connectAuthEmulator(auth, 'http://localhost:9099')
+//   connectFirestoreEmulator(db, 'localhost', 8080)
+//   connectFunctionsEmulator(functions, 'localhost', 5001)
+//   connectStorageEmulator(storage, 'localhost', 9199)
+// }

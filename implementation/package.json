@@ -7,6 +7,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "emulators": "firebase emulators:start",
+    "deploy:rules": "firebase deploy --only firestore:rules,storage:rules",
+    "deploy:functions": "firebase deploy --only functions",
     "deploy": "npm run build && firebase deploy",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
