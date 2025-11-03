@@ -120,15 +120,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
               localStorage.removeItem(`pending_role_${firebaseUser.uid}`)
             } catch (error) {
-              console.error('Error creating Firestore documents:', error)
               // Sign out to reset state
               await signOut(auth)
               setUser(null)
             }
           } else {
-            console.warn(
-              'User exists in Auth but not in Firestore and no pending role. Signing out.'
-            )
+            // User exists in Auth but not in Firestore and no pending role. Sign out.
             await signOut(auth)
             setUser(null)
           }

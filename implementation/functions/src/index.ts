@@ -33,9 +33,9 @@ export const onUserCreated = beforeUserCreated(async (event) => {
       },
     });
     
-    console.log(`Created user document for ${uid}`);
+    // User document created successfully
   } catch (error) {
-    console.error('Error creating user document:', error);
+    throw error;
   }
 });
 
@@ -82,7 +82,7 @@ export const setUserRole = onCall(async (request) => {
     
     return { success: true };
   } catch (error) {
-    console.error('Error setting user role:', error);
+    // Error setting user role
     throw new HttpsError('internal', 'Failed to set user role');
   }
 });
@@ -118,7 +118,7 @@ export const inviteStudent = onCall(async (request) => {
     
     return { success: true };
   } catch (error) {
-    console.error('Error inviting student:', error);
+    // Error inviting student
     throw new HttpsError('internal', 'Failed to invite student');
   }
 });
@@ -159,7 +159,7 @@ export const recordProgress = onCall(async (request) => {
     
     return { success: true, progressId: progressRef.id };
   } catch (error) {
-    console.error('Error recording progress:', error);
+    // Error recording progress
     throw new HttpsError('internal', 'Failed to record progress');
   }
 });
@@ -172,5 +172,5 @@ export const onProgressCreated = onDocumentCreated('progress/{progressId}', asyn
     // TODO: Check for milestone achievements
     // TODO: Send notifications if needed
     
-    console.log('Progress recorded:', progress);
+    // Progress recorded
   });
