@@ -1,0 +1,4943 @@
+{
+  "private": {
+    "certificate": "private",
+    "prefix": "PA",
+    "total_pages": 87,
+    "areas": [
+      {
+        "number": "I",
+        "name": "Preflight Preparation",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Pilot Qualifications  ......................................................................................................................... 2",
+            "elements": {
+              "K": [
+                "PA.I.A.K1",
+                "PA.I.A.K2",
+                "PA.I.A.K3",
+                "PA.I.A.K4",
+                "PA.I.A.K5"
+              ],
+              "R": [
+                "PA.I.A.R1",
+                "PA.I.A.R2"
+              ],
+              "S": [
+                "PA.I.A.S1"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Airworthiness Requirements  .......................................................................................................... 2",
+            "elements": {
+              "K": [
+                "PA.I.B.K1e",
+                "PA.I.B.K4",
+                "PA.I.B.K1",
+                "PA.I.B.K1a",
+                "PA.I.B.K1b",
+                "PA.I.B.K1c",
+                "PA.I.B.K1d",
+                "PA.I.B.K1e",
+                "PA.I.B.K2",
+                "PA.I.B.K3",
+                "PA.I.B.K3a",
+                "PA.I.B.K3b",
+                "PA.I.B.K3c",
+                "PA.I.B.K3d",
+                "PA.I.B.K4"
+              ],
+              "R": [
+                "PA.I.B.R1"
+              ],
+              "S": [
+                "PA.I.B.S1",
+                "PA.I.B.S2",
+                "PA.I.B.S3"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Weather Information  ...................................................................................................................... 3",
+            "elements": {
+              "K": [
+                "PA.I.C.K2a",
+                "PA.I.C.K2b",
+                "PA.I.C.K2c",
+                "PA.I.C.K2d",
+                "PA.I.C.K2e",
+                "PA.I.C.K2f",
+                "PA.I.C.K2g",
+                "PA.I.C.K1",
+                "PA.I.C.K2",
+                "PA.I.C.K2a",
+                "PA.I.C.K2b",
+                "PA.I.C.K2c",
+                "PA.I.C.K2d",
+                "PA.I.C.K2e",
+                "PA.I.C.K2f",
+                "PA.I.C.K2g",
+                "PA.I.C.K3",
+                "PA.I.C.K3a",
+                "PA.I.C.K3b",
+                "PA.I.C.K3c",
+                "PA.I.C.K3d",
+                "PA.I.C.K3e",
+                "PA.I.C.K3f",
+                "PA.I.C.K3g",
+                "PA.I.C.K3h",
+                "PA.I.C.K3i",
+                "PA.I.C.K3j",
+                "PA.I.C.K3k",
+                "PA.I.C.K3l",
+                "PA.I.C.K4",
+                "PA.I.C.K2",
+                "PA.I.C.K2"
+              ],
+              "R": [
+                "PA.I.C.R1",
+                "PA.I.C.R1a",
+                "PA.I.C.R1b",
+                "PA.I.C.R1c",
+                "PA.I.C.R2",
+                "PA.I.C.R2a",
+                "PA.I.C.R2b",
+                "PA.I.C.R2c"
+              ],
+              "S": [
+                "PA.I.C.S1",
+                "PA.I.C.S2",
+                "PA.I.C.S3"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Cross-Country Flight Planning  ....................................................................................................... 4",
+            "elements": {
+              "K": [
+                "PA.I.D.K1a",
+                "PA.I.D.K1",
+                "PA.I.D.K1a",
+                "PA.I.D.K2",
+                "PA.I.D.K3",
+                "PA.I.D.K3a",
+                "PA.I.D.K3b",
+                "PA.I.D.K3c",
+                "PA.I.D.K4",
+                "PA.I.D.K5",
+                "PA.I.D.K6"
+              ],
+              "R": [
+                "PA.I.D.R7",
+                "PA.I.D.R1",
+                "PA.I.D.R2",
+                "PA.I.D.R3",
+                "PA.I.D.R4",
+                "PA.I.D.R5",
+                "PA.I.D.R6",
+                "PA.I.D.R7"
+              ],
+              "S": [
+                "PA.I.D.S5",
+                "PA.I.D.S1",
+                "PA.I.D.S2",
+                "PA.I.D.S3",
+                "PA.I.D.S4",
+                "PA.I.D.S5"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "National Airspace System  .............................................................................................................. 5",
+            "elements": {
+              "K": [
+                "PA.I.E.K4",
+                "PA.I.E.K1",
+                "PA.I.E.K2",
+                "PA.I.E.K3",
+                "PA.I.E.K4"
+              ],
+              "R": [
+                "PA.I.E.R1"
+              ],
+              "S": [
+                "PA.I.E.S1",
+                "PA.I.E.S2",
+                "PA.I.E.S3"
+              ]
+            }
+          },
+          {
+            "letter": "F",
+            "name": "Performance and Limitations  .......................................................................................................... 6",
+            "elements": {
+              "K": [
+                "PA.I.F.K1",
+                "PA.I.F.K2",
+                "PA.I.F.K2a",
+                "PA.I.F.K2b",
+                "PA.I.F.K2c",
+                "PA.I.F.K2d",
+                "PA.I.F.K2e",
+                "PA.I.F.K2f",
+                "PA.I.F.K3"
+              ],
+              "R": [
+                "PA.I.F.R1",
+                "PA.I.F.R2",
+                "PA.I.F.R3"
+              ],
+              "S": [
+                "PA.I.F.S1",
+                "PA.I.F.S2"
+              ]
+            }
+          },
+          {
+            "letter": "G",
+            "name": "Operation of Systems  .................................................................................................................... 7",
+            "elements": {
+              "K": [
+                "PA.I.G.K1",
+                "PA.I.G.K1a",
+                "PA.I.G.K1b",
+                "PA.I.G.K1c",
+                "PA.I.G.K1d",
+                "PA.I.G.K1e",
+                "PA.I.G.K1f",
+                "PA.I.G.K1g",
+                "PA.I.G.K1h",
+                "PA.I.G.K1i",
+                "PA.I.G.K1j",
+                "PA.I.G.K1k",
+                "PA.I.G.K1l",
+                "PA.I.G.K2"
+              ],
+              "R": [
+                "PA.I.G.R1",
+                "PA.I.G.R2",
+                "PA.I.G.R3"
+              ],
+              "S": [
+                "PA.I.G.S1",
+                "PA.I.G.S2"
+              ]
+            }
+          },
+          {
+            "letter": "H",
+            "name": "Human Factors  .............................................................................................................................. 8",
+            "elements": {
+              "K": [
+                "PA.I.H.K1",
+                "PA.I.H.K1a",
+                "PA.I.H.K1b",
+                "PA.I.H.K1c",
+                "PA.I.H.K1d",
+                "PA.I.H.K1e",
+                "PA.I.H.K1f",
+                "PA.I.H.K1g",
+                "PA.I.H.K1h",
+                "PA.I.H.K1i",
+                "PA.I.H.K1j",
+                "PA.I.H.K1k",
+                "PA.I.H.K1l",
+                "PA.I.H.K2",
+                "PA.I.H.K3",
+                "PA.I.H.K4",
+                "PA.I.H.K1",
+                "PA.I.H.K1e"
+              ],
+              "R": [
+                "PA.I.H.R4",
+                "PA.I.H.R1",
+                "PA.I.H.R2",
+                "PA.I.H.R3",
+                "PA.I.H.R4"
+              ],
+              "S": [
+                "PA.I.H.S1",
+                "PA.I.H.S2"
+              ]
+            }
+          },
+          {
+            "letter": "I",
+            "name": "Water and Seaplane Characteristics, Seaplane Bases, Maritime Rules, and Aids to Marine",
+            "elements": {
+              "K": [
+                "PA.I.I.K1i",
+                "PA.I.I.K8",
+                "PA.I.I.K9",
+                "PA.I.I.K1",
+                "PA.I.I.K1a",
+                "PA.I.I.K1b",
+                "PA.I.I.K1c",
+                "PA.I.I.K1d",
+                "PA.I.I.K1e",
+                "PA.I.I.K1f",
+                "PA.I.I.K1g",
+                "PA.I.I.K1h",
+                "PA.I.I.K1i",
+                "PA.I.I.K2",
+                "PA.I.I.K3",
+                "PA.I.I.K4",
+                "PA.I.I.K5",
+                "PA.I.I.K6",
+                "PA.I.I.K7",
+                "PA.I.I.K8",
+                "PA.I.I.K9"
+              ],
+              "R": [
+                "PA.I.I.R3",
+                "PA.I.I.R4",
+                "PA.I.I.R1",
+                "PA.I.I.R2",
+                "PA.I.I.R3",
+                "PA.I.I.R4"
+              ],
+              "S": [
+                "PA.I.I.S5",
+                "PA.I.I.S6",
+                "PA.I.I.S1",
+                "PA.I.I.S2",
+                "PA.I.I.S3",
+                "PA.I.I.S4",
+                "PA.I.I.S5",
+                "PA.I.I.S6"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "II",
+        "name": "Preflight Procedures",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Preflight Assessment  ................................................................................................................... 11",
+            "elements": {
+              "K": [
+                "PA.II.A.K1",
+                "PA.II.A.K2",
+                "PA.II.A.K3",
+                "PA.II.A.K3a",
+                "PA.II.A.K3b",
+                "PA.II.A.K3c",
+                "PA.II.A.K3d",
+                "PA.II.A.K4"
+              ],
+              "R": [
+                "PA.II.A.R1",
+                "PA.II.A.R2",
+                "PA.II.A.R3",
+                "PA.II.A.R4",
+                "PA.II.A.R5"
+              ],
+              "S": [
+                "PA.II.A.S3",
+                "PA.II.A.S4",
+                "PA.II.A.S1",
+                "PA.II.A.S2",
+                "PA.II.A.S3",
+                "PA.II.A.S4"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Flight Deck Management  ............................................................................................................. 11",
+            "elements": {
+              "K": [
+                "PA.II.B.K4",
+                "PA.II.B.K1",
+                "PA.II.B.K2",
+                "PA.II.B.K3",
+                "PA.II.B.K4"
+              ],
+              "R": [
+                "PA.II.B.R3",
+                "PA.II.B.R1",
+                "PA.II.B.R2",
+                "PA.II.B.R3"
+              ],
+              "S": [
+                "PA.II.B.S4",
+                "PA.II.B.S1",
+                "PA.II.B.S2",
+                "PA.II.B.S3",
+                "PA.II.B.S4"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Engine Starting  ............................................................................................................................ 12",
+            "elements": {
+              "K": [
+                "PA.II.C.K4",
+                "PA.II.C.K1",
+                "PA.II.C.K2",
+                "PA.II.C.K3",
+                "PA.II.C.K4"
+              ],
+              "R": [
+                "PA.II.C.R1"
+              ],
+              "S": [
+                "PA.II.C.S1",
+                "PA.II.C.S2"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Taxiing (ASEL, AMEL)  ................................................................................................................. 13",
+            "elements": {
+              "K": [
+                "PA.II.D.K1",
+                "PA.II.D.K2",
+                "PA.II.D.K3",
+                "PA.II.D.K4",
+                "PA.II.D.K5",
+                "PA.II.D.K6",
+                "PA.II.D.K6a",
+                "PA.II.D.K6b",
+                "PA.II.D.K6c",
+                "PA.II.D.K6d",
+                "PA.II.D.K6e"
+              ],
+              "R": [
+                "PA.II.D.R4",
+                "PA.II.D.R1",
+                "PA.II.D.R2",
+                "PA.II.D.R3",
+                "PA.II.D.R4"
+              ],
+              "S": [
+                "PA.II.D.S1",
+                "PA.II.D.S2",
+                "PA.II.D.S3",
+                "PA.II.D.S4",
+                "PA.II.D.S5",
+                "PA.II.D.S6",
+                "PA.II.D.S7",
+                "PA.II.D.S8"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Taxiing and Sailing (ASES, AMES)  .............................................................................................. 14",
+            "elements": {
+              "K": [
+                "PA.II.E.K1",
+                "PA.II.E.K2",
+                "PA.II.E.K3",
+                "PA.II.E.K4",
+                "PA.II.E.K5",
+                "PA.II.E.K6",
+                "PA.II.E.K6a",
+                "PA.II.E.K6b"
+              ],
+              "R": [
+                "PA.II.E.R5",
+                "PA.II.E.R1",
+                "PA.II.E.R2",
+                "PA.II.E.R3",
+                "PA.II.E.R4",
+                "PA.II.E.R5"
+              ],
+              "S": [
+                "PA.II.E.S1",
+                "PA.II.E.S2",
+                "PA.II.E.S3",
+                "PA.II.E.S4",
+                "PA.II.E.S5",
+                "PA.II.E.S6",
+                "PA.II.E.S7",
+                "PA.II.E.S8",
+                "PA.II.E.S9",
+                "PA.II.E.S10"
+              ]
+            }
+          },
+          {
+            "letter": "F",
+            "name": "Before Takeoff Check  ................................................................................................................... 15",
+            "elements": {
+              "K": [
+                "PA.II.F.K1",
+                "PA.II.F.K1a",
+                "PA.II.F.K1b",
+                "PA.II.F.K1c"
+              ],
+              "R": [
+                "PA.II.F.R1",
+                "PA.II.F.R2",
+                "PA.II.F.R3",
+                "PA.II.F.R4"
+              ],
+              "S": [
+                "PA.II.F.S1",
+                "PA.II.F.S2",
+                "PA.II.F.S3",
+                "PA.II.F.S4",
+                "PA.II.F.S5"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "III",
+        "name": "Airport and Seaplane Base Operations",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Communications, Light Signals, and Runway Lighting Systems  ................................................. 16",
+            "elements": {
+              "K": [
+                "PA.III.A.K1",
+                "PA.III.A.K2",
+                "PA.III.A.K3",
+                "PA.III.A.K4",
+                "PA.III.A.K5",
+                "PA.III.A.K6",
+                "PA.III.A.K7",
+                "PA.III.A.K8",
+                "PA.III.A.K9"
+              ],
+              "R": [
+                "PA.III.A.R3",
+                "PA.III.A.R4",
+                "PA.III.A.R1",
+                "PA.III.A.R2",
+                "PA.III.A.R3",
+                "PA.III.A.R4"
+              ],
+              "S": [
+                "PA.III.A.S1",
+                "PA.III.A.S2",
+                "PA.III.A.S3"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Traffic Patterns  ............................................................................................................................. 16",
+            "elements": {
+              "K": [
+                "PA.III.B.K1",
+                "PA.III.B.K2",
+                "PA.III.B.K3",
+                "PA.III.B.K4"
+              ],
+              "R": [
+                "PA.III.B.R1",
+                "PA.III.B.R2",
+                "PA.III.B.R3"
+              ],
+              "S": [
+                "PA.III.B.S1",
+                "PA.III.B.S2",
+                "PA.III.B.S3",
+                "PA.III.B.S4",
+                "PA.III.B.S5",
+                "PA.III.B.S6"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "IV",
+        "name": "Takeoffs, Landings, and Go-Arounds",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Normal Takeoff and Climb  ............................................................................................................ 18",
+            "elements": {
+              "K": [
+                "PA.IV.A.K1",
+                "PA.IV.A.K2",
+                "PA.IV.A.K3"
+              ],
+              "R": [
+                "PA.IV.A.R7",
+                "PA.IV.A.R1",
+                "PA.IV.A.R2",
+                "PA.IV.A.R2a",
+                "PA.IV.A.R2b",
+                "PA.IV.A.R2c",
+                "PA.IV.A.R2d",
+                "PA.IV.A.R2e",
+                "PA.IV.A.R3",
+                "PA.IV.A.R3a",
+                "PA.IV.A.R3b",
+                "PA.IV.A.R4",
+                "PA.IV.A.R5",
+                "PA.IV.A.R6",
+                "PA.IV.A.R7"
+              ],
+              "S": [
+                "PA.IV.A.S10",
+                "PA.IV.A.S6a",
+                "PA.IV.A.S7a",
+                "PA.IV.A.S1",
+                "PA.IV.A.S2",
+                "PA.IV.A.S3",
+                "PA.IV.A.S4",
+                "PA.IV.A.S5",
+                "PA.IV.A.S6",
+                "PA.IV.A.S6a",
+                "PA.IV.A.S7",
+                "PA.IV.A.S7a",
+                "PA.IV.A.S8",
+                "PA.IV.A.S9",
+                "PA.IV.A.S10",
+                "PA.IV.A.S11",
+                "PA.IV.A.S12",
+                "PA.IV.A.S13",
+                "PA.IV.A.S14",
+                "PA.IV.A.S15"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Normal Approach and Landing  .................................................................................................... 19",
+            "elements": {
+              "K": [
+                "PA.IV.B.K1",
+                "PA.IV.B.K2",
+                "PA.IV.B.K3"
+              ],
+              "R": [
+                "PA.IV.B.R1",
+                "PA.IV.B.R2",
+                "PA.IV.B.R2a",
+                "PA.IV.B.R2b",
+                "PA.IV.B.R2c",
+                "PA.IV.B.R2d",
+                "PA.IV.B.R2e",
+                "PA.IV.B.R3",
+                "PA.IV.B.R3a",
+                "PA.IV.B.R3b",
+                "PA.IV.B.R4",
+                "PA.IV.B.R5",
+                "PA.IV.B.R6"
+              ],
+              "S": [
+                "PA.IV.B.S1",
+                "PA.IV.B.S2",
+                "PA.IV.B.S3",
+                "PA.IV.B.S4",
+                "PA.IV.B.S5",
+                "PA.IV.B.S6",
+                "PA.IV.B.S7",
+                "PA.IV.B.S8",
+                "PA.IV.B.S9",
+                "PA.IV.B.S10",
+                "PA.IV.B.S11",
+                "PA.IV.B.S12"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Soft-Field Takeoff and Climb (ASEL)  ........................................................................................... 20",
+            "elements": {
+              "K": [
+                "PA.IV.C.K1",
+                "PA.IV.C.K2",
+                "PA.IV.C.K3",
+                "PA.IV.C.K4",
+                "PA.IV.C.K5",
+                "PA.IV.C.K6"
+              ],
+              "R": [
+                "PA.IV.C.R1",
+                "PA.IV.C.R2",
+                "PA.IV.C.R2a",
+                "PA.IV.C.R2b",
+                "PA.IV.C.R2c",
+                "PA.IV.C.R2d",
+                "PA.IV.C.R2e",
+                "PA.IV.C.R3",
+                "PA.IV.C.R3a",
+                "PA.IV.C.R3b",
+                "PA.IV.C.R4",
+                "PA.IV.C.R5",
+                "PA.IV.C.R6"
+              ],
+              "S": [
+                "PA.IV.C.S1",
+                "PA.IV.C.S2",
+                "PA.IV.C.S3",
+                "PA.IV.C.S4",
+                "PA.IV.C.S5",
+                "PA.IV.C.S6",
+                "PA.IV.C.S7",
+                "PA.IV.C.S8",
+                "PA.IV.C.S9",
+                "PA.IV.C.S10",
+                "PA.IV.C.S11",
+                "PA.IV.C.S12",
+                "PA.IV.C.S13",
+                "PA.IV.C.S14"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Soft-Field Approach and Landing (ASEL)  .................................................................................... 22",
+            "elements": {
+              "K": [
+                "PA.IV.D.K1",
+                "PA.IV.D.K2",
+                "PA.IV.D.K3"
+              ],
+              "R": [
+                "PA.IV.D.R1",
+                "PA.IV.D.R2",
+                "PA.IV.D.R2a",
+                "PA.IV.D.R2b",
+                "PA.IV.D.R2c",
+                "PA.IV.D.R2d",
+                "PA.IV.D.R2e",
+                "PA.IV.D.R3",
+                "PA.IV.D.R3a",
+                "PA.IV.D.R3b",
+                "PA.IV.D.R4",
+                "PA.IV.D.R5",
+                "PA.IV.D.R6"
+              ],
+              "S": [
+                "PA.IV.D.S1",
+                "PA.IV.D.S2",
+                "PA.IV.D.S3",
+                "PA.IV.D.S4",
+                "PA.IV.D.S5",
+                "PA.IV.D.S6",
+                "PA.IV.D.S7",
+                "PA.IV.D.S8",
+                "PA.IV.D.S9",
+                "PA.IV.D.S10",
+                "PA.IV.D.S11",
+                "PA.IV.D.S12",
+                "PA.IV.D.S13"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Short-Field Takeoff and Maximum Performance Climb (ASEL, AMEL)  ....................................... 23",
+            "elements": {
+              "K": [
+                "PA.IV.E.K1",
+                "PA.IV.E.K2",
+                "PA.IV.E.K3"
+              ],
+              "R": [
+                "PA.IV.E.R1",
+                "PA.IV.E.R2",
+                "PA.IV.E.R2a",
+                "PA.IV.E.R2b",
+                "PA.IV.E.R2c",
+                "PA.IV.E.R2d",
+                "PA.IV.E.R2e",
+                "PA.IV.E.R3",
+                "PA.IV.E.R3a",
+                "PA.IV.E.R3b",
+                "PA.IV.E.R4",
+                "PA.IV.E.R5",
+                "PA.IV.E.R6"
+              ],
+              "S": [
+                "PA.IV.E.S1",
+                "PA.IV.E.S2",
+                "PA.IV.E.S3",
+                "PA.IV.E.S4",
+                "PA.IV.E.S5",
+                "PA.IV.E.S6",
+                "PA.IV.E.S7",
+                "PA.IV.E.S8",
+                "PA.IV.E.S9",
+                "PA.IV.E.S10",
+                "PA.IV.E.S11",
+                "PA.IV.E.S12",
+                "PA.IV.E.S13",
+                "PA.IV.E.S14",
+                "PA.IV.E.S15"
+              ]
+            }
+          },
+          {
+            "letter": "F",
+            "name": "Short-Field Approach and Landing (ASEL, AMEL)  ....................................................................... 24",
+            "elements": {
+              "K": [
+                "PA.IV.F.K1",
+                "PA.IV.F.K2",
+                "PA.IV.F.K3"
+              ],
+              "R": [
+                "PA.IV.F.R1",
+                "PA.IV.F.R2",
+                "PA.IV.F.R2a",
+                "PA.IV.F.R2b",
+                "PA.IV.F.R2c",
+                "PA.IV.F.R2d",
+                "PA.IV.F.R2e",
+                "PA.IV.F.R3",
+                "PA.IV.F.R3a",
+                "PA.IV.F.R3b",
+                "PA.IV.F.R4",
+                "PA.IV.F.R5",
+                "PA.IV.F.R6"
+              ],
+              "S": [
+                "PA.IV.F.S1",
+                "PA.IV.F.S2",
+                "PA.IV.F.S3",
+                "PA.IV.F.S4",
+                "PA.IV.F.S5",
+                "PA.IV.F.S6",
+                "PA.IV.F.S7",
+                "PA.IV.F.S8",
+                "PA.IV.F.S9",
+                "PA.IV.F.S10",
+                "PA.IV.F.S11",
+                "PA.IV.F.S12",
+                "PA.IV.F.S13"
+              ]
+            }
+          },
+          {
+            "letter": "G",
+            "name": "Confined Area Takeoff and Maximum Performance Climb (ASES, AMES)  ................................. 26",
+            "elements": {
+              "K": [
+                "PA.IV.G.K1",
+                "PA.IV.G.K2",
+                "PA.IV.G.K3",
+                "PA.IV.G.K4"
+              ],
+              "R": [
+                "PA.IV.G.R1",
+                "PA.IV.G.R2",
+                "PA.IV.G.R2a",
+                "PA.IV.G.R2b",
+                "PA.IV.G.R2c",
+                "PA.IV.G.R2d",
+                "PA.IV.G.R2e",
+                "PA.IV.G.R3",
+                "PA.IV.G.R3a",
+                "PA.IV.G.R3b",
+                "PA.IV.G.R4",
+                "PA.IV.G.R5",
+                "PA.IV.G.R6"
+              ],
+              "S": [
+                "PA.IV.G.S6a",
+                "PA.IV.G.S1",
+                "PA.IV.G.S2",
+                "PA.IV.G.S3",
+                "PA.IV.G.S4",
+                "PA.IV.G.S5",
+                "PA.IV.G.S6",
+                "PA.IV.G.S6a",
+                "PA.IV.G.S7",
+                "PA.IV.G.S8",
+                "PA.IV.G.S9",
+                "PA.IV.G.S10",
+                "PA.IV.G.S11",
+                "PA.IV.G.S12",
+                "PA.IV.G.S13",
+                "PA.IV.G.S14",
+                "PA.IV.G.S15",
+                "PA.IV.G.S16"
+              ]
+            }
+          },
+          {
+            "letter": "H",
+            "name": "Confined Area Approach and Landing (ASES, AMES)  ................................................................ 27",
+            "elements": {
+              "K": [
+                "PA.IV.H.K1",
+                "PA.IV.H.K2",
+                "PA.IV.H.K3"
+              ],
+              "R": [
+                "PA.IV.H.R1",
+                "PA.IV.H.R2",
+                "PA.IV.H.R2a",
+                "PA.IV.H.R2b",
+                "PA.IV.H.R2c",
+                "PA.IV.H.R2d",
+                "PA.IV.H.R2e",
+                "PA.IV.H.R3",
+                "PA.IV.H.R4",
+                "PA.IV.H.R5",
+                "PA.IV.H.R6"
+              ],
+              "S": [
+                "PA.IV.H.S1",
+                "PA.IV.H.S2",
+                "PA.IV.H.S3",
+                "PA.IV.H.S4",
+                "PA.IV.H.S5",
+                "PA.IV.H.S6",
+                "PA.IV.H.S7",
+                "PA.IV.H.S8",
+                "PA.IV.H.S9",
+                "PA.IV.H.S10",
+                "PA.IV.H.S11",
+                "PA.IV.H.S12",
+                "PA.IV.H.S13"
+              ]
+            }
+          },
+          {
+            "letter": "I",
+            "name": "Glassy Water Takeoff and Climb (ASES, AMES)  .......................................................................... 28",
+            "elements": {
+              "K": [
+                "PA.IV.I.K1",
+                "PA.IV.I.K2",
+                "PA.IV.I.K3",
+                "PA.IV.I.K4"
+              ],
+              "R": [
+                "PA.IV.I.R1",
+                "PA.IV.I.R2",
+                "PA.IV.I.R3",
+                "PA.IV.I.R3a",
+                "PA.IV.I.R3b",
+                "PA.IV.I.R4",
+                "PA.IV.I.R5",
+                "PA.IV.I.R6",
+                "PA.IV.I.R7"
+              ],
+              "S": [
+                "PA.IV.I.S5",
+                "PA.IV.I.S4a",
+                "PA.IV.I.S4b",
+                "PA.IV.I.S1",
+                "PA.IV.I.S2",
+                "PA.IV.I.S3",
+                "PA.IV.I.S4",
+                "PA.IV.I.S4a",
+                "PA.IV.I.S4b",
+                "PA.IV.I.S5",
+                "PA.IV.I.S6",
+                "PA.IV.I.S7",
+                "PA.IV.I.S8",
+                "PA.IV.I.S9",
+                "PA.IV.I.S10",
+                "PA.IV.I.S11",
+                "PA.IV.I.S12"
+              ]
+            }
+          },
+          {
+            "letter": "J",
+            "name": "Glassy Water Approach and Landing (ASES, AMES)  .................................................................. 30",
+            "elements": {
+              "K": [
+                "PA.IV.J.K1",
+                "PA.IV.J.K2",
+                "PA.IV.J.K3",
+                "PA.IV.J.K4"
+              ],
+              "R": [
+                "PA.IV.J.R1",
+                "PA.IV.J.R2",
+                "PA.IV.J.R3",
+                "PA.IV.J.R4",
+                "PA.IV.J.R5",
+                "PA.IV.J.R6",
+                "PA.IV.J.R7"
+              ],
+              "S": [
+                "PA.IV.J.S1",
+                "PA.IV.J.S2",
+                "PA.IV.J.S3",
+                "PA.IV.J.S4",
+                "PA.IV.J.S5",
+                "PA.IV.J.S6",
+                "PA.IV.J.S7",
+                "PA.IV.J.S8",
+                "PA.IV.J.S9"
+              ]
+            }
+          },
+          {
+            "letter": "K",
+            "name": "Rough Water Takeoff and Climb (ASES, AMES)  ......................................................................... 31Table of Contents",
+            "elements": {
+              "K": [
+                "PA.IV.K.K1",
+                "PA.IV.K.K2",
+                "PA.IV.K.K3",
+                "PA.IV.K.K4"
+              ],
+              "R": [
+                "PA.IV.K.R1",
+                "PA.IV.K.R2",
+                "PA.IV.K.R2a",
+                "PA.IV.K.R2b",
+                "PA.IV.K.R2c",
+                "PA.IV.K.R2d",
+                "PA.IV.K.R2e",
+                "PA.IV.K.R3",
+                "PA.IV.K.R3a",
+                "PA.IV.K.R3b",
+                "PA.IV.K.R4",
+                "PA.IV.K.R5",
+                "PA.IV.K.R6",
+                "PA.IV.K.R7"
+              ],
+              "S": [
+                "PA.IV.K.S7",
+                "PA.IV.K.S6a",
+                "PA.IV.K.S6b",
+                "PA.IV.K.S1",
+                "PA.IV.K.S2",
+                "PA.IV.K.S3",
+                "PA.IV.K.S4",
+                "PA.IV.K.S5",
+                "PA.IV.K.S6",
+                "PA.IV.K.S6a",
+                "PA.IV.K.S6b",
+                "PA.IV.K.S7",
+                "PA.IV.K.S8",
+                "PA.IV.K.S9",
+                "PA.IV.K.S10",
+                "PA.IV.K.S11",
+                "PA.IV.K.S12",
+                "PA.IV.K.S13"
+              ]
+            }
+          },
+          {
+            "letter": "L",
+            "name": "Rough Water Approach and Landing (ASES, AMES)  .................................................................. 32",
+            "elements": {
+              "K": [
+                "PA.IV.L.K1",
+                "PA.IV.L.K2",
+                "PA.IV.L.K3",
+                "PA.IV.L.K4",
+                "PA.IV.L.K5"
+              ],
+              "R": [
+                "PA.IV.L.R1",
+                "PA.IV.L.R2",
+                "PA.IV.L.R2a",
+                "PA.IV.L.R2b",
+                "PA.IV.L.R2c",
+                "PA.IV.L.R2d",
+                "PA.IV.L.R2e",
+                "PA.IV.L.R3",
+                "PA.IV.L.R4",
+                "PA.IV.L.R5",
+                "PA.IV.L.R6",
+                "PA.IV.L.R7"
+              ],
+              "S": [
+                "PA.IV.L.S1",
+                "PA.IV.L.S2",
+                "PA.IV.L.S3",
+                "PA.IV.L.S4",
+                "PA.IV.L.S5",
+                "PA.IV.L.S6",
+                "PA.IV.L.S7",
+                "PA.IV.L.S8",
+                "PA.IV.L.S9",
+                "PA.IV.L.S10"
+              ]
+            }
+          },
+          {
+            "letter": "M",
+            "name": "Forward Slip to a Landing (ASEL, ASES)  ................................................................................... 33",
+            "elements": {
+              "K": [
+                "PA.IV.M.K1",
+                "PA.IV.M.K2",
+                "PA.IV.M.K3",
+                "PA.IV.M.K4"
+              ],
+              "R": [
+                "PA.IV.M.R1",
+                "PA.IV.M.R2",
+                "PA.IV.M.R2a",
+                "PA.IV.M.R2b",
+                "PA.IV.M.R2c",
+                "PA.IV.M.R2d",
+                "PA.IV.M.R2e",
+                "PA.IV.M.R3",
+                "PA.IV.M.R3a",
+                "PA.IV.M.R3b",
+                "PA.IV.M.R4",
+                "PA.IV.M.R5",
+                "PA.IV.M.R6",
+                "PA.IV.M.R7",
+                "PA.IV.M.R8",
+                "PA.IV.M.R9"
+              ],
+              "S": [
+                "PA.IV.M.S1",
+                "PA.IV.M.S2",
+                "PA.IV.M.S3",
+                "PA.IV.M.S4",
+                "PA.IV.M.S5",
+                "PA.IV.M.S6",
+                "PA.IV.M.S7",
+                "PA.IV.M.S8",
+                "PA.IV.M.S9"
+              ]
+            }
+          },
+          {
+            "letter": "N",
+            "name": "Go-Around/Rejected Landing  ...................................................................................................... 34",
+            "elements": {
+              "K": [
+                "PA.IV.N.K1",
+                "PA.IV.N.K2",
+                "PA.IV.N.K3"
+              ],
+              "R": [
+                "PA.IV.N.R8",
+                "PA.IV.N.R9",
+                "PA.IV.N.R1",
+                "PA.IV.N.R2",
+                "PA.IV.N.R3",
+                "PA.IV.N.R4",
+                "PA.IV.N.R5",
+                "PA.IV.N.R6",
+                "PA.IV.N.R7",
+                "PA.IV.N.R8",
+                "PA.IV.N.R9"
+              ],
+              "S": [
+                "PA.IV.N.S9",
+                "PA.IV.N.S1",
+                "PA.IV.N.S2",
+                "PA.IV.N.S3",
+                "PA.IV.N.S4",
+                "PA.IV.N.S5",
+                "PA.IV.N.S6",
+                "PA.IV.N.S7",
+                "PA.IV.N.S8",
+                "PA.IV.N.S9"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "V",
+        "name": "Performance Maneuvers and Ground Reference Maneuvers",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Steep Turns  .................................................................................................................................. 36",
+            "elements": {
+              "K": [
+                "PA.V.A.K1",
+                "PA.V.A.K2",
+                "PA.V.A.K2a",
+                "PA.V.A.K2b",
+                "PA.V.A.K2c",
+                "PA.V.A.K2d",
+                "PA.V.A.K2e"
+              ],
+              "R": [
+                "PA.V.A.R1",
+                "PA.V.A.R2",
+                "PA.V.A.R3",
+                "PA.V.A.R4",
+                "PA.V.A.R5"
+              ],
+              "S": [
+                "PA.V.A.S1",
+                "PA.V.A.S2",
+                "PA.V.A.S3",
+                "PA.V.A.S4",
+                "PA.V.A.S5"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Ground Reference Maneuvers  .................................................................................................... 36",
+            "elements": {
+              "K": [
+                "PA.V.B.K1",
+                "PA.V.B.K2",
+                "PA.V.B.K3",
+                "PA.V.B.K4"
+              ],
+              "R": [
+                "PA.V.B.R1",
+                "PA.V.B.R2",
+                "PA.V.B.R3",
+                "PA.V.B.R4",
+                "PA.V.B.R5"
+              ],
+              "S": [
+                "PA.V.B.S1",
+                "PA.V.B.S2",
+                "PA.V.B.S3",
+                "PA.V.B.S3a",
+                "PA.V.B.S3b",
+                "PA.V.B.S3c",
+                "PA.V.B.S4",
+                "PA.V.B.S5",
+                "PA.V.B.S6",
+                "PA.V.B.S7"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "VI",
+        "name": "Navigation",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Pilotage and Dead Reckoning  ..................................................................................................... 38",
+            "elements": {
+              "K": [
+                "PA.VI.A.K1",
+                "PA.VI.A.K2",
+                "PA.VI.A.K3",
+                "PA.VI.A.K4",
+                "PA.VI.A.K4a",
+                "PA.VI.A.K4b",
+                "PA.VI.A.K4c",
+                "PA.VI.A.K5",
+                "PA.VI.A.K5a",
+                "PA.VI.A.K5b",
+                "PA.VI.A.K5c",
+                "PA.VI.A.K5d",
+                "PA.VI.A.K6",
+                "PA.VI.A.K7"
+              ],
+              "R": [
+                "PA.VI.A.R3",
+                "PA.VI.A.R1",
+                "PA.VI.A.R2",
+                "PA.VI.A.R3"
+              ],
+              "S": [
+                "PA.VI.A.S1",
+                "PA.VI.A.S2",
+                "PA.VI.A.S3",
+                "PA.VI.A.S4",
+                "PA.VI.A.S5",
+                "PA.VI.A.S6",
+                "PA.VI.A.S7"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Navigation Systems and Radar Services  .................................................................................... 39",
+            "elements": {
+              "K": [
+                "PA.VI.B.K1",
+                "PA.VI.B.K2",
+                "PA.VI.B.K3",
+                "PA.VI.B.K4"
+              ],
+              "R": [
+                "PA.VI.B.R5",
+                "PA.VI.B.R1",
+                "PA.VI.B.R2",
+                "PA.VI.B.R3",
+                "PA.VI.B.R4",
+                "PA.VI.B.R5"
+              ],
+              "S": [
+                "PA.VI.B.S1",
+                "PA.VI.B.S2",
+                "PA.VI.B.S3",
+                "PA.VI.B.S4",
+                "PA.VI.B.S5",
+                "PA.VI.B.S6",
+                "PA.VI.B.S7"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Diversion  ...................................................................................................................................... 39",
+            "elements": {
+              "K": [
+                "PA.VI.C.K1",
+                "PA.VI.C.K2"
+              ],
+              "R": [
+                "PA.VI.C.R1",
+                "PA.VI.C.R2",
+                "PA.VI.C.R3",
+                "PA.VI.C.R4",
+                "PA.VI.C.R5"
+              ],
+              "S": [
+                "PA.VI.C.S6",
+                "PA.VI.C.S1",
+                "PA.VI.C.S2",
+                "PA.VI.C.S3",
+                "PA.VI.C.S4",
+                "PA.VI.C.S5",
+                "PA.VI.C.S6"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Lost Procedures  .......................................................................................................................... 40",
+            "elements": {
+              "K": [
+                "PA.VI.D.K1",
+                "PA.VI.D.K2"
+              ],
+              "R": [
+                "PA.VI.D.R1",
+                "PA.VI.D.R2",
+                "PA.VI.D.R3",
+                "PA.VI.D.R4"
+              ],
+              "S": [
+                "PA.VI.D.S5",
+                "PA.VI.D.S1",
+                "PA.VI.D.S2",
+                "PA.VI.D.S3",
+                "PA.VI.D.S4",
+                "PA.VI.D.S5"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "VII",
+        "name": "Slow Flight and Stalls",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Maneuvering During Slow Flight  .................................................................................................. 42",
+            "elements": {
+              "K": [
+                "PA.VII.A.K1"
+              ],
+              "R": [
+                "PA.VII.A.R1",
+                "PA.VII.A.R2",
+                "PA.VII.A.R3",
+                "PA.VII.A.R4",
+                "PA.VII.A.R5",
+                "PA.VII.A.R6"
+              ],
+              "S": [
+                "PA.VII.A.S1",
+                "PA.VII.A.S2",
+                "PA.VII.A.S3",
+                "PA.VII.A.S4",
+                "PA.VII.A.S5"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Power-Off Stalls  ........................................................................................................................... 42",
+            "elements": {
+              "K": [
+                "PA.VII.B.K1",
+                "PA.VII.B.K2",
+                "PA.VII.B.K3",
+                "PA.VII.B.K4"
+              ],
+              "R": [
+                "PA.VII.B.R1",
+                "PA.VII.B.R2",
+                "PA.VII.B.R3",
+                "PA.VII.B.R4",
+                "PA.VII.B.R5",
+                "PA.VII.B.R6",
+                "PA.VII.B.R7",
+                "PA.VII.B.R8"
+              ],
+              "S": [
+                "PA.VII.B.S11",
+                "PA.VII.B.S1",
+                "PA.VII.B.S2",
+                "PA.VII.B.S3",
+                "PA.VII.B.S4",
+                "PA.VII.B.S5",
+                "PA.VII.B.S6",
+                "PA.VII.B.S7",
+                "PA.VII.B.S8",
+                "PA.VII.B.S9",
+                "PA.VII.B.S10",
+                "PA.VII.B.S11"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Power-On Stalls  ........................................................................................................................... 44",
+            "elements": {
+              "K": [
+                "PA.VII.C.K1",
+                "PA.VII.C.K2",
+                "PA.VII.C.K3",
+                "PA.VII.C.K4"
+              ],
+              "R": [
+                "PA.VII.C.R1",
+                "PA.VII.C.R2",
+                "PA.VII.C.R3",
+                "PA.VII.C.R4",
+                "PA.VII.C.R5",
+                "PA.VII.C.R6",
+                "PA.VII.C.R7",
+                "PA.VII.C.R8"
+              ],
+              "S": [
+                "PA.VII.C.S11",
+                "PA.VII.C.S1",
+                "PA.VII.C.S2",
+                "PA.VII.C.S3",
+                "PA.VII.C.S4",
+                "PA.VII.C.S5",
+                "PA.VII.C.S6",
+                "PA.VII.C.S7",
+                "PA.VII.C.S8",
+                "PA.VII.C.S9",
+                "PA.VII.C.S10",
+                "PA.VII.C.S11"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Spin Awareness  ........................................................................................................................... 45",
+            "elements": {
+              "K": [
+                "PA.VII.D.K1",
+                "PA.VII.D.K2",
+                "PA.VII.D.K3"
+              ],
+              "R": [
+                "PA.VII.D.R1",
+                "PA.VII.D.R2",
+                "PA.VII.D.R3",
+                "PA.VII.D.R4",
+                "PA.VII.D.R5",
+                "PA.VII.D.R6"
+              ],
+              "S": []
+            }
+          }
+        ]
+      },
+      {
+        "number": "VIII",
+        "name": "Basic Instrument Maneuvers",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Straight-and-Level Flight  .............................................................................................................. 46",
+            "elements": {
+              "K": [
+                "PA.VIII.A.K1",
+                "PA.VIII.A.K1a",
+                "PA.VIII.A.K1b",
+                "PA.VIII.A.K1c",
+                "PA.VIII.A.K1d"
+              ],
+              "R": [
+                "PA.VIII.A.R5",
+                "PA.VIII.A.R6",
+                "PA.VIII.A.R7",
+                "PA.VIII.A.R8",
+                "PA.VIII.A.R1",
+                "PA.VIII.A.R2",
+                "PA.VIII.A.R3",
+                "PA.VIII.A.R4",
+                "PA.VIII.A.R5",
+                "PA.VIII.A.R6",
+                "PA.VIII.A.R7",
+                "PA.VIII.A.R8"
+              ],
+              "S": [
+                "PA.VIII.A.S1",
+                "PA.VIII.A.S2"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Constant Airspeed Climbs  ........................................................................................................... 46",
+            "elements": {
+              "K": [
+                "PA.VIII.B.K1",
+                "PA.VIII.B.K1a",
+                "PA.VIII.B.K1b",
+                "PA.VIII.B.K1c",
+                "PA.VIII.B.K1d"
+              ],
+              "R": [
+                "PA.VIII.B.R5",
+                "PA.VIII.B.R6",
+                "PA.VIII.B.R7",
+                "PA.VIII.B.R8",
+                "PA.VIII.B.R1",
+                "PA.VIII.B.R2",
+                "PA.VIII.B.R3",
+                "PA.VIII.B.R4",
+                "PA.VIII.B.R5",
+                "PA.VIII.B.R6",
+                "PA.VIII.B.R7",
+                "PA.VIII.B.R8"
+              ],
+              "S": [
+                "PA.VIII.B.S1",
+                "PA.VIII.B.S2",
+                "PA.VIII.B.S3"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Constant Airspeed Descents  ....................................................................................................... 47",
+            "elements": {
+              "K": [
+                "PA.VIII.C.K1",
+                "PA.VIII.C.K1a",
+                "PA.VIII.C.K1b",
+                "PA.VIII.C.K1c",
+                "PA.VIII.C.K1d"
+              ],
+              "R": [
+                "PA.VIII.C.R5",
+                "PA.VIII.C.R6",
+                "PA.VIII.C.R7",
+                "PA.VIII.C.R8",
+                "PA.VIII.C.R1",
+                "PA.VIII.C.R2",
+                "PA.VIII.C.R3",
+                "PA.VIII.C.R4",
+                "PA.VIII.C.R5",
+                "PA.VIII.C.R6",
+                "PA.VIII.C.R7",
+                "PA.VIII.C.R8"
+              ],
+              "S": [
+                "PA.VIII.C.S1",
+                "PA.VIII.C.S2",
+                "PA.VIII.C.S3"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Turns to Headings  ....................................................................................................................... 48",
+            "elements": {
+              "K": [
+                "PA.VIII.D.K1",
+                "PA.VIII.D.K1a",
+                "PA.VIII.D.K1b",
+                "PA.VIII.D.K1c",
+                "PA.VIII.D.K1d"
+              ],
+              "R": [
+                "PA.VIII.D.R5",
+                "PA.VIII.D.R6",
+                "PA.VIII.D.R7",
+                "PA.VIII.D.R8",
+                "PA.VIII.D.R1",
+                "PA.VIII.D.R2",
+                "PA.VIII.D.R3",
+                "PA.VIII.D.R4",
+                "PA.VIII.D.R5",
+                "PA.VIII.D.R6",
+                "PA.VIII.D.R7",
+                "PA.VIII.D.R8"
+              ],
+              "S": [
+                "PA.VIII.D.S1"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Recovery from Unusual Flight Attitudes  ....................................................................................... 49",
+            "elements": {
+              "K": [
+                "PA.VIII.E.K1a",
+                "PA.VIII.E.K1b",
+                "PA.VIII.E.K1c",
+                "PA.VIII.E.K1d",
+                "PA.VIII.E.K2",
+                "PA.VIII.E.K3",
+                "PA.VIII.E.K4",
+                "PA.VIII.E.K1",
+                "PA.VIII.E.K1a",
+                "PA.VIII.E.K1b",
+                "PA.VIII.E.K1c",
+                "PA.VIII.E.K1d",
+                "PA.VIII.E.K2",
+                "PA.VIII.E.K3",
+                "PA.VIII.E.K4"
+              ],
+              "R": [
+                "PA.VIII.E.R2",
+                "PA.VIII.E.R6",
+                "PA.VIII.E.R8",
+                "PA.VIII.E.R9",
+                "PA.VIII.E.R10",
+                "PA.VIII.E.R1",
+                "PA.VIII.E.R2",
+                "PA.VIII.E.R3",
+                "PA.VIII.E.R4",
+                "PA.VIII.E.R5",
+                "PA.VIII.E.R6",
+                "PA.VIII.E.R7",
+                "PA.VIII.E.R8",
+                "PA.VIII.E.R9",
+                "PA.VIII.E.R10"
+              ],
+              "S": [
+                "PA.VIII.E.S2",
+                "PA.VIII.E.S1",
+                "PA.VIII.E.S2"
+              ]
+            }
+          },
+          {
+            "letter": "F",
+            "name": "Radio Communications, Navigation Systems/Facilities, and Radar Services  .............................. 50",
+            "elements": {
+              "K": [
+                "PA.VIII.F.K1",
+                "PA.VIII.F.K2",
+                "PA.VIII.F.K3"
+              ],
+              "R": [
+                "PA.VIII.F.R1",
+                "PA.VIII.F.R2"
+              ],
+              "S": [
+                "PA.VIII.F.S3",
+                "PA.VIII.F.S1",
+                "PA.VIII.F.S2",
+                "PA.VIII.F.S3"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "IX",
+        "name": "Emergency Operations",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Emergency Descent  ..................................................................................................................... 51",
+            "elements": {
+              "K": [
+                "PA.IX.A.K4",
+                "PA.IX.A.K1",
+                "PA.IX.A.K2",
+                "PA.IX.A.K3",
+                "PA.IX.A.K4"
+              ],
+              "R": [
+                "PA.IX.A.R1",
+                "PA.IX.A.R2",
+                "PA.IX.A.R3",
+                "PA.IX.A.R4"
+              ],
+              "S": [
+                "PA.IX.A.S7",
+                "PA.IX.A.S8",
+                "PA.IX.A.S1",
+                "PA.IX.A.S2",
+                "PA.IX.A.S3",
+                "PA.IX.A.S4",
+                "PA.IX.A.S5",
+                "PA.IX.A.S6",
+                "PA.IX.A.S7",
+                "PA.IX.A.S8"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Emergency Approach and Landing (Simulated) (ASEL, ASES)  .................................................. 51",
+            "elements": {
+              "K": [
+                "PA.IX.B.K1",
+                "PA.IX.B.K2",
+                "PA.IX.B.K2a",
+                "PA.IX.B.K2b",
+                "PA.IX.B.K2c",
+                "PA.IX.B.K3",
+                "PA.IX.B.K4",
+                "PA.IX.B.K5",
+                "PA.IX.B.K6"
+              ],
+              "R": [
+                "PA.IX.B.R1",
+                "PA.IX.B.R2",
+                "PA.IX.B.R3",
+                "PA.IX.B.R4",
+                "PA.IX.B.R5",
+                "PA.IX.B.R6"
+              ],
+              "S": [
+                "PA.IX.B.S1",
+                "PA.IX.B.S2",
+                "PA.IX.B.S3",
+                "PA.IX.B.S4",
+                "PA.IX.B.S5",
+                "PA.IX.B.S6"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Systems and Equipment Malfunctions  ........................................................................................ 52",
+            "elements": {
+              "K": [
+                "PA.IX.C.K1a",
+                "PA.IX.C.K1b",
+                "PA.IX.C.K1c",
+                "PA.IX.C.K1d",
+                "PA.IX.C.K1",
+                "PA.IX.C.K1a",
+                "PA.IX.C.K1b",
+                "PA.IX.C.K1c",
+                "PA.IX.C.K1d",
+                "PA.IX.C.K2",
+                "PA.IX.C.K2a",
+                "PA.IX.C.K2b",
+                "PA.IX.C.K2c",
+                "PA.IX.C.K2d",
+                "PA.IX.C.K2e",
+                "PA.IX.C.K2f",
+                "PA.IX.C.K3",
+                "PA.IX.C.K4",
+                "PA.IX.C.K5"
+              ],
+              "R": [
+                "PA.IX.C.R3",
+                "PA.IX.C.R4",
+                "PA.IX.C.R1",
+                "PA.IX.C.R2",
+                "PA.IX.C.R3",
+                "PA.IX.C.R4"
+              ],
+              "S": [
+                "PA.IX.C.S1",
+                "PA.IX.C.S2"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Emergency Equipment and Survival Gear  .................................................................................. 53",
+            "elements": {
+              "K": [
+                "PA.IX.D.K4",
+                "PA.IX.D.K5",
+                "PA.IX.D.K1",
+                "PA.IX.D.K2",
+                "PA.IX.D.K3",
+                "PA.IX.D.K3a",
+                "PA.IX.D.K3b",
+                "PA.IX.D.K3c",
+                "PA.IX.D.K4",
+                "PA.IX.D.K5"
+              ],
+              "R": [
+                "PA.IX.D.R2",
+                "PA.IX.D.R3",
+                "PA.IX.D.R1",
+                "PA.IX.D.R2",
+                "PA.IX.D.R3"
+              ],
+              "S": [
+                "PA.IX.D.S3",
+                "PA.IX.D.S1",
+                "PA.IX.D.S2",
+                "PA.IX.D.S3"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Engine Failure During Takeoff Before VMC (Simulated) (AMEL, AMES)  ....................................... 54",
+            "elements": {
+              "K": [
+                "PA.IX.E.K1",
+                "PA.IX.E.K2",
+                "PA.IX.E.K3"
+              ],
+              "R": [
+                "PA.IX.E.R1",
+                "PA.IX.E.R2",
+                "PA.IX.E.R3"
+              ],
+              "S": [
+                "PA.IX.E.S1",
+                "PA.IX.E.S2"
+              ]
+            }
+          },
+          {
+            "letter": "F",
+            "name": "Engine Failure After Liftoff (Simulated) (AMEL, AMES)  ............................................................... 55",
+            "elements": {
+              "K": [
+                "PA.IX.F.K1",
+                "PA.IX.F.K2",
+                "PA.IX.F.K3",
+                "PA.IX.F.K4",
+                "PA.IX.F.K5",
+                "PA.IX.F.K6"
+              ],
+              "R": [
+                "PA.IX.F.R1",
+                "PA.IX.F.R2",
+                "PA.IX.F.R3",
+                "PA.IX.F.R4",
+                "PA.IX.F.R5"
+              ],
+              "S": [
+                "PA.IX.F.S1",
+                "PA.IX.F.S2",
+                "PA.IX.F.S3",
+                "PA.IX.F.S4",
+                "PA.IX.F.S5",
+                "PA.IX.F.S6",
+                "PA.IX.F.S7",
+                "PA.IX.F.S8",
+                "PA.IX.F.S9",
+                "PA.IX.F.S10"
+              ]
+            }
+          },
+          {
+            "letter": "G",
+            "name": "Approach and Landing with an Inoperative Engine (Simulated)(AMEL, AMES)  ......................... 56",
+            "elements": {
+              "K": [
+                "PA.IX.G.K1",
+                "PA.IX.G.K2",
+                "PA.IX.G.K3",
+                "PA.IX.G.K4",
+                "PA.IX.G.K5"
+              ],
+              "R": [
+                "PA.IX.G.R1",
+                "PA.IX.G.R2",
+                "PA.IX.G.R3",
+                "PA.IX.G.R4",
+                "PA.IX.G.R5",
+                "PA.IX.G.R6"
+              ],
+              "S": [
+                "PA.IX.G.S1",
+                "PA.IX.G.S2",
+                "PA.IX.G.S3",
+                "PA.IX.G.S4",
+                "PA.IX.G.S5",
+                "PA.IX.G.S6",
+                "PA.IX.G.S7",
+                "PA.IX.G.S8",
+                "PA.IX.G.S9",
+                "PA.IX.G.S10"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "X",
+        "name": "Multiengine Operations",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Maneuvering with One Engine Inoperative (AMEL, AMES)  ......................................................... 58",
+            "elements": {
+              "K": [
+                "PA.X.A.K1",
+                "PA.X.A.K2",
+                "PA.X.A.K3",
+                "PA.X.A.K4",
+                "PA.X.A.K5"
+              ],
+              "R": [
+                "PA.X.A.R1",
+                "PA.X.A.R2",
+                "PA.X.A.R3",
+                "PA.X.A.R4",
+                "PA.X.A.R5"
+              ],
+              "S": [
+                "PA.X.A.S1",
+                "PA.X.A.S2",
+                "PA.X.A.S3",
+                "PA.X.A.S4",
+                "PA.X.A.S5",
+                "PA.X.A.S6",
+                "PA.X.A.S7",
+                "PA.X.A.S8"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "VMC Demonstration (AMEL, AMES)  .............................................................................................. 59",
+            "elements": {
+              "K": [
+                "PA.X.B.K1",
+                "PA.X.B.K2",
+                "PA.X.B.K3",
+                "PA.X.B.K4"
+              ],
+              "R": [
+                "PA.X.B.R1",
+                "PA.X.B.R2",
+                "PA.X.B.R3"
+              ],
+              "S": [
+                "PA.X.B.S1",
+                "PA.X.B.S1a",
+                "PA.X.B.S1b",
+                "PA.X.B.S1c",
+                "PA.X.B.S1d",
+                "PA.X.B.S1e",
+                "PA.X.B.S1f",
+                "PA.X.B.S1g",
+                "PA.X.B.S2",
+                "PA.X.B.S3",
+                "PA.X.B.S4",
+                "PA.X.B.S5",
+                "PA.X.B.S6",
+                "PA.X.B.S7",
+                "PA.X.B.S8"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "One Engine Inoperative (Simulated) (solely by Reference to Instruments) During Straight-",
+            "elements": {
+              "K": [
+                "PA.X.C.K1"
+              ],
+              "R": [
+                "PA.X.C.R1",
+                "PA.X.C.R2",
+                "PA.X.C.R3",
+                "PA.X.C.R4",
+                "PA.X.C.R5"
+              ],
+              "S": [
+                "PA.X.C.S1",
+                "PA.X.C.S2",
+                "PA.X.C.S3",
+                "PA.X.C.S4",
+                "PA.X.C.S5",
+                "PA.X.C.S6",
+                "PA.X.C.S7",
+                "PA.X.C.S8",
+                "PA.X.C.S9",
+                "PA.X.C.S10",
+                "PA.X.C.S11"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Instrument Approach and Landing with an Inoperative Engine (Simulated) (AMEL, AMES)  .......61",
+            "elements": {
+              "K": [
+                "PA.X.D.K1"
+              ],
+              "R": [
+                "PA.X.D.R1",
+                "PA.X.D.R2",
+                "PA.X.D.R3",
+                "PA.X.D.R4",
+                "PA.X.D.R5",
+                "PA.X.D.R6"
+              ],
+              "S": [
+                "PA.X.D.S1",
+                "PA.X.D.S2",
+                "PA.X.D.S3",
+                "PA.X.D.S4",
+                "PA.X.D.S5",
+                "PA.X.D.S6",
+                "PA.X.D.S7",
+                "PA.X.D.S8",
+                "PA.X.D.S9",
+                "PA.X.D.S10",
+                "PA.X.D.S11",
+                "PA.X.D.S12",
+                "PA.X.D.S13"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "XI",
+        "name": "Night Operations",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Night Operations  .......................................................................................................................... 63",
+            "elements": {
+              "K": [
+                "PA.XI.A.K6",
+                "PA.XI.A.K7",
+                "PA.XI.A.K8",
+                "PA.XI.A.K1",
+                "PA.XI.A.K2",
+                "PA.XI.A.K3",
+                "PA.XI.A.K4",
+                "PA.XI.A.K5",
+                "PA.XI.A.K6",
+                "PA.XI.A.K7",
+                "PA.XI.A.K8"
+              ],
+              "R": [
+                "PA.XI.A.R4",
+                "PA.XI.A.R5",
+                "PA.XI.A.R6",
+                "PA.XI.A.R7",
+                "PA.XI.A.R1",
+                "PA.XI.A.R2",
+                "PA.XI.A.R3",
+                "PA.XI.A.R4",
+                "PA.XI.A.R5",
+                "PA.XI.A.R6",
+                "PA.XI.A.R7"
+              ],
+              "S": []
+            }
+          }
+        ]
+      },
+      {
+        "number": "XII",
+        "name": "Postflight Procedures",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "After Landing, Parking, and Securing (ASEL, AMEL)  .................................................................. 64",
+            "elements": {
+              "K": [
+                "PA.XII.A.K1",
+                "PA.XII.A.K2"
+              ],
+              "R": [
+                "PA.XII.A.R2",
+                "PA.XII.A.R1",
+                "PA.XII.A.R2",
+                "PA.XII.A.R3",
+                "PA.XII.A.R4"
+              ],
+              "S": [
+                "PA.XII.A.S1",
+                "PA.XII.A.S1",
+                "PA.XII.A.S2",
+                "PA.XII.A.S3",
+                "PA.XII.A.S4",
+                "PA.XII.A.S5"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Seaplane Post-Landing Procedures (ASES, AMES)  ................................................................... 64",
+            "elements": {
+              "K": [
+                "PA.XII.B.K1",
+                "PA.XII.B.K2",
+                "PA.XII.B.K3",
+                "PA.XII.B.K4",
+                "PA.XII.B.K5"
+              ],
+              "R": [
+                "PA.XII.B.R2",
+                "PA.XII.B.R1",
+                "PA.XII.B.R2",
+                "PA.XII.B.R3",
+                "PA.XII.B.R4"
+              ],
+              "S": [
+                "PA.XII.B.S1",
+                "PA.XII.B.S2",
+                "PA.XII.B.S3",
+                "PA.XII.B.S4",
+                "PA.XII.B.S5"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "C",
+        "name": "= Task",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Maneuvering During Slow Flight",
+            "elements": {
+              "K": [],
+              "R": [],
+              "S": []
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Power-Off Stalls",
+            "elements": {
+              "K": [],
+              "R": [],
+              "S": []
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Power-On Stalls",
+            "elements": {
+              "K": [],
+              "R": [],
+              "S": []
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Emergency Equipment and Survival Gear",
+            "elements": {
+              "K": [],
+              "R": [],
+              "S": []
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Engine Failure During Takeoff Before VMC (Simulated) [Airplane, Multiengine Land (AMEL); Airplane Multiengine",
+            "elements": {
+              "K": [],
+              "R": [],
+              "S": []
+            }
+          },
+          {
+            "letter": "F",
+            "name": "Engine Failure After Liftoff (Simulated) (AMEL, AMES)",
+            "elements": {
+              "K": [],
+              "R": [],
+              "S": []
+            }
+          }
+        ]
+      }
+    ],
+    "totals": {
+      "knowledge": 405,
+      "risk_management": 441,
+      "skills": 455,
+      "total": 1301
+    }
+  },
+  "instrument": {
+    "certificate": "instrument",
+    "prefix": "IR",
+    "total_pages": 40,
+    "areas": [
+      {
+        "number": "I",
+        "name": "Preflight Preparation",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Pilot Qualifications  ......................................................................................................................... 2",
+            "elements": {
+              "K": [
+                "IR.I.A.K1",
+                "IR.I.A.K2",
+                "IR.I.A.K3"
+              ],
+              "R": [
+                "IR.I.A.R1",
+                "IR.I.A.R2",
+                "IR.I.A.R3",
+                "IR.I.A.R4"
+              ],
+              "S": [
+                "IR.I.A.S1"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Weather Information  ...................................................................................................................... 2",
+            "elements": {
+              "K": [
+                "IR.I.B.K2a",
+                "IR.I.B.K2b",
+                "IR.I.B.K2c",
+                "IR.I.B.K2d",
+                "IR.I.B.K2e",
+                "IR.I.B.K2f",
+                "IR.I.B.K2g",
+                "IR.I.B.K1",
+                "IR.I.B.K2",
+                "IR.I.B.K2a",
+                "IR.I.B.K2b",
+                "IR.I.B.K2c",
+                "IR.I.B.K2d",
+                "IR.I.B.K2e",
+                "IR.I.B.K2f",
+                "IR.I.B.K2g",
+                "IR.I.B.K3",
+                "IR.I.B.K3a",
+                "IR.I.B.K3b",
+                "IR.I.B.K3c",
+                "IR.I.B.K3d",
+                "IR.I.B.K3e",
+                "IR.I.B.K3f",
+                "IR.I.B.K3g",
+                "IR.I.B.K3h",
+                "IR.I.B.K3i",
+                "IR.I.B.K3j",
+                "IR.I.B.K3k",
+                "IR.I.B.K3l",
+                "IR.I.B.K4",
+                "IR.I.B.K4",
+                "IR.I.B.K3",
+                "IR.I.B.K3a",
+                "IR.I.B.K1"
+              ],
+              "R": [
+                "IR.I.B.R1",
+                "IR.I.B.R1a",
+                "IR.I.B.R1b",
+                "IR.I.B.R1c",
+                "IR.I.B.R2",
+                "IR.I.B.R2a",
+                "IR.I.B.R2b",
+                "IR.I.B.R2c"
+              ],
+              "S": [
+                "IR.I.B.S1",
+                "IR.I.B.S2",
+                "IR.I.B.S3",
+                "IR.I.B.S4"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Cross-Country Flight Planning  ....................................................................................................... 4",
+            "elements": {
+              "K": [
+                "IR.I.C.K1a",
+                "IR.I.C.K1b",
+                "IR.I.C.K1c",
+                "IR.I.C.K1d",
+                "IR.I.C.K1e",
+                "IR.I.C.K1f",
+                "IR.I.C.K1g",
+                "IR.I.C.K1h",
+                "IR.I.C.K1",
+                "IR.I.C.K1a",
+                "IR.I.C.K1b",
+                "IR.I.C.K1c",
+                "IR.I.C.K1d",
+                "IR.I.C.K1e",
+                "IR.I.C.K1f",
+                "IR.I.C.K1g",
+                "IR.I.C.K1h",
+                "IR.I.C.K2",
+                "IR.I.C.K3",
+                "IR.I.C.K3a",
+                "IR.I.C.K3b",
+                "IR.I.C.K3c",
+                "IR.I.C.K4",
+                "IR.I.C.K5"
+              ],
+              "R": [
+                "IR.I.C.R1",
+                "IR.I.C.R2",
+                "IR.I.C.R3",
+                "IR.I.C.R4",
+                "IR.I.C.R5",
+                "IR.I.C.R6",
+                "IR.I.C.R7"
+              ],
+              "S": [
+                "IR.I.C.S1",
+                "IR.I.C.S2",
+                "IR.I.C.S3",
+                "IR.I.C.S4",
+                "IR.I.C.S5",
+                "IR.I.C.S6"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "II",
+        "name": "Preflight Procedures",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Aircraft Systems Related to Instrument Flight Rules (IFR) Operations  .......................................... 6",
+            "elements": {
+              "K": [
+                "IR.II.A.K2",
+                "IR.II.A.K1",
+                "IR.II.A.K2"
+              ],
+              "R": [
+                "IR.II.A.R3",
+                "IR.II.A.R1",
+                "IR.II.A.R2",
+                "IR.II.A.R3"
+              ],
+              "S": [
+                "IR.II.A.S2",
+                "IR.II.A.S1",
+                "IR.II.A.S2"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Aircraft Flight Instruments and Navigation Equipment  ................................................................... 6",
+            "elements": {
+              "K": [
+                "IR.II.B.K3",
+                "IR.II.B.K1",
+                "IR.II.B.K1a",
+                "IR.II.B.K1b",
+                "IR.II.B.K1c",
+                "IR.II.B.K1d",
+                "IR.II.B.K2",
+                "IR.II.B.K2a",
+                "IR.II.B.K2b",
+                "IR.II.B.K3"
+              ],
+              "R": [
+                "IR.II.B.R1",
+                "IR.II.B.R2",
+                "IR.II.B.R3",
+                "IR.II.B.R4",
+                "IR.II.B.R5"
+              ],
+              "S": [
+                "IR.II.B.S2",
+                "IR.II.B.S1",
+                "IR.II.B.S2"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Instrument Flight Deck Check  ....................................................................................................... 7",
+            "elements": {
+              "K": [
+                "IR.II.C.K1",
+                "IR.II.C.K2",
+                "IR.II.C.K3"
+              ],
+              "R": [
+                "IR.II.C.R1",
+                "IR.II.C.R2"
+              ],
+              "S": [
+                "IR.II.C.S1"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "III",
+        "name": "Air Traffic Control (ATC) Clearances and Procedures",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Compliance with Air Traffic Control Clearances  ............................................................................. 8",
+            "elements": {
+              "K": [
+                "IR.III.A.K1",
+                "IR.III.A.K2",
+                "IR.III.A.K3"
+              ],
+              "R": [
+                "IR.III.A.R1",
+                "IR.III.A.R2",
+                "IR.III.A.R3",
+                "IR.III.A.R4"
+              ],
+              "S": [
+                "IR.III.A.S1",
+                "IR.III.A.S2",
+                "IR.III.A.S3",
+                "IR.III.A.S4",
+                "IR.III.A.S5",
+                "IR.III.A.S6",
+                "IR.III.A.S7"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Holding Procedures  ....................................................................................................................... 8",
+            "elements": {
+              "K": [
+                "IR.III.B.K1"
+              ],
+              "R": [
+                "IR.III.B.R1",
+                "IR.III.B.R2",
+                "IR.III.B.R3",
+                "IR.III.B.R4"
+              ],
+              "S": [
+                "IR.III.B.S3a",
+                "IR.III.B.S1",
+                "IR.III.B.S2",
+                "IR.III.B.S3",
+                "IR.III.B.S3a",
+                "IR.III.B.S4",
+                "IR.III.B.S5",
+                "IR.III.B.S6",
+                "IR.III.B.S7",
+                "IR.III.B.S8"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "IV",
+        "name": "Flight by Reference to Instruments",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Instrument Flight  .......................................................................................................................... 10",
+            "elements": {
+              "K": [
+                "IR.IV.A.K1",
+                "IR.IV.A.K2",
+                "IR.IV.A.K3"
+              ],
+              "R": [
+                "IR.IV.A.R1",
+                "IR.IV.A.R2",
+                "IR.IV.A.R3"
+              ],
+              "S": [
+                "IR.IV.A.S1",
+                "IR.IV.A.S2"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Recovery from Unusual Flight Attitudes  ....................................................................................... 10",
+            "elements": {
+              "K": [
+                "IR.IV.B.K4",
+                "IR.IV.B.K1",
+                "IR.IV.B.K2",
+                "IR.IV.B.K3",
+                "IR.IV.B.K4"
+              ],
+              "R": [
+                "IR.IV.B.R4",
+                "IR.IV.B.R5",
+                "IR.IV.B.R6",
+                "IR.IV.B.R7",
+                "IR.IV.B.R8",
+                "IR.IV.B.R9",
+                "IR.IV.B.R2",
+                "IR.IV.B.R1",
+                "IR.IV.B.R2",
+                "IR.IV.B.R3",
+                "IR.IV.B.R4",
+                "IR.IV.B.R5",
+                "IR.IV.B.R6",
+                "IR.IV.B.R7",
+                "IR.IV.B.R8",
+                "IR.IV.B.R9"
+              ],
+              "S": [
+                "IR.IV.B.S2",
+                "IR.IV.B.S1",
+                "IR.IV.B.S2"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "V",
+        "name": "Navigation Systems",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Intercepting and Tracking Navigational Systems and DME Arcs  ................................................. 12",
+            "elements": {
+              "K": [
+                "IR.V.A.K1",
+                "IR.V.A.K2"
+              ],
+              "R": [
+                "IR.V.A.R1",
+                "IR.V.A.R2",
+                "IR.V.A.R3"
+              ],
+              "S": [
+                "IR.V.A.S10",
+                "IR.V.A.S1",
+                "IR.V.A.S2",
+                "IR.V.A.S3",
+                "IR.V.A.S4",
+                "IR.V.A.S5",
+                "IR.V.A.S6",
+                "IR.V.A.S7",
+                "IR.V.A.S8",
+                "IR.V.A.S9",
+                "IR.V.A.S10"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Departure, En Route, and Arrival Operations  .............................................................................. 13",
+            "elements": {
+              "K": [
+                "IR.V.B.K1",
+                "IR.V.B.K2"
+              ],
+              "R": [
+                "IR.V.B.R1",
+                "IR.V.B.R2",
+                "IR.V.B.R3"
+              ],
+              "S": [
+                "IR.V.B.S1",
+                "IR.V.B.S2",
+                "IR.V.B.S3",
+                "IR.V.B.S4",
+                "IR.V.B.S5",
+                "IR.V.B.S6",
+                "IR.V.B.S7",
+                "IR.V.B.S8",
+                "IR.V.B.S9",
+                "IR.V.B.S10"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "VI",
+        "name": "Instrument Approach Procedures",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Non-precision Approach  ............................................................................................................... 14",
+            "elements": {
+              "K": [
+                "IR.VI.A.K1",
+                "IR.VI.A.K2",
+                "IR.VI.A.K3",
+                "IR.VI.A.K4"
+              ],
+              "R": [
+                "IR.VI.A.R1",
+                "IR.VI.A.R2",
+                "IR.VI.A.R3",
+                "IR.VI.A.R4",
+                "IR.VI.A.R5",
+                "IR.VI.A.R6",
+                "IR.VI.A.R7"
+              ],
+              "S": [
+                "IR.VI.A.S15",
+                "IR.VI.A.S1",
+                "IR.VI.A.S2",
+                "IR.VI.A.S3",
+                "IR.VI.A.S4",
+                "IR.VI.A.S5",
+                "IR.VI.A.S6",
+                "IR.VI.A.S7",
+                "IR.VI.A.S8",
+                "IR.VI.A.S9",
+                "IR.VI.A.S10",
+                "IR.VI.A.S11",
+                "IR.VI.A.S12",
+                "IR.VI.A.S13",
+                "IR.VI.A.S14",
+                "IR.VI.A.S15"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Precision Approach  ...................................................................................................................... 15",
+            "elements": {
+              "K": [
+                "IR.VI.B.K1",
+                "IR.VI.B.K2",
+                "IR.VI.B.K3",
+                "IR.VI.B.K4"
+              ],
+              "R": [
+                "IR.VI.B.R1",
+                "IR.VI.B.R2",
+                "IR.VI.B.R3",
+                "IR.VI.B.R4",
+                "IR.VI.B.R5",
+                "IR.VI.B.R6",
+                "IR.VI.B.R7"
+              ],
+              "S": [
+                "IR.VI.B.S17",
+                "IR.VI.B.S1",
+                "IR.VI.B.S2",
+                "IR.VI.B.S3",
+                "IR.VI.B.S4",
+                "IR.VI.B.S5",
+                "IR.VI.B.S6",
+                "IR.VI.B.S7",
+                "IR.VI.B.S8",
+                "IR.VI.B.S9",
+                "IR.VI.B.S10",
+                "IR.VI.B.S11",
+                "IR.VI.B.S12",
+                "IR.VI.B.S13",
+                "IR.VI.B.S14",
+                "IR.VI.B.S15",
+                "IR.VI.B.S16",
+                "IR.VI.B.S17"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Missed Approach  ......................................................................................................................... 16",
+            "elements": {
+              "K": [
+                "IR.VI.C.K1"
+              ],
+              "R": [
+                "IR.VI.C.R1",
+                "IR.VI.C.R2",
+                "IR.VI.C.R3",
+                "IR.VI.C.R4",
+                "IR.VI.C.R5"
+              ],
+              "S": [
+                "IR.VI.C.S1",
+                "IR.VI.C.S2",
+                "IR.VI.C.S3",
+                "IR.VI.C.S4",
+                "IR.VI.C.S5",
+                "IR.VI.C.S6",
+                "IR.VI.C.S7",
+                "IR.VI.C.S8",
+                "IR.VI.C.S9",
+                "IR.VI.C.S10"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Circling Approach  ........................................................................................................................ 17",
+            "elements": {
+              "K": [
+                "IR.VI.D.K1"
+              ],
+              "R": [
+                "IR.VI.D.R1",
+                "IR.VI.D.R2",
+                "IR.VI.D.R3",
+                "IR.VI.D.R4",
+                "IR.VI.D.R5",
+                "IR.VI.D.R6",
+                "IR.VI.D.R7"
+              ],
+              "S": [
+                "IR.VI.D.S1",
+                "IR.VI.D.S2",
+                "IR.VI.D.S3",
+                "IR.VI.D.S4",
+                "IR.VI.D.S5",
+                "IR.VI.D.S6",
+                "IR.VI.D.S7",
+                "IR.VI.D.S8"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Landing from an Instrument Approach  ......................................................................................... 18",
+            "elements": {
+              "K": [
+                "IR.VI.E.K3",
+                "IR.VI.E.K1",
+                "IR.VI.E.K2",
+                "IR.VI.E.K3"
+              ],
+              "R": [
+                "IR.VI.E.R4",
+                "IR.VI.E.R1",
+                "IR.VI.E.R2",
+                "IR.VI.E.R3",
+                "IR.VI.E.R4"
+              ],
+              "S": [
+                "IR.VI.E.S1",
+                "IR.VI.E.S2",
+                "IR.VI.E.S3",
+                "IR.VI.E.S4",
+                "IR.VI.E.S5"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "VII",
+        "name": "Emergency Operations",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Loss of Communications  .............................................................................................................. 20",
+            "elements": {
+              "K": [
+                "IR.VII.A.K1"
+              ],
+              "R": [
+                "IR.VII.A.R1",
+                "IR.VII.A.R2"
+              ],
+              "S": [
+                "IR.VII.A.S5",
+                "IR.VII.A.S1",
+                "IR.VII.A.S2",
+                "IR.VII.A.S3",
+                "IR.VII.A.S4",
+                "IR.VII.A.S5"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "One Engine Inoperative (Simulated) during Straight-and-Level Flight and Turns (AMEL, AMES)  20",
+            "elements": {
+              "K": [
+                "IR.VII.B.K1"
+              ],
+              "R": [
+                "IR.VII.B.R6",
+                "IR.VII.B.R1",
+                "IR.VII.B.R2",
+                "IR.VII.B.R3",
+                "IR.VII.B.R4",
+                "IR.VII.B.R5",
+                "IR.VII.B.R6"
+              ],
+              "S": [
+                "IR.VII.B.S1",
+                "IR.VII.B.S2",
+                "IR.VII.B.S3",
+                "IR.VII.B.S4",
+                "IR.VII.B.S5",
+                "IR.VII.B.S6",
+                "IR.VII.B.S7",
+                "IR.VII.B.S8",
+                "IR.VII.B.S9",
+                "IR.VII.B.S10",
+                "IR.VII.B.S11"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Instrument Approach and Landing with an Inoperative Engine (Simulated) (AMEL, AMES)  ....... 21",
+            "elements": {
+              "K": [
+                "IR.VII.C.K1"
+              ],
+              "R": [
+                "IR.VII.C.R2",
+                "IR.VII.C.R1",
+                "IR.VII.C.R2",
+                "IR.VII.C.R3",
+                "IR.VII.C.R4",
+                "IR.VII.C.R5",
+                "IR.VII.C.R6"
+              ],
+              "S": [
+                "IR.VII.C.S14",
+                "IR.VII.C.S1",
+                "IR.VII.C.S2",
+                "IR.VII.C.S3",
+                "IR.VII.C.S4",
+                "IR.VII.C.S5",
+                "IR.VII.C.S6",
+                "IR.VII.C.S7",
+                "IR.VII.C.S8",
+                "IR.VII.C.S9",
+                "IR.VII.C.S10",
+                "IR.VII.C.S11",
+                "IR.VII.C.S12",
+                "IR.VII.C.S13",
+                "IR.VII.C.S14"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Approach with Loss of Primary Flight Instrument Indicators  ........................................................ 22Table of Contents",
+            "elements": {
+              "K": [
+                "IR.VII.D.K1",
+                "IR.VII.D.K2"
+              ],
+              "R": [
+                "IR.VII.D.R1",
+                "IR.VII.D.R2",
+                "IR.VII.D.R3"
+              ],
+              "S": [
+                "IR.VII.D.S1",
+                "IR.VII.D.S2",
+                "IR.VII.D.S3"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "VIII",
+        "name": "Postflight Procedures",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Checking Instruments and Equipment  ......................................................................................... 24",
+            "elements": {
+              "K": [
+                "IR.VIII.A.K1"
+              ],
+              "R": [
+                "IR.VIII.A.R1"
+              ],
+              "S": [
+                "IR.VIII.A.S1"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "totals": {
+      "knowledge": 113,
+      "risk_management": 114,
+      "skills": 154,
+      "total": 381
+    }
+  },
+  "commercial": {
+    "certificate": "commercial",
+    "prefix": "CA",
+    "total_pages": 86,
+    "areas": [
+      {
+        "number": "I",
+        "name": "Preflight Preparation",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Pilot Qualifications  ......................................................................................................................... 2",
+            "elements": {
+              "K": [
+                "CA.I.A.K1",
+                "CA.I.A.K2",
+                "CA.I.A.K3",
+                "CA.I.A.K4",
+                "CA.I.A.K5"
+              ],
+              "R": [
+                "CA.I.A.R1",
+                "CA.I.A.R2"
+              ],
+              "S": [
+                "CA.I.A.S1"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Airworthiness Requirements  .......................................................................................................... 2",
+            "elements": {
+              "K": [
+                "CA.I.B.K4",
+                "CA.I.B.K1",
+                "CA.I.B.K1a",
+                "CA.I.B.K1b",
+                "CA.I.B.K1c",
+                "CA.I.B.K1d",
+                "CA.I.B.K2",
+                "CA.I.B.K3",
+                "CA.I.B.K3a",
+                "CA.I.B.K3b",
+                "CA.I.B.K3c",
+                "CA.I.B.K3d",
+                "CA.I.B.K4"
+              ],
+              "R": [
+                "CA.I.B.R1"
+              ],
+              "S": [
+                "CA.I.B.S1",
+                "CA.I.B.S2",
+                "CA.I.B.S3"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Weather Information  ...................................................................................................................... 3",
+            "elements": {
+              "K": [
+                "CA.I.C.K2a",
+                "CA.I.C.K2b",
+                "CA.I.C.K2c",
+                "CA.I.C.K2d",
+                "CA.I.C.K2e",
+                "CA.I.C.K2f",
+                "CA.I.C.K2g",
+                "CA.I.C.K1",
+                "CA.I.C.K2",
+                "CA.I.C.K2a",
+                "CA.I.C.K2b",
+                "CA.I.C.K2c",
+                "CA.I.C.K2d",
+                "CA.I.C.K2e",
+                "CA.I.C.K2f",
+                "CA.I.C.K2g",
+                "CA.I.C.K3",
+                "CA.I.C.K3a",
+                "CA.I.C.K3b",
+                "CA.I.C.K3c",
+                "CA.I.C.K3d",
+                "CA.I.C.K3e",
+                "CA.I.C.K3f",
+                "CA.I.C.K3g",
+                "CA.I.C.K3h",
+                "CA.I.C.K3i",
+                "CA.I.C.K3j",
+                "CA.I.C.K3k",
+                "CA.I.C.K3l",
+                "CA.I.C.K4",
+                "CA.I.C.K2",
+                "CA.I.C.K2"
+              ],
+              "R": [
+                "CA.I.C.R1",
+                "CA.I.C.R1a",
+                "CA.I.C.R1b",
+                "CA.I.C.R1c",
+                "CA.I.C.R2",
+                "CA.I.C.R2a",
+                "CA.I.C.R2b",
+                "CA.I.C.R2c"
+              ],
+              "S": [
+                "CA.I.C.S1",
+                "CA.I.C.S2",
+                "CA.I.C.S3"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Cross-Country Flight Planning  ....................................................................................................... 4",
+            "elements": {
+              "K": [
+                "CA.I.D.K1a",
+                "CA.I.D.K6",
+                "CA.I.D.K1",
+                "CA.I.D.K1a",
+                "CA.I.D.K2",
+                "CA.I.D.K3",
+                "CA.I.D.K3a",
+                "CA.I.D.K3b",
+                "CA.I.D.K3c",
+                "CA.I.D.K4",
+                "CA.I.D.K5",
+                "CA.I.D.K6"
+              ],
+              "R": [
+                "CA.I.D.R7",
+                "CA.I.D.R1",
+                "CA.I.D.R2",
+                "CA.I.D.R3",
+                "CA.I.D.R4",
+                "CA.I.D.R5",
+                "CA.I.D.R6",
+                "CA.I.D.R7"
+              ],
+              "S": [
+                "CA.I.D.S5",
+                "CA.I.D.S1",
+                "CA.I.D.S2",
+                "CA.I.D.S3",
+                "CA.I.D.S4",
+                "CA.I.D.S5"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "National Airspace System  .............................................................................................................. 5",
+            "elements": {
+              "K": [
+                "CA.I.E.K4",
+                "CA.I.E.K1",
+                "CA.I.E.K2",
+                "CA.I.E.K3",
+                "CA.I.E.K4"
+              ],
+              "R": [
+                "CA.I.E.R1"
+              ],
+              "S": [
+                "CA.I.E.S1",
+                "CA.I.E.S2",
+                "CA.I.E.S3"
+              ]
+            }
+          },
+          {
+            "letter": "F",
+            "name": "Performance and Limitations  .......................................................................................................... 6",
+            "elements": {
+              "K": [
+                "CA.I.F.K2f",
+                "CA.I.F.K1",
+                "CA.I.F.K2",
+                "CA.I.F.K2a",
+                "CA.I.F.K2b",
+                "CA.I.F.K2c",
+                "CA.I.F.K2d",
+                "CA.I.F.K2e",
+                "CA.I.F.K2f",
+                "CA.I.F.K3"
+              ],
+              "R": [
+                "CA.I.F.R1",
+                "CA.I.F.R2",
+                "CA.I.F.R3"
+              ],
+              "S": [
+                "CA.I.F.S1",
+                "CA.I.F.S2"
+              ]
+            }
+          },
+          {
+            "letter": "G",
+            "name": "Operation of Systems  .................................................................................................................... 7",
+            "elements": {
+              "K": [
+                "CA.I.G.K1",
+                "CA.I.G.K1a",
+                "CA.I.G.K1b",
+                "CA.I.G.K1c",
+                "CA.I.G.K1d",
+                "CA.I.G.K1e",
+                "CA.I.G.K1f",
+                "CA.I.G.K1g",
+                "CA.I.G.K1h",
+                "CA.I.G.K1i",
+                "CA.I.G.K1j",
+                "CA.I.G.K1k",
+                "CA.I.G.K1l",
+                "CA.I.G.K2"
+              ],
+              "R": [
+                "CA.I.G.R1",
+                "CA.I.G.R2",
+                "CA.I.G.R3"
+              ],
+              "S": [
+                "CA.I.G.S1",
+                "CA.I.G.S2"
+              ]
+            }
+          },
+          {
+            "letter": "H",
+            "name": "Human Factors  .............................................................................................................................. 8",
+            "elements": {
+              "K": [
+                "CA.I.H.K1",
+                "CA.I.H.K1a",
+                "CA.I.H.K1b",
+                "CA.I.H.K1c",
+                "CA.I.H.K1d",
+                "CA.I.H.K1e",
+                "CA.I.H.K1f",
+                "CA.I.H.K1g",
+                "CA.I.H.K1h",
+                "CA.I.H.K1i",
+                "CA.I.H.K1j",
+                "CA.I.H.K1k",
+                "CA.I.H.K1l",
+                "CA.I.H.K2",
+                "CA.I.H.K3",
+                "CA.I.H.K4",
+                "CA.I.H.K1",
+                "CA.I.H.K1e"
+              ],
+              "R": [
+                "CA.I.H.R4",
+                "CA.I.H.R1",
+                "CA.I.H.R2",
+                "CA.I.H.R3",
+                "CA.I.H.R4"
+              ],
+              "S": [
+                "CA.I.H.S1",
+                "CA.I.H.S2"
+              ]
+            }
+          },
+          {
+            "letter": "I",
+            "name": "Water and Seaplane Characteristics, Seaplane Bases, Maritime Rules, and Aids to Marine",
+            "elements": {
+              "K": [
+                "CA.I.I.K8",
+                "CA.I.I.K9",
+                "CA.I.I.K1",
+                "CA.I.I.K1a",
+                "CA.I.I.K1b",
+                "CA.I.I.K1c",
+                "CA.I.I.K1d",
+                "CA.I.I.K1e",
+                "CA.I.I.K1f",
+                "CA.I.I.K1g",
+                "CA.I.I.K1h",
+                "CA.I.I.K1i",
+                "CA.I.I.K2",
+                "CA.I.I.K3",
+                "CA.I.I.K4",
+                "CA.I.I.K5",
+                "CA.I.I.K6",
+                "CA.I.I.K7",
+                "CA.I.I.K8",
+                "CA.I.I.K9"
+              ],
+              "R": [
+                "CA.I.I.R1",
+                "CA.I.I.R2",
+                "CA.I.I.R3",
+                "CA.I.I.R4"
+              ],
+              "S": [
+                "CA.I.I.S5",
+                "CA.I.I.S6",
+                "CA.I.I.S1",
+                "CA.I.I.S2",
+                "CA.I.I.S3",
+                "CA.I.I.S4",
+                "CA.I.I.S5",
+                "CA.I.I.S6"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "II",
+        "name": "Preflight Procedures",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Preflight Assessment  ................................................................................................................... 11",
+            "elements": {
+              "K": [
+                "CA.II.A.K1",
+                "CA.II.A.K2",
+                "CA.II.A.K3",
+                "CA.II.A.K3a",
+                "CA.II.A.K3b",
+                "CA.II.A.K3c",
+                "CA.II.A.K3d",
+                "CA.II.A.K4"
+              ],
+              "R": [
+                "CA.II.A.R1",
+                "CA.II.A.R2",
+                "CA.II.A.R3",
+                "CA.II.A.R4",
+                "CA.II.A.R5"
+              ],
+              "S": [
+                "CA.II.A.S3",
+                "CA.II.A.S4",
+                "CA.II.A.S1",
+                "CA.II.A.S2",
+                "CA.II.A.S3",
+                "CA.II.A.S4"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Flight Deck Management  ............................................................................................................. 11",
+            "elements": {
+              "K": [
+                "CA.II.B.K4",
+                "CA.II.B.K1",
+                "CA.II.B.K2",
+                "CA.II.B.K3",
+                "CA.II.B.K4"
+              ],
+              "R": [
+                "CA.II.B.R3",
+                "CA.II.B.R1",
+                "CA.II.B.R2",
+                "CA.II.B.R3"
+              ],
+              "S": [
+                "CA.II.B.S4",
+                "CA.II.B.S1",
+                "CA.II.B.S2",
+                "CA.II.B.S3",
+                "CA.II.B.S4"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Engine Starting  ............................................................................................................................ 12",
+            "elements": {
+              "K": [
+                "CA.II.C.K1",
+                "CA.II.C.K2",
+                "CA.II.C.K3"
+              ],
+              "R": [
+                "CA.II.C.R1"
+              ],
+              "S": [
+                "CA.II.C.S1",
+                "CA.II.C.S2"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Taxiing (ASEL, AMEL)  ................................................................................................................. 12",
+            "elements": {
+              "K": [
+                "CA.II.D.K1",
+                "CA.II.D.K2",
+                "CA.II.D.K3",
+                "CA.II.D.K4",
+                "CA.II.D.K5",
+                "CA.II.D.K6",
+                "CA.II.D.K6a",
+                "CA.II.D.K6b",
+                "CA.II.D.K6c",
+                "CA.II.D.K6d",
+                "CA.II.D.K6e"
+              ],
+              "R": [
+                "CA.II.D.R4",
+                "CA.II.D.R1",
+                "CA.II.D.R2",
+                "CA.II.D.R3",
+                "CA.II.D.R4"
+              ],
+              "S": [
+                "CA.II.D.S1",
+                "CA.II.D.S2",
+                "CA.II.D.S3",
+                "CA.II.D.S4",
+                "CA.II.D.S5",
+                "CA.II.D.S6",
+                "CA.II.D.S7",
+                "CA.II.D.S8"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Taxiing and Sailing (ASES, AMES)  .............................................................................................. 14",
+            "elements": {
+              "K": [
+                "CA.II.E.K1",
+                "CA.II.E.K2",
+                "CA.II.E.K3",
+                "CA.II.E.K4",
+                "CA.II.E.K5",
+                "CA.II.E.K6",
+                "CA.II.E.K6a",
+                "CA.II.E.K6b"
+              ],
+              "R": [
+                "CA.II.E.R5",
+                "CA.II.E.R1",
+                "CA.II.E.R2",
+                "CA.II.E.R3",
+                "CA.II.E.R4",
+                "CA.II.E.R5"
+              ],
+              "S": [
+                "CA.II.E.S1",
+                "CA.II.E.S2",
+                "CA.II.E.S3",
+                "CA.II.E.S4",
+                "CA.II.E.S5",
+                "CA.II.E.S6",
+                "CA.II.E.S7",
+                "CA.II.E.S8",
+                "CA.II.E.S9",
+                "CA.II.E.S10"
+              ]
+            }
+          },
+          {
+            "letter": "F",
+            "name": "Before Takeoff Check  ................................................................................................................... 15",
+            "elements": {
+              "K": [
+                "CA.II.F.K1",
+                "CA.II.F.K1a",
+                "CA.II.F.K1b",
+                "CA.II.F.K1c"
+              ],
+              "R": [
+                "CA.II.F.R1",
+                "CA.II.F.R2",
+                "CA.II.F.R3",
+                "CA.II.F.R4"
+              ],
+              "S": [
+                "CA.II.F.S1",
+                "CA.II.F.S2",
+                "CA.II.F.S3",
+                "CA.II.F.S4",
+                "CA.II.F.S5"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "III",
+        "name": "Airport and Seaplane Base Operations",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Communications, Light Signals, and Runway Lighting Systems  ................................................. 16",
+            "elements": {
+              "K": [
+                "CA.III.A.K1",
+                "CA.III.A.K2",
+                "CA.III.A.K3",
+                "CA.III.A.K4",
+                "CA.III.A.K5",
+                "CA.III.A.K6",
+                "CA.III.A.K7",
+                "CA.III.A.K8",
+                "CA.III.A.K9"
+              ],
+              "R": [
+                "CA.III.A.R1",
+                "CA.III.A.R2",
+                "CA.III.A.R3"
+              ],
+              "S": [
+                "CA.III.A.S1",
+                "CA.III.A.S2",
+                "CA.III.A.S3"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Traffic Patterns  ............................................................................................................................. 16",
+            "elements": {
+              "K": [
+                "CA.III.B.K1",
+                "CA.III.B.K2",
+                "CA.III.B.K3",
+                "CA.III.B.K4"
+              ],
+              "R": [
+                "CA.III.B.R1",
+                "CA.III.B.R2",
+                "CA.III.B.R3"
+              ],
+              "S": [
+                "CA.III.B.S1",
+                "CA.III.B.S2",
+                "CA.III.B.S3",
+                "CA.III.B.S4",
+                "CA.III.B.S5",
+                "CA.III.B.S6"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "IV",
+        "name": "Takeoffs, Landings, and Go-Arounds",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Normal Takeoff and Climb  ............................................................................................................ 18",
+            "elements": {
+              "K": [
+                "CA.IV.A.K1",
+                "CA.IV.A.K2",
+                "CA.IV.A.K3"
+              ],
+              "R": [
+                "CA.IV.A.R7",
+                "CA.IV.A.R1",
+                "CA.IV.A.R2",
+                "CA.IV.A.R2a",
+                "CA.IV.A.R2b",
+                "CA.IV.A.R2c",
+                "CA.IV.A.R2d",
+                "CA.IV.A.R2e",
+                "CA.IV.A.R3",
+                "CA.IV.A.R3a",
+                "CA.IV.A.R3b",
+                "CA.IV.A.R4",
+                "CA.IV.A.R5",
+                "CA.IV.A.R6",
+                "CA.IV.A.R7"
+              ],
+              "S": [
+                "CA.IV.A.S10",
+                "CA.IV.A.S6a",
+                "CA.IV.A.S7a",
+                "CA.IV.A.S1",
+                "CA.IV.A.S2",
+                "CA.IV.A.S3",
+                "CA.IV.A.S4",
+                "CA.IV.A.S5",
+                "CA.IV.A.S6",
+                "CA.IV.A.S6a",
+                "CA.IV.A.S7",
+                "CA.IV.A.S7a",
+                "CA.IV.A.S8",
+                "CA.IV.A.S9",
+                "CA.IV.A.S10",
+                "CA.IV.A.S11",
+                "CA.IV.A.S12",
+                "CA.IV.A.S13",
+                "CA.IV.A.S14",
+                "CA.IV.A.S15"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Normal Approach and Landing  .................................................................................................... 19",
+            "elements": {
+              "K": [
+                "CA.IV.B.K1",
+                "CA.IV.B.K2",
+                "CA.IV.B.K3"
+              ],
+              "R": [
+                "CA.IV.B.R1",
+                "CA.IV.B.R2",
+                "CA.IV.B.R2a",
+                "CA.IV.B.R2b",
+                "CA.IV.B.R2c",
+                "CA.IV.B.R2d",
+                "CA.IV.B.R2e",
+                "CA.IV.B.R3",
+                "CA.IV.B.R3a",
+                "CA.IV.B.R3b",
+                "CA.IV.B.R4",
+                "CA.IV.B.R5",
+                "CA.IV.B.R6"
+              ],
+              "S": [
+                "CA.IV.B.S5",
+                "CA.IV.B.S1",
+                "CA.IV.B.S2",
+                "CA.IV.B.S3",
+                "CA.IV.B.S4",
+                "CA.IV.B.S5",
+                "CA.IV.B.S6",
+                "CA.IV.B.S7",
+                "CA.IV.B.S8",
+                "CA.IV.B.S9",
+                "CA.IV.B.S10",
+                "CA.IV.B.S11",
+                "CA.IV.B.S12"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Soft-Field Takeoff and Climb (ASEL)  ........................................................................................... 20",
+            "elements": {
+              "K": [
+                "CA.IV.C.K1",
+                "CA.IV.C.K2",
+                "CA.IV.C.K3",
+                "CA.IV.C.K4",
+                "CA.IV.C.K5",
+                "CA.IV.C.K6"
+              ],
+              "R": [
+                "CA.IV.C.R1",
+                "CA.IV.C.R2",
+                "CA.IV.C.R2a",
+                "CA.IV.C.R2b",
+                "CA.IV.C.R2c",
+                "CA.IV.C.R2d",
+                "CA.IV.C.R2e",
+                "CA.IV.C.R3",
+                "CA.IV.C.R3a",
+                "CA.IV.C.R3b",
+                "CA.IV.C.R4",
+                "CA.IV.C.R5",
+                "CA.IV.C.R6"
+              ],
+              "S": [
+                "CA.IV.C.S1",
+                "CA.IV.C.S2",
+                "CA.IV.C.S3",
+                "CA.IV.C.S4",
+                "CA.IV.C.S5",
+                "CA.IV.C.S6",
+                "CA.IV.C.S7",
+                "CA.IV.C.S8",
+                "CA.IV.C.S9",
+                "CA.IV.C.S10",
+                "CA.IV.C.S11",
+                "CA.IV.C.S12",
+                "CA.IV.C.S13",
+                "CA.IV.C.S14"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Soft-Field Approach and Landing (ASEL)  .................................................................................... 22",
+            "elements": {
+              "K": [
+                "CA.IV.D.K1",
+                "CA.IV.D.K2",
+                "CA.IV.D.K3"
+              ],
+              "R": [
+                "CA.IV.D.R1",
+                "CA.IV.D.R2",
+                "CA.IV.D.R2a",
+                "CA.IV.D.R2b",
+                "CA.IV.D.R2c",
+                "CA.IV.D.R2d",
+                "CA.IV.D.R2e",
+                "CA.IV.D.R3",
+                "CA.IV.D.R3a",
+                "CA.IV.D.R3b",
+                "CA.IV.D.R4",
+                "CA.IV.D.R5",
+                "CA.IV.D.R6"
+              ],
+              "S": [
+                "CA.IV.D.S1",
+                "CA.IV.D.S2",
+                "CA.IV.D.S3",
+                "CA.IV.D.S4",
+                "CA.IV.D.S5",
+                "CA.IV.D.S6",
+                "CA.IV.D.S7",
+                "CA.IV.D.S8",
+                "CA.IV.D.S9",
+                "CA.IV.D.S10",
+                "CA.IV.D.S11",
+                "CA.IV.D.S12",
+                "CA.IV.D.S13"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Short-Field Takeoff and Maximum Performance Climb (ASEL, AMEL)  ....................................... 23",
+            "elements": {
+              "K": [
+                "CA.IV.E.K1",
+                "CA.IV.E.K2",
+                "CA.IV.E.K3"
+              ],
+              "R": [
+                "CA.IV.E.R1",
+                "CA.IV.E.R2",
+                "CA.IV.E.R2a",
+                "CA.IV.E.R2b",
+                "CA.IV.E.R2c",
+                "CA.IV.E.R2d",
+                "CA.IV.E.R2e",
+                "CA.IV.E.R3",
+                "CA.IV.E.R3a",
+                "CA.IV.E.R3b",
+                "CA.IV.E.R4",
+                "CA.IV.E.R5",
+                "CA.IV.E.R6"
+              ],
+              "S": [
+                "CA.IV.E.S1",
+                "CA.IV.E.S2",
+                "CA.IV.E.S3",
+                "CA.IV.E.S4",
+                "CA.IV.E.S5",
+                "CA.IV.E.S6",
+                "CA.IV.E.S7",
+                "CA.IV.E.S8",
+                "CA.IV.E.S9",
+                "CA.IV.E.S10",
+                "CA.IV.E.S11",
+                "CA.IV.E.S12",
+                "CA.IV.E.S13",
+                "CA.IV.E.S14",
+                "CA.IV.E.S15"
+              ]
+            }
+          },
+          {
+            "letter": "F",
+            "name": "Short-Field Approach and Landing (ASEL, AMEL)  ....................................................................... 24",
+            "elements": {
+              "K": [
+                "CA.IV.F.K1",
+                "CA.IV.F.K2",
+                "CA.IV.F.K3"
+              ],
+              "R": [
+                "CA.IV.F.R1",
+                "CA.IV.F.R2",
+                "CA.IV.F.R2a",
+                "CA.IV.F.R2b",
+                "CA.IV.F.R2c",
+                "CA.IV.F.R2d",
+                "CA.IV.F.R2e",
+                "CA.IV.F.R3",
+                "CA.IV.F.R3a",
+                "CA.IV.F.R3b",
+                "CA.IV.F.R4",
+                "CA.IV.F.R5",
+                "CA.IV.F.R6"
+              ],
+              "S": [
+                "CA.IV.F.S1",
+                "CA.IV.F.S2",
+                "CA.IV.F.S3",
+                "CA.IV.F.S4",
+                "CA.IV.F.S5",
+                "CA.IV.F.S6",
+                "CA.IV.F.S7",
+                "CA.IV.F.S8",
+                "CA.IV.F.S9",
+                "CA.IV.F.S10",
+                "CA.IV.F.S11",
+                "CA.IV.F.S12",
+                "CA.IV.F.S13"
+              ]
+            }
+          },
+          {
+            "letter": "G",
+            "name": "Confined Area Takeoff and Maximum Performance Climb (ASES, AMES)  ................................. 26",
+            "elements": {
+              "K": [
+                "CA.IV.G.K1",
+                "CA.IV.G.K2",
+                "CA.IV.G.K3",
+                "CA.IV.G.K4"
+              ],
+              "R": [
+                "CA.IV.G.R1",
+                "CA.IV.G.R2",
+                "CA.IV.G.R2a",
+                "CA.IV.G.R2b",
+                "CA.IV.G.R2c",
+                "CA.IV.G.R2d",
+                "CA.IV.G.R2e",
+                "CA.IV.G.R3",
+                "CA.IV.G.R3a",
+                "CA.IV.G.R3b",
+                "CA.IV.G.R4",
+                "CA.IV.G.R5",
+                "CA.IV.G.R6"
+              ],
+              "S": [
+                "CA.IV.G.S6a",
+                "CA.IV.G.S1",
+                "CA.IV.G.S2",
+                "CA.IV.G.S3",
+                "CA.IV.G.S4",
+                "CA.IV.G.S5",
+                "CA.IV.G.S6",
+                "CA.IV.G.S6a",
+                "CA.IV.G.S7",
+                "CA.IV.G.S8",
+                "CA.IV.G.S9",
+                "CA.IV.G.S10",
+                "CA.IV.G.S11",
+                "CA.IV.G.S12",
+                "CA.IV.G.S13",
+                "CA.IV.G.S14",
+                "CA.IV.G.S15",
+                "CA.IV.G.S16"
+              ]
+            }
+          },
+          {
+            "letter": "H",
+            "name": "Confined Area Approach and Landing (ASES, AMES)  ................................................................ 27",
+            "elements": {
+              "K": [
+                "CA.IV.H.K1",
+                "CA.IV.H.K2",
+                "CA.IV.H.K3"
+              ],
+              "R": [
+                "CA.IV.H.R1",
+                "CA.IV.H.R2",
+                "CA.IV.H.R2a",
+                "CA.IV.H.R2b",
+                "CA.IV.H.R2c",
+                "CA.IV.H.R2d",
+                "CA.IV.H.R2e",
+                "CA.IV.H.R3",
+                "CA.IV.H.R4",
+                "CA.IV.H.R5",
+                "CA.IV.H.R6"
+              ],
+              "S": [
+                "CA.IV.H.S1",
+                "CA.IV.H.S2",
+                "CA.IV.H.S3",
+                "CA.IV.H.S4",
+                "CA.IV.H.S5",
+                "CA.IV.H.S6",
+                "CA.IV.H.S7",
+                "CA.IV.H.S8",
+                "CA.IV.H.S9",
+                "CA.IV.H.S10",
+                "CA.IV.H.S11",
+                "CA.IV.H.S12",
+                "CA.IV.H.S13"
+              ]
+            }
+          },
+          {
+            "letter": "I",
+            "name": "Glassy Water Takeoff and Climb (ASES, AMES)  .......................................................................... 28",
+            "elements": {
+              "K": [
+                "CA.IV.I.K1",
+                "CA.IV.I.K2",
+                "CA.IV.I.K3",
+                "CA.IV.I.K4"
+              ],
+              "R": [
+                "CA.IV.I.R1",
+                "CA.IV.I.R2",
+                "CA.IV.I.R3",
+                "CA.IV.I.R3a",
+                "CA.IV.I.R3b",
+                "CA.IV.I.R4",
+                "CA.IV.I.R5",
+                "CA.IV.I.R6",
+                "CA.IV.I.R7"
+              ],
+              "S": [
+                "CA.IV.I.S5",
+                "CA.IV.I.S4a",
+                "CA.IV.I.S4b",
+                "CA.IV.I.S1",
+                "CA.IV.I.S2",
+                "CA.IV.I.S3",
+                "CA.IV.I.S4",
+                "CA.IV.I.S4a",
+                "CA.IV.I.S4b",
+                "CA.IV.I.S5",
+                "CA.IV.I.S6",
+                "CA.IV.I.S7",
+                "CA.IV.I.S8",
+                "CA.IV.I.S9",
+                "CA.IV.I.S10",
+                "CA.IV.I.S11",
+                "CA.IV.I.S12"
+              ]
+            }
+          },
+          {
+            "letter": "J",
+            "name": "Glassy Water Approach and Landing (ASES, AMES)  .................................................................. 30",
+            "elements": {
+              "K": [
+                "CA.IV.J.K1",
+                "CA.IV.J.K2",
+                "CA.IV.J.K3",
+                "CA.IV.J.K4"
+              ],
+              "R": [
+                "CA.IV.J.R1",
+                "CA.IV.J.R2",
+                "CA.IV.J.R3",
+                "CA.IV.J.R4",
+                "CA.IV.J.R5",
+                "CA.IV.J.R6",
+                "CA.IV.J.R7"
+              ],
+              "S": [
+                "CA.IV.J.S1",
+                "CA.IV.J.S2",
+                "CA.IV.J.S3",
+                "CA.IV.J.S4",
+                "CA.IV.J.S5",
+                "CA.IV.J.S6",
+                "CA.IV.J.S7",
+                "CA.IV.J.S8",
+                "CA.IV.J.S9"
+              ]
+            }
+          },
+          {
+            "letter": "K",
+            "name": "Rough Water Takeoff and Climb (ASES, AMES)  ......................................................................... 31Table of Contents",
+            "elements": {
+              "K": [
+                "CA.IV.K.K1",
+                "CA.IV.K.K2",
+                "CA.IV.K.K3",
+                "CA.IV.K.K4"
+              ],
+              "R": [
+                "CA.IV.K.R1",
+                "CA.IV.K.R2",
+                "CA.IV.K.R2a",
+                "CA.IV.K.R2b",
+                "CA.IV.K.R2c",
+                "CA.IV.K.R2d",
+                "CA.IV.K.R2e",
+                "CA.IV.K.R3",
+                "CA.IV.K.R3a",
+                "CA.IV.K.R3b",
+                "CA.IV.K.R4",
+                "CA.IV.K.R5",
+                "CA.IV.K.R6",
+                "CA.IV.K.R7"
+              ],
+              "S": [
+                "CA.IV.K.S7",
+                "CA.IV.K.S6a",
+                "CA.IV.K.S6b",
+                "CA.IV.K.S1",
+                "CA.IV.K.S2",
+                "CA.IV.K.S3",
+                "CA.IV.K.S4",
+                "CA.IV.K.S5",
+                "CA.IV.K.S6",
+                "CA.IV.K.S6a",
+                "CA.IV.K.S6b",
+                "CA.IV.K.S7",
+                "CA.IV.K.S8",
+                "CA.IV.K.S9",
+                "CA.IV.K.S10",
+                "CA.IV.K.S11",
+                "CA.IV.K.S12",
+                "CA.IV.K.S13"
+              ]
+            }
+          },
+          {
+            "letter": "L",
+            "name": "Rough Water Approach and Landing (ASES, AMES)  .................................................................. 32",
+            "elements": {
+              "K": [
+                "CA.IV.L.K1",
+                "CA.IV.L.K2",
+                "CA.IV.L.K3",
+                "CA.IV.L.K4",
+                "CA.IV.L.K5"
+              ],
+              "R": [
+                "CA.IV.L.R1",
+                "CA.IV.L.R2",
+                "CA.IV.L.R2a",
+                "CA.IV.L.R2b",
+                "CA.IV.L.R2c",
+                "CA.IV.L.R2d",
+                "CA.IV.L.R2e",
+                "CA.IV.L.R3",
+                "CA.IV.L.R4",
+                "CA.IV.L.R5",
+                "CA.IV.L.R6",
+                "CA.IV.L.R7"
+              ],
+              "S": [
+                "CA.IV.L.S1",
+                "CA.IV.L.S2",
+                "CA.IV.L.S3",
+                "CA.IV.L.S4",
+                "CA.IV.L.S5",
+                "CA.IV.L.S6",
+                "CA.IV.L.S7",
+                "CA.IV.L.S8",
+                "CA.IV.L.S9",
+                "CA.IV.L.S10"
+              ]
+            }
+          },
+          {
+            "letter": "M",
+            "name": "Power-Off 180\u00b0 Accuracy Approach and Landing (ASEL, ASES)  ............................................... 33",
+            "elements": {
+              "K": [
+                "CA.IV.M.K1",
+                "CA.IV.M.K2",
+                "CA.IV.M.K3",
+                "CA.IV.M.K4"
+              ],
+              "R": [
+                "CA.IV.M.R1",
+                "CA.IV.M.R2",
+                "CA.IV.M.R2a",
+                "CA.IV.M.R2b",
+                "CA.IV.M.R2c",
+                "CA.IV.M.R2d",
+                "CA.IV.M.R2e",
+                "CA.IV.M.R3",
+                "CA.IV.M.R3a",
+                "CA.IV.M.R3b",
+                "CA.IV.M.R4",
+                "CA.IV.M.R5",
+                "CA.IV.M.R6",
+                "CA.IV.M.R7"
+              ],
+              "S": [
+                "CA.IV.M.S1",
+                "CA.IV.M.S2",
+                "CA.IV.M.S3",
+                "CA.IV.M.S4",
+                "CA.IV.M.S5",
+                "CA.IV.M.S6",
+                "CA.IV.M.S7",
+                "CA.IV.M.S8"
+              ]
+            }
+          },
+          {
+            "letter": "N",
+            "name": "Go-Around/Rejected Landing  ...................................................................................................... 34",
+            "elements": {
+              "K": [
+                "CA.IV.N.K4",
+                "CA.IV.N.K1",
+                "CA.IV.N.K2",
+                "CA.IV.N.K3",
+                "CA.IV.N.K4"
+              ],
+              "R": [
+                "CA.IV.N.R8",
+                "CA.IV.N.R9",
+                "CA.IV.N.R1",
+                "CA.IV.N.R2",
+                "CA.IV.N.R3",
+                "CA.IV.N.R4",
+                "CA.IV.N.R5",
+                "CA.IV.N.R6",
+                "CA.IV.N.R7",
+                "CA.IV.N.R8",
+                "CA.IV.N.R9"
+              ],
+              "S": [
+                "CA.IV.N.S9",
+                "CA.IV.N.S1",
+                "CA.IV.N.S2",
+                "CA.IV.N.S3",
+                "CA.IV.N.S4",
+                "CA.IV.N.S5",
+                "CA.IV.N.S6",
+                "CA.IV.N.S7",
+                "CA.IV.N.S8",
+                "CA.IV.N.S9"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "V",
+        "name": "Performance Maneuvers and Ground Reference Maneuvers",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Steep Turns  .................................................................................................................................. 36",
+            "elements": {
+              "K": [
+                "CA.V.A.K1",
+                "CA.V.A.K2",
+                "CA.V.A.K2a",
+                "CA.V.A.K2b",
+                "CA.V.A.K2c",
+                "CA.V.A.K2d",
+                "CA.V.A.K2e"
+              ],
+              "R": [
+                "CA.V.A.R1",
+                "CA.V.A.R2",
+                "CA.V.A.R3",
+                "CA.V.A.R4",
+                "CA.V.A.R5"
+              ],
+              "S": [
+                "CA.V.A.S1",
+                "CA.V.A.S2",
+                "CA.V.A.S3",
+                "CA.V.A.S4",
+                "CA.V.A.S5"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Steep Spiral (ASEL, ASES)  ......................................................................................................... 36",
+            "elements": {
+              "K": [
+                "CA.V.B.K1",
+                "CA.V.B.K2",
+                "CA.V.B.K3"
+              ],
+              "R": [
+                "CA.V.B.R1",
+                "CA.V.B.R2",
+                "CA.V.B.R3",
+                "CA.V.B.R4",
+                "CA.V.B.R5",
+                "CA.V.B.R6",
+                "CA.V.B.R7"
+              ],
+              "S": [
+                "CA.V.B.S1",
+                "CA.V.B.S2",
+                "CA.V.B.S3",
+                "CA.V.B.S4",
+                "CA.V.B.S5",
+                "CA.V.B.S6"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Chandelles (ASEL, ASES)  ........................................................................................................... 37",
+            "elements": {
+              "K": [
+                "CA.V.C.K1",
+                "CA.V.C.K2",
+                "CA.V.C.K2a",
+                "CA.V.C.K2b",
+                "CA.V.C.K2c",
+                "CA.V.C.K2d",
+                "CA.V.C.K3",
+                "CA.V.C.K4"
+              ],
+              "R": [
+                "CA.V.C.R1",
+                "CA.V.C.R2",
+                "CA.V.C.R3",
+                "CA.V.C.R4",
+                "CA.V.C.R5",
+                "CA.V.C.R6",
+                "CA.V.C.R7"
+              ],
+              "S": [
+                "CA.V.C.S1",
+                "CA.V.C.S2",
+                "CA.V.C.S3",
+                "CA.V.C.S4",
+                "CA.V.C.S5",
+                "CA.V.C.S6",
+                "CA.V.C.S7",
+                "CA.V.C.S8"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Lazy Eights (ASEL, ASES)  .......................................................................................................... 38",
+            "elements": {
+              "K": [
+                "CA.V.D.K1",
+                "CA.V.D.K2",
+                "CA.V.D.K3",
+                "CA.V.D.K4"
+              ],
+              "R": [
+                "CA.V.D.R1",
+                "CA.V.D.R2",
+                "CA.V.D.R3",
+                "CA.V.D.R4",
+                "CA.V.D.R5",
+                "CA.V.D.R6",
+                "CA.V.D.R7"
+              ],
+              "S": [
+                "CA.V.D.S1",
+                "CA.V.D.S2",
+                "CA.V.D.S3",
+                "CA.V.D.S4",
+                "CA.V.D.S5",
+                "CA.V.D.S5a",
+                "CA.V.D.S5b",
+                "CA.V.D.S5c",
+                "CA.V.D.S5d",
+                "CA.V.D.S5e",
+                "CA.V.D.S6"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Eights on Pylons (ASEL, ASES)  .................................................................................................. 39",
+            "elements": {
+              "K": [
+                "CA.V.E.K1",
+                "CA.V.E.K2",
+                "CA.V.E.K3",
+                "CA.V.E.K4",
+                "CA.V.E.K5"
+              ],
+              "R": [
+                "CA.V.E.R1",
+                "CA.V.E.R2",
+                "CA.V.E.R3",
+                "CA.V.E.R4",
+                "CA.V.E.R5",
+                "CA.V.E.R6",
+                "CA.V.E.R7"
+              ],
+              "S": [
+                "CA.V.E.S1",
+                "CA.V.E.S2",
+                "CA.V.E.S3",
+                "CA.V.E.S4",
+                "CA.V.E.S5",
+                "CA.V.E.S6",
+                "CA.V.E.S7",
+                "CA.V.E.S8"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "VI",
+        "name": "Navigation",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Pilotage and Dead Reckoning  ..................................................................................................... 41",
+            "elements": {
+              "K": [
+                "CA.VI.A.K1",
+                "CA.VI.A.K2",
+                "CA.VI.A.K3",
+                "CA.VI.A.K4",
+                "CA.VI.A.K4a",
+                "CA.VI.A.K4b",
+                "CA.VI.A.K4c",
+                "CA.VI.A.K5",
+                "CA.VI.A.K5a",
+                "CA.VI.A.K5b",
+                "CA.VI.A.K5c",
+                "CA.VI.A.K5d",
+                "CA.VI.A.K6",
+                "CA.VI.A.K7"
+              ],
+              "R": [
+                "CA.VI.A.R3",
+                "CA.VI.A.R1",
+                "CA.VI.A.R2",
+                "CA.VI.A.R3"
+              ],
+              "S": [
+                "CA.VI.A.S1",
+                "CA.VI.A.S2",
+                "CA.VI.A.S3",
+                "CA.VI.A.S4",
+                "CA.VI.A.S5",
+                "CA.VI.A.S6",
+                "CA.VI.A.S7"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Navigation Systems and Radar Services  .................................................................................... 42",
+            "elements": {
+              "K": [
+                "CA.VI.B.K1",
+                "CA.VI.B.K2",
+                "CA.VI.B.K3",
+                "CA.VI.B.K4"
+              ],
+              "R": [
+                "CA.VI.B.R5",
+                "CA.VI.B.R1",
+                "CA.VI.B.R2",
+                "CA.VI.B.R3",
+                "CA.VI.B.R4",
+                "CA.VI.B.R5"
+              ],
+              "S": [
+                "CA.VI.B.S1",
+                "CA.VI.B.S2",
+                "CA.VI.B.S3",
+                "CA.VI.B.S4",
+                "CA.VI.B.S5",
+                "CA.VI.B.S6",
+                "CA.VI.B.S7"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Diversion  ...................................................................................................................................... 42",
+            "elements": {
+              "K": [
+                "CA.VI.C.K1",
+                "CA.VI.C.K2"
+              ],
+              "R": [
+                "CA.VI.C.R1",
+                "CA.VI.C.R2",
+                "CA.VI.C.R3",
+                "CA.VI.C.R4",
+                "CA.VI.C.R5"
+              ],
+              "S": [
+                "CA.VI.C.S6",
+                "CA.VI.C.S1",
+                "CA.VI.C.S2",
+                "CA.VI.C.S3",
+                "CA.VI.C.S4",
+                "CA.VI.C.S5",
+                "CA.VI.C.S6"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Lost Procedures  .......................................................................................................................... 43",
+            "elements": {
+              "K": [
+                "CA.VI.D.K1",
+                "CA.VI.D.K2"
+              ],
+              "R": [
+                "CA.VI.D.R1",
+                "CA.VI.D.R2",
+                "CA.VI.D.R3",
+                "CA.VI.D.R4"
+              ],
+              "S": [
+                "CA.VI.D.S5",
+                "CA.VI.D.S1",
+                "CA.VI.D.S2",
+                "CA.VI.D.S3",
+                "CA.VI.D.S4",
+                "CA.VI.D.S5"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "VII",
+        "name": "Slow Flight and Stalls",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Maneuvering During Slow Flight  .................................................................................................. 45",
+            "elements": {
+              "K": [
+                "CA.VII.A.K1"
+              ],
+              "R": [
+                "CA.VII.A.R1",
+                "CA.VII.A.R2",
+                "CA.VII.A.R3",
+                "CA.VII.A.R4",
+                "CA.VII.A.R5",
+                "CA.VII.A.R6"
+              ],
+              "S": [
+                "CA.VII.A.S1",
+                "CA.VII.A.S2",
+                "CA.VII.A.S3",
+                "CA.VII.A.S4",
+                "CA.VII.A.S5"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Power-Off Stalls  ........................................................................................................................... 45",
+            "elements": {
+              "K": [
+                "CA.VII.B.K1",
+                "CA.VII.B.K2",
+                "CA.VII.B.K3",
+                "CA.VII.B.K4"
+              ],
+              "R": [
+                "CA.VII.B.R1",
+                "CA.VII.B.R2",
+                "CA.VII.B.R3",
+                "CA.VII.B.R4",
+                "CA.VII.B.R5",
+                "CA.VII.B.R6",
+                "CA.VII.B.R7",
+                "CA.VII.B.R8"
+              ],
+              "S": [
+                "CA.VII.B.S1",
+                "CA.VII.B.S2",
+                "CA.VII.B.S3",
+                "CA.VII.B.S4",
+                "CA.VII.B.S5",
+                "CA.VII.B.S6",
+                "CA.VII.B.S7",
+                "CA.VII.B.S8",
+                "CA.VII.B.S9",
+                "CA.VII.B.S10"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Power-On Stalls  ........................................................................................................................... 47",
+            "elements": {
+              "K": [
+                "CA.VII.C.K1",
+                "CA.VII.C.K2",
+                "CA.VII.C.K3",
+                "CA.VII.C.K4"
+              ],
+              "R": [
+                "CA.VII.C.R1",
+                "CA.VII.C.R2",
+                "CA.VII.C.R3",
+                "CA.VII.C.R4",
+                "CA.VII.C.R5",
+                "CA.VII.C.R6",
+                "CA.VII.C.R7",
+                "CA.VII.C.R8"
+              ],
+              "S": [
+                "CA.VII.C.S1",
+                "CA.VII.C.S2",
+                "CA.VII.C.S3",
+                "CA.VII.C.S4",
+                "CA.VII.C.S5",
+                "CA.VII.C.S6",
+                "CA.VII.C.S7",
+                "CA.VII.C.S8",
+                "CA.VII.C.S9",
+                "CA.VII.C.S10"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Accelerated Stalls  ........................................................................................................................ 48",
+            "elements": {
+              "K": [
+                "CA.VII.D.K1",
+                "CA.VII.D.K2",
+                "CA.VII.D.K3",
+                "CA.VII.D.K4"
+              ],
+              "R": [
+                "CA.VII.D.R1",
+                "CA.VII.D.R2",
+                "CA.VII.D.R3",
+                "CA.VII.D.R4",
+                "CA.VII.D.R5",
+                "CA.VII.D.R6",
+                "CA.VII.D.R7",
+                "CA.VII.D.R8"
+              ],
+              "S": [
+                "CA.VII.D.S1",
+                "CA.VII.D.S2",
+                "CA.VII.D.S3",
+                "CA.VII.D.S4",
+                "CA.VII.D.S5",
+                "CA.VII.D.S6",
+                "CA.VII.D.S7",
+                "CA.VII.D.S8",
+                "CA.VII.D.S9"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Spin Awareness  ........................................................................................................................... 49",
+            "elements": {
+              "K": [
+                "CA.VII.E.K1",
+                "CA.VII.E.K2",
+                "CA.VII.E.K3"
+              ],
+              "R": [
+                "CA.VII.E.R1",
+                "CA.VII.E.R2",
+                "CA.VII.E.R3",
+                "CA.VII.E.R4",
+                "CA.VII.E.R5",
+                "CA.VII.E.R6"
+              ],
+              "S": []
+            }
+          }
+        ]
+      },
+      {
+        "number": "VIII",
+        "name": "High-Altitude Operations",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Supplemental Oxygen  .................................................................................................................. 50",
+            "elements": {
+              "K": [
+                "CA.VIII.A.K1",
+                "CA.VIII.A.K2",
+                "CA.VIII.A.K2a",
+                "CA.VIII.A.K2b",
+                "CA.VIII.A.K2c",
+                "CA.VIII.A.K3",
+                "CA.VIII.A.K3a",
+                "CA.VIII.A.K3b",
+                "CA.VIII.A.K3c"
+              ],
+              "R": [
+                "CA.VIII.A.R1",
+                "CA.VIII.A.R2",
+                "CA.VIII.A.R3",
+                "CA.VIII.A.R4"
+              ],
+              "S": [
+                "CA.VIII.A.S4",
+                "CA.VIII.A.S1",
+                "CA.VIII.A.S2",
+                "CA.VIII.A.S3",
+                "CA.VIII.A.S4"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Pressurization  .............................................................................................................................. 50",
+            "elements": {
+              "K": [
+                "CA.VIII.B.K2d",
+                "CA.VIII.B.K1",
+                "CA.VIII.B.K2",
+                "CA.VIII.B.K2a",
+                "CA.VIII.B.K2b",
+                "CA.VIII.B.K2c",
+                "CA.VIII.B.K2d"
+              ],
+              "R": [
+                "CA.VIII.B.R1",
+                "CA.VIII.B.R2"
+              ],
+              "S": [
+                "CA.VIII.B.S4",
+                "CA.VIII.B.S1",
+                "CA.VIII.B.S2",
+                "CA.VIII.B.S3",
+                "CA.VIII.B.S4"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "IX",
+        "name": "Emergency Operations",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Emergency Descent  ..................................................................................................................... 52",
+            "elements": {
+              "K": [
+                "CA.IX.A.K4",
+                "CA.IX.A.K1",
+                "CA.IX.A.K2",
+                "CA.IX.A.K3",
+                "CA.IX.A.K4"
+              ],
+              "R": [
+                "CA.IX.A.R1",
+                "CA.IX.A.R2",
+                "CA.IX.A.R3",
+                "CA.IX.A.R4"
+              ],
+              "S": [
+                "CA.IX.A.S7",
+                "CA.IX.A.S1",
+                "CA.IX.A.S2",
+                "CA.IX.A.S3",
+                "CA.IX.A.S4",
+                "CA.IX.A.S5",
+                "CA.IX.A.S6",
+                "CA.IX.A.S7"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Emergency Approach and Landing (Simulated) (ASEL, ASES)  .................................................. 52",
+            "elements": {
+              "K": [
+                "CA.IX.B.K1",
+                "CA.IX.B.K2",
+                "CA.IX.B.K2a",
+                "CA.IX.B.K2b",
+                "CA.IX.B.K2c",
+                "CA.IX.B.K3",
+                "CA.IX.B.K4",
+                "CA.IX.B.K5",
+                "CA.IX.B.K6"
+              ],
+              "R": [
+                "CA.IX.B.R1",
+                "CA.IX.B.R2",
+                "CA.IX.B.R3",
+                "CA.IX.B.R4",
+                "CA.IX.B.R5",
+                "CA.IX.B.R6"
+              ],
+              "S": [
+                "CA.IX.B.S1",
+                "CA.IX.B.S2",
+                "CA.IX.B.S3",
+                "CA.IX.B.S4",
+                "CA.IX.B.S5",
+                "CA.IX.B.S6"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "Systems and Equipment Malfunctions  ........................................................................................ 53",
+            "elements": {
+              "K": [
+                "CA.IX.C.K1a",
+                "CA.IX.C.K1b",
+                "CA.IX.C.K1c",
+                "CA.IX.C.K1d",
+                "CA.IX.C.K1",
+                "CA.IX.C.K1a",
+                "CA.IX.C.K1b",
+                "CA.IX.C.K1c",
+                "CA.IX.C.K1d",
+                "CA.IX.C.K2",
+                "CA.IX.C.K2a",
+                "CA.IX.C.K2b",
+                "CA.IX.C.K2c",
+                "CA.IX.C.K2d",
+                "CA.IX.C.K2e",
+                "CA.IX.C.K2f",
+                "CA.IX.C.K3",
+                "CA.IX.C.K4",
+                "CA.IX.C.K5"
+              ],
+              "R": [
+                "CA.IX.C.R3",
+                "CA.IX.C.R4",
+                "CA.IX.C.R1",
+                "CA.IX.C.R2",
+                "CA.IX.C.R3",
+                "CA.IX.C.R4"
+              ],
+              "S": [
+                "CA.IX.C.S1",
+                "CA.IX.C.S2"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Emergency Equipment and Survival Gear  .................................................................................. 54",
+            "elements": {
+              "K": [
+                "CA.IX.D.K4",
+                "CA.IX.D.K5",
+                "CA.IX.D.K1",
+                "CA.IX.D.K2",
+                "CA.IX.D.K3",
+                "CA.IX.D.K3a",
+                "CA.IX.D.K3b",
+                "CA.IX.D.K3c",
+                "CA.IX.D.K4",
+                "CA.IX.D.K5"
+              ],
+              "R": [
+                "CA.IX.D.R2",
+                "CA.IX.D.R3",
+                "CA.IX.D.R1",
+                "CA.IX.D.R2",
+                "CA.IX.D.R3"
+              ],
+              "S": [
+                "CA.IX.D.S3",
+                "CA.IX.D.S1",
+                "CA.IX.D.S2",
+                "CA.IX.D.S3"
+              ]
+            }
+          },
+          {
+            "letter": "E",
+            "name": "Engine Failure During Takeoff Before VMC (Simulated) (AMEL, AMES)  ....................................... 55",
+            "elements": {
+              "K": [
+                "CA.IX.E.K1",
+                "CA.IX.E.K2",
+                "CA.IX.E.K3"
+              ],
+              "R": [
+                "CA.IX.E.R1",
+                "CA.IX.E.R2",
+                "CA.IX.E.R3"
+              ],
+              "S": [
+                "CA.IX.E.S1",
+                "CA.IX.E.S2"
+              ]
+            }
+          },
+          {
+            "letter": "F",
+            "name": "Engine Failure After Liftoff (Simulated) (AMEL, AMES)  ............................................................... 56",
+            "elements": {
+              "K": [
+                "CA.IX.F.K1",
+                "CA.IX.F.K2",
+                "CA.IX.F.K3",
+                "CA.IX.F.K4",
+                "CA.IX.F.K5",
+                "CA.IX.F.K6"
+              ],
+              "R": [
+                "CA.IX.F.R1",
+                "CA.IX.F.R2",
+                "CA.IX.F.R3",
+                "CA.IX.F.R4",
+                "CA.IX.F.R5"
+              ],
+              "S": [
+                "CA.IX.F.S1",
+                "CA.IX.F.S2",
+                "CA.IX.F.S3",
+                "CA.IX.F.S4",
+                "CA.IX.F.S5",
+                "CA.IX.F.S6",
+                "CA.IX.F.S7",
+                "CA.IX.F.S8",
+                "CA.IX.F.S9",
+                "CA.IX.F.S10"
+              ]
+            }
+          },
+          {
+            "letter": "G",
+            "name": "Approach and Landing with an Inoperative Engine (Simulated)(AMEL, AMES)  ......................... 57",
+            "elements": {
+              "K": [
+                "CA.IX.G.K1",
+                "CA.IX.G.K2",
+                "CA.IX.G.K3",
+                "CA.IX.G.K4",
+                "CA.IX.G.K5"
+              ],
+              "R": [
+                "CA.IX.G.R1",
+                "CA.IX.G.R2",
+                "CA.IX.G.R3",
+                "CA.IX.G.R4",
+                "CA.IX.G.R5",
+                "CA.IX.G.R6"
+              ],
+              "S": [
+                "CA.IX.G.S1",
+                "CA.IX.G.S2",
+                "CA.IX.G.S3",
+                "CA.IX.G.S4",
+                "CA.IX.G.S5",
+                "CA.IX.G.S6",
+                "CA.IX.G.S7",
+                "CA.IX.G.S8",
+                "CA.IX.G.S9",
+                "CA.IX.G.S10"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "X",
+        "name": "Multiengine Operations",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "Maneuvering with One Engine Inoperative (AMEL, AMES)  ......................................................... 59",
+            "elements": {
+              "K": [
+                "CA.X.A.K1",
+                "CA.X.A.K2",
+                "CA.X.A.K3",
+                "CA.X.A.K4",
+                "CA.X.A.K5"
+              ],
+              "R": [
+                "CA.X.A.R1",
+                "CA.X.A.R2",
+                "CA.X.A.R3",
+                "CA.X.A.R4",
+                "CA.X.A.R5"
+              ],
+              "S": [
+                "CA.X.A.S1",
+                "CA.X.A.S2",
+                "CA.X.A.S3",
+                "CA.X.A.S4",
+                "CA.X.A.S5",
+                "CA.X.A.S6",
+                "CA.X.A.S7",
+                "CA.X.A.S8"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "VMC Demonstration (AMEL, AMES)  .............................................................................................. 60",
+            "elements": {
+              "K": [
+                "CA.X.B.K1",
+                "CA.X.B.K2",
+                "CA.X.B.K3",
+                "CA.X.B.K4"
+              ],
+              "R": [
+                "CA.X.B.R1",
+                "CA.X.B.R2",
+                "CA.X.B.R3"
+              ],
+              "S": [
+                "CA.X.B.S1",
+                "CA.X.B.S1a",
+                "CA.X.B.S1b",
+                "CA.X.B.S1c",
+                "CA.X.B.S1d",
+                "CA.X.B.S1e",
+                "CA.X.B.S1f",
+                "CA.X.B.S1g",
+                "CA.X.B.S2",
+                "CA.X.B.S3",
+                "CA.X.B.S4",
+                "CA.X.B.S5",
+                "CA.X.B.S6",
+                "CA.X.B.S7",
+                "CA.X.B.S8"
+              ]
+            }
+          },
+          {
+            "letter": "C",
+            "name": "One Engine Inoperative (Simulated) (solely by Reference to Instruments) During Straight-",
+            "elements": {
+              "K": [
+                "CA.X.C.K1"
+              ],
+              "R": [
+                "CA.X.C.R1",
+                "CA.X.C.R2",
+                "CA.X.C.R3",
+                "CA.X.C.R4",
+                "CA.X.C.R5"
+              ],
+              "S": [
+                "CA.X.C.S1",
+                "CA.X.C.S2",
+                "CA.X.C.S3",
+                "CA.X.C.S4",
+                "CA.X.C.S5",
+                "CA.X.C.S6",
+                "CA.X.C.S7",
+                "CA.X.C.S8",
+                "CA.X.C.S9",
+                "CA.X.C.S10",
+                "CA.X.C.S11"
+              ]
+            }
+          },
+          {
+            "letter": "D",
+            "name": "Instrument Approach and Landing with an Inoperative Engine (Simulated) (AMEL, AMES)  .......62",
+            "elements": {
+              "K": [
+                "CA.X.D.K1"
+              ],
+              "R": [
+                "CA.X.D.R1",
+                "CA.X.D.R2",
+                "CA.X.D.R3",
+                "CA.X.D.R4",
+                "CA.X.D.R5",
+                "CA.X.D.R6"
+              ],
+              "S": [
+                "CA.X.D.S1",
+                "CA.X.D.S2",
+                "CA.X.D.S3",
+                "CA.X.D.S4",
+                "CA.X.D.S5",
+                "CA.X.D.S6",
+                "CA.X.D.S7",
+                "CA.X.D.S8",
+                "CA.X.D.S9",
+                "CA.X.D.S10",
+                "CA.X.D.S11",
+                "CA.X.D.S12",
+                "CA.X.D.S13"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "number": "XI",
+        "name": "Postflight Procedures",
+        "tasks": [
+          {
+            "letter": "A",
+            "name": "After Landing, Parking, and Securing (ASEL, AMEL)  .................................................................. 64",
+            "elements": {
+              "K": [
+                "CA.XI.A.K1",
+                "CA.XI.A.K2"
+              ],
+              "R": [
+                "CA.XI.A.R2",
+                "CA.XI.A.R1",
+                "CA.XI.A.R2",
+                "CA.XI.A.R3",
+                "CA.XI.A.R4"
+              ],
+              "S": [
+                "CA.XI.A.S1",
+                "CA.XI.A.S1",
+                "CA.XI.A.S2",
+                "CA.XI.A.S3",
+                "CA.XI.A.S4",
+                "CA.XI.A.S5"
+              ]
+            }
+          },
+          {
+            "letter": "B",
+            "name": "Seaplane Post-Landing Procedures (ASES, AMES)  ................................................................... 64",
+            "elements": {
+              "K": [
+                "CA.XI.B.K1",
+                "CA.XI.B.K2",
+                "CA.XI.B.K3",
+                "CA.XI.B.K4",
+                "CA.XI.B.K5"
+              ],
+              "R": [
+                "CA.XI.B.R2",
+                "CA.XI.B.R1",
+                "CA.XI.B.R2",
+                "CA.XI.B.R3",
+                "CA.XI.B.R4"
+              ],
+              "S": [
+                "CA.XI.B.S1",
+                "CA.XI.B.S2",
+                "CA.XI.B.S3",
+                "CA.XI.B.S4",
+                "CA.XI.B.S5"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "totals": {
+      "knowledge": 391,
+      "risk_management": 395,
+      "skills": 475,
+      "total": 1261
+    }
+  }
+}

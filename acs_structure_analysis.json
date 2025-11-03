@@ -1,0 +1,35 @@
+{
+  "private": {
+    "certificate": "private",
+    "total_pages": 87,
+    "areas_of_operation": [],
+    "coding_pattern": "PA.{Area}.{Task}.{Element}{Number}[{Sub-letter}]",
+    "element_types": {
+      "K": "Knowledge",
+      "R": "Risk Management",
+      "S": "Skills"
+    }
+  },
+  "instrument": {
+    "certificate": "instrument",
+    "total_pages": 40,
+    "areas_of_operation": [],
+    "coding_pattern": "IR.{Area}.{Task}.{Element}{Number}[{Sub-letter}]",
+    "element_types": {
+      "K": "Knowledge",
+      "R": "Risk Management",
+      "S": "Skills"
+    }
+  },
+  "commercial": {
+    "certificate": "commercial",
+    "total_pages": 86,
+    "areas_of_operation": [],
+    "coding_pattern": "CA.{Area}.{Task}.{Element}{Number}[{Sub-letter}]",
+    "element_types": {
+      "K": "Knowledge",
+      "R": "Risk Management",
+      "S": "Skills"
+    }
+  }
+}
