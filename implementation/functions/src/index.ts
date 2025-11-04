@@ -191,6 +191,76 @@ export const recordProgress = onCall(async (request) => {
   }
 });
 
+// Accept invitation
+export const acceptInvitation = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+  
+  const { invitationId } = request.data;
+  
+  if (!invitationId) {
+    throw new HttpsError('invalid-argument', 'Invitation ID required');
+  }
+  
+  try {
+    // Get invitation
+    const invitationDoc = await db.collection('invitations').doc(invitationId).get();
+    if (!invitationDoc.exists) {
+      throw new HttpsError('not-found', 'Invitation not found');
+    }
+    
+    const invitation = invitationDoc.data();
+    
+    // Validate invitation
+    if (invitation?.status !== 'pending') {
+      throw new HttpsError('failed-precondition', 'Invitation already used');
+    }
+    
+    if (invitation?.email !== request.auth.token.email) {
+      throw new HttpsError('permission-denied', 'This invitation is for a different email');
+    }
+    
+    // Update user document
+    const userRef = db.collection('users').doc(request.auth.uid);
+    await userRef.update({
+      role: 'STUDENT',
+      cfiWorkspaceId: invitation.workspaceId,
+    });
+    
+    // Add student to workspace
+    const workspaceRef = db.collection('workspaces').doc(invitation.workspaceId);
+    const studentRef = workspaceRef.collection('students').doc(request.auth.uid);
+    
+    await studentRef.set({
+      uid: request.auth.uid,
+      enrollmentDate: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'ACTIVE',
+      currentCertificate: 'PRIVATE',
+    });
+    
+    // Update workspace student count
+    await workspaceRef.update({
+      studentCount: admin.firestore.FieldValue.increment(1),
+    });
+    
+    // Update invitation status
+    await invitationDoc.ref.update({
+      status: 'accepted',
+      acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
+      acceptedBy: request.auth.uid,
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error accepting invitation:', error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError('internal', 'Failed to accept invitation');
+  }
+});
+
 // Update progress aggregations when new progress is created
 export const onProgressCreated = onDocumentCreated('progress/{progressId}', async (event) => {
     const progressData = event.data?.data();

@@ -85,8 +85,7 @@ service cloud.firestore {
         );
         // Allow students to enroll themselves
         allow create: if isSignedIn() && 
-          request.auth.uid == studentId &&
-          request.resource.data.uid == studentId;
+          request.auth.uid == studentId;
         // Allow CFI to update/delete
         allow update, delete: if isSignedIn() && 
           get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
