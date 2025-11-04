@@ -89,8 +89,8 @@ export const setUserRole = onCall(async (request) => {
 
 // Invite student
 export const inviteStudent = onCall(async (request) => {
-  if (!request.auth || request.auth.token.role !== 'CFI') {
-    throw new HttpsError('permission-denied', 'Only CFIs can invite students');
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
   
   const { email, workspaceId } = request.data;
@@ -100,6 +100,12 @@ export const inviteStudent = onCall(async (request) => {
   }
   
   try {
+    // Get user role from Firestore
+    const userDoc = await db.collection('users').doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data()?.role !== 'CFI') {
+      throw new HttpsError('permission-denied', 'Only CFIs can invite students');
+    }
+    
     // Verify workspace ownership
     const workspace = await db.collection('workspaces').doc(workspaceId).get();
     if (!workspace.exists || workspace.data()?.cfiUid !== request.auth.uid) {
@@ -125,7 +131,13 @@ export const inviteStudent = onCall(async (request) => {
 
 // Record progress
 export const recordProgress = onCall(async (request) => {
-  if (!request.auth || request.auth.token.role !== 'CFI') {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+  
+  // Get user role from Firestore
+  const userDoc = await db.collection('users').doc(request.auth.uid).get();
+  if (!userDoc.exists || userDoc.data()?.role !== 'CFI') {
     throw new HttpsError('permission-denied', 'Only CFIs can record progress');
   }
   
@@ -166,11 +178,12 @@ export const recordProgress = onCall(async (request) => {
 
 // Update progress aggregations when new progress is created
 export const onProgressCreated = onDocumentCreated('progress/{progressId}', async (event) => {
-    const progress = event.data?.data();
+    const progressData = event.data?.data();
+    if (!progressData) return;
     
     // TODO: Update student progress aggregations
     // TODO: Check for milestone achievements
     // TODO: Send notifications if needed
     
-    // Progress recorded
+    // Progress recorded for student: progressData.studentUid
   });
