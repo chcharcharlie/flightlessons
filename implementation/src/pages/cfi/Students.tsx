@@ -44,24 +44,33 @@ export const Students: React.FC = () => {
     if (!user?.cfiWorkspaceId || students.length === 0) return
 
     const loadPrograms = async () => {
-      const programsMap = new Map<string, TrainingProgram[]>()
-      
-      for (const student of students) {
-        const programsQuery = query(
-          collection(db, 'trainingPrograms'),
-          where('studentUid', '==', student.uid),
-          where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
-          where('status', '==', 'ACTIVE')
-        )
-        const programsSnapshot = await getDocs(programsQuery)
-        const programs = programsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as TrainingProgram))
-        programsMap.set(student.uid, programs)
+      try {
+        const programsMap = new Map<string, TrainingProgram[]>()
+        
+        for (const student of students) {
+          try {
+            const programsQuery = query(
+              collection(db, 'trainingPrograms'),
+              where('studentUid', '==', student.uid),
+              where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+              where('status', '==', 'ACTIVE')
+            )
+            const programsSnapshot = await getDocs(programsQuery)
+            const programs = programsSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            } as TrainingProgram))
+            programsMap.set(student.uid, programs)
+          } catch (err) {
+            // If we can't load programs for a student, just set empty array
+            programsMap.set(student.uid, [])
+          }
+        }
+        
+        setStudentPrograms(programsMap)
+      } catch (err) {
+        // Silently handle errors
       }
-      
-      setStudentPrograms(programsMap)
     }
 
     loadPrograms()

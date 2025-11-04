@@ -25,6 +25,7 @@ export const TrainingPrograms: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<string>('')
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate>('PRIVATE')
   const [notes, setNotes] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   const workspaceId = user?.cfiWorkspaceId || ''
 
@@ -42,16 +43,24 @@ export const TrainingPrograms: React.FC = () => {
         )
         
         const studentPromises = studentsSnapshot.docs.map(async (studentDoc) => {
-          const studentData = studentDoc.data() as Student
-          // Get user data directly by ID
-          const userDocRef = doc(db, 'users', studentData.uid)
-          const userDoc = await getDoc(userDocRef)
-          const userData = userDoc.data() as User
-          return { ...studentData, userData }
+          try {
+            const studentData = studentDoc.data() as Student
+            // Get user data directly by ID
+            const userDocRef = doc(db, 'users', studentData.uid)
+            const userDoc = await getDoc(userDocRef)
+            if (!userDoc.exists()) {
+              return null
+            }
+            const userData = userDoc.data() as User
+            return { ...studentData, userData }
+          } catch (err) {
+            return null
+          }
         })
 
         const studentsWithData = await Promise.all(studentPromises)
-        setStudents(studentsWithData)
+        // Filter out any null results
+        setStudents(studentsWithData.filter(s => s !== null) as Array<Student & { userData: User }>)
 
         // Load training programs
         const programsQuery = query(
@@ -101,8 +110,9 @@ export const TrainingPrograms: React.FC = () => {
       setSelectedStudent('')
       setSelectedCertificate('PRIVATE')
       setNotes('')
-    } catch (error) {
-      // Silently handle error
+    } catch (error: any) {
+      setError(error.message || 'Failed to create training program')
+      setTimeout(() => setError(null), 5000)
     }
   }
 
@@ -179,10 +189,26 @@ export const TrainingPrograms: React.FC = () => {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
+
       {/* New Program Form */}
       {showNewProgram && (
         <div className="mt-6 bg-white shadow rounded-lg p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Start New Training Program</h3>
+          
+          {students.length === 0 && (
+            <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+              <p className="text-sm">
+                You need to invite students before creating training programs. 
+                Go to the <a href="/cfi/students" className="underline font-medium">Students</a> tab to invite your first student.
+              </p>
+            </div>
+          )}
           
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
@@ -196,14 +222,18 @@ export const TrainingPrograms: React.FC = () => {
                 className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-sky focus:outline-none focus:ring-sky sm:text-sm"
               >
                 <option value="">Choose a student</option>
-                {students.map(student => (
-                  <option key={student.uid} value={student.uid}>
-                    {student.userData.displayName}
-                    {getStudentActivePrograms(student.uid).length > 0 && 
-                      ` (Active: ${getStudentActivePrograms(student.uid).map(p => p.certificate).join(', ')})`
-                    }
-                  </option>
-                ))}
+                {students.length === 0 ? (
+                  <option value="" disabled>No enrolled students found</option>
+                ) : (
+                  students.map(student => (
+                    <option key={student.uid} value={student.uid}>
+                      {student.userData.displayName}
+                      {getStudentActivePrograms(student.uid).length > 0 && 
+                        ` (Active: ${getStudentActivePrograms(student.uid).map(p => p.certificate).join(', ')})`
+                      }
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
