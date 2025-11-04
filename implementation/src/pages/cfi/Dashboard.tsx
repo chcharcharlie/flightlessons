@@ -11,12 +11,14 @@ import {
 } from '@heroicons/react/24/outline'
 import { StudyItems } from './StudyItems'
 import { Students } from './Students'
+import { TrainingPrograms } from './TrainingPrograms'
 
 const navigation = [
   { name: 'Dashboard', href: '/cfi', icon: HomeIcon },
   { name: 'Students', href: '/cfi/students', icon: UserGroupIcon },
+  { name: 'Programs', href: '/cfi/programs', icon: AcademicCapIcon },
   { name: 'Study Items', href: '/cfi/study-items', icon: BookOpenIcon },
-  { name: 'Lessons', href: '/cfi/lessons', icon: AcademicCapIcon },
+  { name: 'Lessons', href: '/cfi/lessons', icon: ClipboardDocumentListIcon },
   { name: 'ACS Coverage', href: '/cfi/acs', icon: ClipboardDocumentListIcon },
 ]
 
@@ -78,6 +80,7 @@ export const CFIDashboard: React.FC = () => {
         <Routes>
           <Route index element={<CFIDashboardHome />} />
           <Route path="students" element={<Students />} />
+          <Route path="programs" element={<TrainingPrograms />} />
           <Route path="study-items" element={<StudyItems />} />
           <Route path="lessons" element={<div>Lessons</div>} />
           <Route path="acs" element={<div>ACS Coverage</div>} />

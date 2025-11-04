@@ -4,7 +4,7 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProgress } from '@/hooks/useProgress'
-import { CFIWorkspace, User, Progress, Certificate } from '@/types'
+import { CFIWorkspace, User, Progress, TrainingProgram } from '@/types'
 import {
   CalendarDaysIcon,
   BookOpenIcon,
@@ -16,11 +16,11 @@ export const StudentDashboardHome: React.FC = () => {
   const { user } = useAuth()
   const [cfiInfo, setCfiInfo] = useState<{ workspace: CFIWorkspace; cfi: User } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activePrograms, setActivePrograms] = useState<TrainingProgram[]>([])
   const [progressStats, setProgressStats] = useState({
     totalItems: 0,
     groundLearned: 0,
     flightCompleted: 0,
-    currentCertificate: 'PRIVATE' as Certificate,
   })
 
   useEffect(() => {
@@ -32,41 +32,37 @@ export const StudentDashboardHome: React.FC = () => {
 
       try {
         // Load workspace info
-        console.log('Loading workspace:', user.cfiWorkspaceId)
         const workspaceDoc = await getDoc(doc(db, 'workspaces', user.cfiWorkspaceId))
         if (!workspaceDoc.exists()) {
-          console.log('Workspace not found')
           setLoading(false)
           return
         }
 
         const workspace = { id: workspaceDoc.id, ...workspaceDoc.data() } as CFIWorkspace
-        console.log('Workspace loaded:', workspace)
         
         // Load CFI info
-        console.log('Loading CFI:', workspace.cfiUid)
         const cfiDoc = await getDoc(doc(db, 'users', workspace.cfiUid))
         if (!cfiDoc.exists()) {
-          console.log('CFI not found')
           setLoading(false)
           return
         }
 
         const cfi = cfiDoc.data() as User
-        console.log('CFI loaded:', cfi.displayName)
         setCfiInfo({ workspace, cfi })
 
-        // Load student's enrollment info
-        const studentDoc = await getDoc(
-          doc(db, 'workspaces', user.cfiWorkspaceId, 'students', user.uid)
+        // Load active training programs
+        const programsQuery = query(
+          collection(db, 'trainingPrograms'),
+          where('studentUid', '==', user.uid),
+          where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+          where('status', '==', 'ACTIVE')
         )
-        if (studentDoc.exists()) {
-          const studentData = studentDoc.data()
-          setProgressStats(prev => ({
-            ...prev,
-            currentCertificate: studentData.currentCertificate || 'PRIVATE',
-          }))
-        }
+        const programsSnapshot = await getDocs(programsQuery)
+        const programs = programsSnapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        } as TrainingProgram))
+        setActivePrograms(programs)
 
         // Load progress statistics
         const progressRef = collection(db, 'progress')
@@ -115,7 +111,7 @@ export const StudentDashboardHome: React.FC = () => {
           flightCompleted,
         }))
       } catch (error) {
-        console.error('Error loading CFI info:', error)
+        // Silently handle error
       } finally {
         setLoading(false)
       }
@@ -124,7 +120,7 @@ export const StudentDashboardHome: React.FC = () => {
     loadCFIInfo()
   }, [user])
 
-  const getCertificateFullName = (cert: Certificate) => {
+  const getCertificateFullName = (cert: string) => {
     switch (cert) {
       case 'PRIVATE':
         return 'Private Pilot License'
@@ -170,9 +166,11 @@ export const StudentDashboardHome: React.FC = () => {
       <h2 className="text-2xl font-bold text-gray-900">
         Welcome back, {user?.displayName}
       </h2>
-      <p className="mt-2 text-gray-600">
-        {getCertificateFullName(progressStats.currentCertificate)} Training
-      </p>
+      {activePrograms.length > 0 && (
+        <p className="mt-2 text-gray-600">
+          {activePrograms.map(p => getCertificateFullName(p.certificate)).join(', ')} Training
+        </p>
+      )}
 
       {/* Instructor Info */}
       <div className="mt-6 bg-white shadow rounded-lg p-6">
@@ -187,25 +185,41 @@ export const StudentDashboardHome: React.FC = () => {
       </div>
 
       {/* Progress Overview */}
-      <div className="mt-6 bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900">
-          {getCertificateFullName(progressStats.currentCertificate)} Progress
-        </h3>
-        <div className="mt-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-500">
-              Overall Progress
-            </span>
-            <span className="text-sm font-medium text-gray-900">{overallProgress}%</span>
-          </div>
-          <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-gradient-to-r from-sky to-green-500 h-2 rounded-full transition-all duration-500"
-              style={{ width: `${overallProgress}%` }}
-            />
-          </div>
+      {activePrograms.length > 0 ? (
+        <div className="mt-6 bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900">
+            Training Progress
+          </h3>
+          {activePrograms.map(program => (
+            <div key={program.id} className="mt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                {getCertificateFullName(program.certificate)}
+              </h4>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-500">
+                  Overall Progress
+                </span>
+                <span className="text-sm font-medium text-gray-900">{overallProgress}%</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-sky to-green-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${overallProgress}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      ) : (
+        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <h3 className="text-lg font-medium text-yellow-800">
+            No Active Training Programs
+          </h3>
+          <p className="mt-2 text-sm text-yellow-700">
+            Your instructor will initiate a training program for your specific certificate or rating.
+          </p>
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
         {/* Ground Progress */}

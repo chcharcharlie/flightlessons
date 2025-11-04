@@ -85,7 +85,21 @@ export interface Student {
   uid: string
   enrollmentDate: Timestamp
   status: StudentStatus
-  currentCertificate: Certificate
+}
+
+export type TrainingProgramStatus = 'ACTIVE' | 'COMPLETED' | 'PAUSED'
+
+export interface TrainingProgram {
+  id: string
+  cfiWorkspaceId: string
+  studentUid: string
+  certificate: Certificate
+  status: TrainingProgramStatus
+  startDate: Timestamp
+  completedDate?: Timestamp
+  notes?: string
+  createdAt: Timestamp
+  createdBy: string
 }
 
 export type GroundScore = 'NOT_TAUGHT' | 'NEEDS_REINFORCEMENT' | 'LEARNED'

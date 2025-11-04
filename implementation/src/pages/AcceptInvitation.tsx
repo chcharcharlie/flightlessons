@@ -48,7 +48,6 @@ export const AcceptInvitation: React.FC = () => {
           handleAcceptInvitation()
         }
       } catch (err) {
-        console.error('Error loading invitation:', err)
         setError('Failed to load invitation')
         setLoading(false)
       }
@@ -77,7 +76,6 @@ export const AcceptInvitation: React.FC = () => {
       // Force a page refresh to update auth context with new role
       window.location.href = '/student'
     } catch (err: any) {
-      console.error('Error accepting invitation:', err)
       
       // Handle specific error codes from Cloud Function
       if (err.code === 'functions/not-found') {

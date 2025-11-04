@@ -236,7 +236,6 @@ export const acceptInvitation = onCall(async (request) => {
       uid: request.auth.uid,
       enrollmentDate: admin.firestore.FieldValue.serverTimestamp(),
       status: 'ACTIVE',
-      currentCertificate: 'PRIVATE',
     });
     
     // Update workspace student count

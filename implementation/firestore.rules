@@ -137,5 +137,19 @@ service cloud.firestore {
         request.resource.data.status == 'accepted';
       allow create, delete: if false;
     }
+    
+    // Training Programs collection
+    match /trainingPrograms/{programId} {
+      // Allow students to read their own programs, CFIs to read all in their workspace
+      allow read: if isSignedIn() && (
+        resource.data.studentUid == request.auth.uid ||
+        (isCFI() && resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId)
+      );
+      // Allow CFIs to create/update/delete programs in their workspace
+      allow create: if isCFI() && 
+        request.resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId;
+      allow update, delete: if isCFI() && 
+        resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId;
+    }
   }
 }

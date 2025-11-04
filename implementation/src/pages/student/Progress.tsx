@@ -3,12 +3,13 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useProgress } from '@/hooks/useProgress'
-import { StudyArea, StudyItem, Certificate, GroundScore, FlightScore } from '@/types'
+import { StudyArea, StudyItem, Certificate, GroundScore, FlightScore, TrainingProgram } from '@/types'
 import { ChartBarIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 
 export const StudentProgress: React.FC = () => {
   const { user } = useAuth()
-  const [selectedCertificate, setSelectedCertificate] = useState<Certificate>('PRIVATE')
+  const [activePrograms, setActivePrograms] = useState<TrainingProgram[]>([])
+  const [selectedProgram, setSelectedProgram] = useState<string>('')
   const [areas, setAreas] = useState<StudyArea[]>([])
   const [items, setItems] = useState<StudyItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -22,8 +23,27 @@ export const StudentProgress: React.FC = () => {
       return
     }
 
-    const loadStudyItems = async () => {
+    const loadData = async () => {
       try {
+        // Load active training programs
+        const programsQuery = query(
+          collection(db, 'trainingPrograms'),
+          where('studentUid', '==', user.uid),
+          where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+          where('status', '==', 'ACTIVE')
+        )
+        const programsSnapshot = await getDocs(programsQuery)
+        const programs = programsSnapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        } as TrainingProgram))
+        setActivePrograms(programs)
+        
+        // Set first program as selected if exists
+        if (programs.length > 0) {
+          setSelectedProgram(programs[0].id)
+        }
+
         // Load workspace to get study areas and items
         const workspaceRef = doc(db, 'workspaces', user.cfiWorkspaceId)
         
@@ -43,23 +63,23 @@ export const StudentProgress: React.FC = () => {
         } as StudyItem))
         setItems(itemsData)
       } catch (error) {
-        console.error('Error loading study items:', error)
+        // Silently handle error
       } finally {
         setLoading(false)
       }
     }
 
-    loadStudyItems()
+    loadData()
   }, [user?.cfiWorkspaceId])
 
-  const CERTIFICATES: { value: Certificate; label: string; description: string }[] = [
-    { value: 'PRIVATE', label: 'Private Pilot', description: 'PPL' },
-    { value: 'INSTRUMENT', label: 'Instrument Rating', description: 'IR' },
-    { value: 'COMMERCIAL', label: 'Commercial Pilot', description: 'CPL' },
-  ]
+  // Get selected program
+  const selectedTrainingProgram = activePrograms.find(p => p.id === selectedProgram)
+  const selectedCertificate = selectedTrainingProgram?.certificate
 
   // Filter areas by certificate
-  const certificateAreas = areas.filter(area => area.certificate === selectedCertificate)
+  const certificateAreas = selectedCertificate 
+    ? areas.filter(area => area.certificate === selectedCertificate)
+    : []
 
   // Get progress for an item
   const getItemProgress = (itemId: string) => {
@@ -139,12 +159,41 @@ export const StudentProgress: React.FC = () => {
     }
   }
 
+  const getCertificateFullName = (cert: string) => {
+    switch (cert) {
+      case 'PRIVATE':
+        return 'Private Pilot License'
+      case 'INSTRUMENT':
+        return 'Instrument Rating'
+      case 'COMMERCIAL':
+        return 'Commercial Pilot License'
+      default:
+        return cert
+    }
+  }
+
   if (loading) {
     return (
       <div className="px-4 sm:px-0">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (activePrograms.length === 0) {
+    return (
+      <div className="px-4 sm:px-0">
+        <h2 className="text-2xl font-bold text-gray-900">Your Progress</h2>
+        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <h3 className="text-lg font-medium text-yellow-800">
+            No Active Training Programs
+          </h3>
+          <p className="mt-2 text-sm text-yellow-700">
+            Your instructor will initiate a training program for your specific certificate or rating.
+          </p>
         </div>
       </div>
     )
@@ -179,35 +228,35 @@ export const StudentProgress: React.FC = () => {
     <div className="px-4 sm:px-0">
       <h2 className="text-2xl font-bold text-gray-900">Your Progress</h2>
       <p className="mt-2 text-sm text-gray-700">
-        Track your learning progress across all certificates and ratings.
+        Track your learning progress for your active training programs.
       </p>
 
-      {/* Certificate Tabs */}
-      <div className="mt-6 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          {CERTIFICATES.map((cert) => (
-            <button
-              key={cert.value}
-              onClick={() => setSelectedCertificate(cert.value)}
-              className={`
-                whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm
-                ${selectedCertificate === cert.value
-                  ? 'border-sky text-sky-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }
-              `}
-            >
-              {cert.label}
-              <span className="ml-2 text-gray-400">({cert.description})</span>
-            </button>
-          ))}
-        </nav>
-      </div>
+      {/* Program Selector if multiple programs */}
+      {activePrograms.length > 1 && (
+        <div className="mt-6">
+          <label htmlFor="program-selector" className="block text-sm font-medium text-gray-700">
+            Select Training Program
+          </label>
+          <select
+            id="program-selector"
+            value={selectedProgram}
+            onChange={(e) => setSelectedProgram(e.target.value)}
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-sky focus:border-sky sm:text-sm rounded-md"
+          >
+            {activePrograms.map(program => (
+              <option key={program.id} value={program.id}>
+                {getCertificateFullName(program.certificate)}
+                {program.notes && ` - ${program.notes}`}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Overall Progress */}
       <div className="mt-6 bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">
-          {CERTIFICATES.find(c => c.value === selectedCertificate)?.label} Progress
+          {selectedCertificate ? getCertificateFullName(selectedCertificate) : ''} Progress
         </h3>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-500">Overall Completion</span>
@@ -350,7 +399,7 @@ export const StudentProgress: React.FC = () => {
           <div className="bg-white shadow rounded-lg p-8 text-center">
             <ChartBarIcon className="mx-auto h-12 w-12 text-gray-300" />
             <p className="mt-2 text-sm text-gray-500">
-              No study areas available for {CERTIFICATES.find(c => c.value === selectedCertificate)?.label} yet.
+              No study areas available for {selectedCertificate ? getCertificateFullName(selectedCertificate) : 'this program'} yet.
             </p>
             <p className="mt-1 text-sm text-gray-500">
               Your instructor will add study materials soon.
