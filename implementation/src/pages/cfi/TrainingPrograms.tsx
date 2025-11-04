@@ -14,7 +14,7 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Student, User, TrainingProgram, Certificate } from '@/types'
-import { AcademicCapIcon, PlusIcon, PauseIcon, CheckIcon, ChartBarIcon } from '@heroicons/react/24/outline'
+import { AcademicCapIcon, PlusIcon, PauseIcon, CheckIcon, ChartBarIcon, PlayIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 
 export const TrainingPrograms: React.FC = () => {
@@ -123,6 +123,9 @@ export const TrainingPrograms: React.FC = () => {
       const updates: any = { status: newStatus }
       if (newStatus === 'COMPLETED') {
         updates.completedDate = Timestamp.now()
+      } else if (newStatus === 'ACTIVE') {
+        // Clear completedDate when reactivating
+        updates.completedDate = null
       }
       
       await updateDoc(doc(db, 'trainingPrograms', programId), updates)
@@ -130,7 +133,12 @@ export const TrainingPrograms: React.FC = () => {
       // Update local state
       setPrograms(programs.map(p => 
         p.id === programId 
-          ? { ...p, status: newStatus, ...(newStatus === 'COMPLETED' ? { completedDate: Timestamp.now() } : {}) }
+          ? { 
+              ...p, 
+              status: newStatus, 
+              ...(newStatus === 'COMPLETED' ? { completedDate: Timestamp.now() } : {}),
+              ...(newStatus === 'ACTIVE' ? { completedDate: undefined } : {})
+            }
           : p
       ))
     } catch (error) {
@@ -406,16 +414,20 @@ export const TrainingPrograms: React.FC = () => {
                           }`}>
                             {program.status === 'COMPLETED' ? 'Completed' : 'Paused'}
                           </span>
-                          {program.status === 'PAUSED' && (
+                          {(program.status === 'PAUSED' || program.status === 'COMPLETED') && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleUpdateStatus(program.id, 'ACTIVE')
                               }}
                               className="text-gray-400 hover:text-gray-500"
-                              title="Resume Program"
+                              title={program.status === 'PAUSED' ? 'Resume Program' : 'Reactivate Program'}
                             >
-                              <CheckIcon className="h-5 w-5" />
+                              {program.status === 'PAUSED' ? (
+                                <PlayIcon className="h-5 w-5" />
+                              ) : (
+                                <ArrowPathIcon className="h-5 w-5" />
+                              )}
                             </button>
                           )}
                         </div>
