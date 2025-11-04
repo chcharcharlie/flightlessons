@@ -13,6 +13,8 @@ import { StudyItems } from './StudyItems'
 import { Students } from './Students'
 import { TrainingPrograms } from './TrainingPrograms'
 import { ProgramProgress } from './ProgramProgress'
+import { Lessons } from './Lessons'
+import { LessonDetail } from './LessonDetail'
 
 const navigation = [
   { name: 'Dashboard', href: '/cfi', icon: HomeIcon },
@@ -84,7 +86,8 @@ export const CFIDashboard: React.FC = () => {
           <Route path="programs" element={<TrainingPrograms />} />
           <Route path="programs/:programId/progress" element={<ProgramProgress />} />
           <Route path="study-items" element={<StudyItems />} />
-          <Route path="lessons" element={<div>Lessons</div>} />
+          <Route path="lessons" element={<Lessons />} />
+          <Route path="lessons/:lessonId" element={<LessonDetail />} />
           <Route path="acs" element={<div>ACS Coverage</div>} />
         </Routes>
       </main>
