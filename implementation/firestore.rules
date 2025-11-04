@@ -24,10 +24,12 @@ service cloud.firestore {
     
     // Users collection
     match /users/{userId} {
-      // Allow reading own document or CFI document if user is a student in their workspace
+      // Allow reading own document, CFI reading their students, or students reading their CFI
       allow read: if isOwner(userId) || 
         (isSignedIn() && getUserData().role == 'STUDENT' && 
-         exists(/databases/$(database)/documents/workspaces/$(getUserData().cfiWorkspaceId)/students/$(request.auth.uid)));
+         exists(/databases/$(database)/documents/workspaces/$(getUserData().cfiWorkspaceId)/students/$(request.auth.uid))) ||
+        (isSignedIn() && isCFI() && 
+         exists(/databases/$(database)/documents/workspaces/$(getUserData().cfiWorkspaceId)/students/$(userId)));
       // Simplify create rule - just check if user is creating their own document
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isOwner(userId) && 
