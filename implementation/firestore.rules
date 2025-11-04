@@ -10,12 +10,16 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
     function isCFI() {
-      return isSignedIn() && request.auth.token.role == 'CFI';
+      return isSignedIn() && getUserData().role == 'CFI';
     }
     
     function isStudent() {
-      return isSignedIn() && request.auth.token.role == 'STUDENT';
+      return isSignedIn() && getUserData().role == 'STUDENT';
     }
     
     // Users collection
@@ -43,14 +47,22 @@ service cloud.firestore {
       // Study Areas subcollection
       match /studyAreas/{areaId} {
         allow read: if isSignedIn();
-        allow write: if isCFI() && 
+        allow create: if isSignedIn() && 
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
+        allow update: if isSignedIn() && 
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
+        allow delete: if isSignedIn() && 
           get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
       }
       
       // Study Items subcollection
       match /studyItems/{itemId} {
         allow read: if isSignedIn();
-        allow write: if isCFI() && 
+        allow create: if isSignedIn() && 
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
+        allow update: if isSignedIn() && 
+          get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
+        allow delete: if isSignedIn() && 
           get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
       }
       
