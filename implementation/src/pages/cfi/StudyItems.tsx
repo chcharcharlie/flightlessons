@@ -52,6 +52,16 @@ export const StudyItems: React.FC = () => {
     }
   }
 
+  // When certificate changes, clear selected area if it doesn't match
+  React.useEffect(() => {
+    if (selectedArea && selectedArea.certificate !== selectedCertificate) {
+      setSelectedArea(null)
+    }
+  }, [selectedCertificate, selectedArea])
+
+  // Filter areas by selected certificate
+  const certificateAreas = areas.filter(area => area.certificate === selectedCertificate)
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -59,16 +69,6 @@ export const StudyItems: React.FC = () => {
       </div>
     )
   }
-
-  // Filter areas by selected certificate
-  const certificateAreas = areas.filter(area => area.certificate === selectedCertificate)
-
-  // When certificate changes, clear selected area if it doesn't match
-  React.useEffect(() => {
-    if (selectedArea && selectedArea.certificate !== selectedCertificate) {
-      setSelectedArea(null)
-    }
-  }, [selectedCertificate, selectedArea])
 
   return (
     <div className="px-4 sm:px-0">
