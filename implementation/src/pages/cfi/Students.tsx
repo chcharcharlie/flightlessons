@@ -7,12 +7,16 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { useStudents, StudentWithDetails } from '@/hooks/useStudents'
-import { Certificate } from '@/types'
+import { Certificate, TrainingProgram } from '@/types'
+import { collection, query, where, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { useAuth } from '@/contexts/AuthContext'
 import { InviteStudentModal } from '@/components/students/InviteStudentModal'
 import { StudentDetailModal } from '@/components/students/StudentDetailModal'
 import { StudentProgressModal } from '@/components/students/StudentProgressModal'
 
 export const Students: React.FC = () => {
+  const { user } = useAuth()
   const { students, loading, inviteStudent } = useStudents()
   const [searchTerm, setSearchTerm] = useState('')
   const [showInviteModal, setShowInviteModal] = useState(false)
@@ -20,6 +24,7 @@ export const Students: React.FC = () => {
   const [showProgressModal, setShowProgressModal] = useState(false)
   const [selectedStudentForProgress, setSelectedStudentForProgress] = useState<StudentWithDetails | null>(null)
   const [invitationLink, setInvitationLink] = useState<string | null>(null)
+  const [studentPrograms, setStudentPrograms] = useState<Map<string, TrainingProgram[]>>(new Map())
 
   const handleInviteStudent = async (email: string) => {
     const result = await inviteStudent(email)
@@ -33,6 +38,34 @@ export const Students: React.FC = () => {
     student.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Load training programs for all students
+  React.useEffect(() => {
+    if (!user?.cfiWorkspaceId || students.length === 0) return
+
+    const loadPrograms = async () => {
+      const programsMap = new Map<string, TrainingProgram[]>()
+      
+      for (const student of students) {
+        const programsQuery = query(
+          collection(db, 'trainingPrograms'),
+          where('studentUid', '==', student.uid),
+          where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+          where('status', '==', 'ACTIVE')
+        )
+        const programsSnapshot = await getDocs(programsQuery)
+        const programs = programsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as TrainingProgram))
+        programsMap.set(student.uid, programs)
+      }
+      
+      setStudentPrograms(programsMap)
+    }
+
+    loadPrograms()
+  }, [students, user?.cfiWorkspaceId])
 
   const getCertificateLabel = (cert: Certificate) => {
     switch (cert) {
@@ -121,13 +154,19 @@ export const Students: React.FC = () => {
                     </h3>
                     <p className="mt-1 text-sm text-gray-500">{student.email}</p>
                     
-                    <div className="mt-3 flex items-center space-x-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(student.status)}`}>
+                    <div className="mt-3 flex flex-col space-y-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(student.status)} self-start`}>
                         {student.status}
                       </span>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
-                        {getCertificateLabel(student.currentCertificate)}
-                      </span>
+                      {studentPrograms.get(student.uid)?.map(program => (
+                        <span key={program.id} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800 self-start">
+                          {getCertificateLabel(program.certificate)} Training
+                        </span>
+                      )) || (
+                        <span className="text-xs text-gray-500 italic">
+                          No active training programs
+                        </span>
+                      )}
                     </div>
 
                     <div className="mt-3 text-sm text-gray-500">
@@ -217,7 +256,7 @@ const InvitationLinkModal: React.FC<{
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error('Failed to copy:', err)
+      // Silently handle copy failure
     }
   }
 

@@ -4,6 +4,7 @@ import {
   query, 
   where, 
   getDocs, 
+  getDoc,
   addDoc, 
   updateDoc,
   doc,
@@ -42,10 +43,10 @@ export const TrainingPrograms: React.FC = () => {
         
         const studentPromises = studentsSnapshot.docs.map(async (studentDoc) => {
           const studentData = studentDoc.data() as Student
-          const userDoc = await getDocs(
-            query(collection(db, 'users'), where('uid', '==', studentData.uid))
-          )
-          const userData = userDoc.docs[0]?.data() as User
+          // Get user data directly by ID
+          const userDocRef = doc(db, 'users', studentData.uid)
+          const userDoc = await getDoc(userDocRef)
+          const userData = userDoc.data() as User
           return { ...studentData, userData }
         })
 

@@ -57,13 +57,11 @@ export const useStudents = () => {
           setStudents(studentsData)
           setLoading(false)
         } catch (err) {
-          console.error('Error fetching student details:', err)
           setError('Failed to load student details')
           setLoading(false)
         }
       },
       (err) => {
-        console.error('Error fetching students:', err)
         setError(err.message)
         setLoading(false)
       }
