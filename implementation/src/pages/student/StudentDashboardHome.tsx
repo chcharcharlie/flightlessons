@@ -1,27 +1,24 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
-import { useProgress } from '@/hooks/useProgress'
-import { CFIWorkspace, User, Progress, TrainingProgram } from '@/types'
+import { CFIWorkspace, User, TrainingProgram } from '@/types'
 import {
   CalendarDaysIcon,
   BookOpenIcon,
   ChartBarIcon,
   UserIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline'
 
 export const StudentDashboardHome: React.FC = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [cfiInfo, setCfiInfo] = useState<{ workspace: CFIWorkspace; cfi: User } | null>(null)
   const [loading, setLoading] = useState(true)
   const [activePrograms, setActivePrograms] = useState<TrainingProgram[]>([])
-  const [progressStats, setProgressStats] = useState({
-    totalItems: 0,
-    groundLearned: 0,
-    flightCompleted: 0,
-  })
+  const [completedPrograms, setCompletedPrograms] = useState<TrainingProgram[]>([])
 
   useEffect(() => {
     const loadCFIInfo = async () => {
@@ -50,66 +47,24 @@ export const StudentDashboardHome: React.FC = () => {
         const cfi = cfiDoc.data() as User
         setCfiInfo({ workspace, cfi })
 
-        // Load active training programs
+        // Load all training programs
         const programsQuery = query(
           collection(db, 'trainingPrograms'),
           where('studentUid', '==', user.uid),
-          where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
-          where('status', '==', 'ACTIVE')
+          where('cfiWorkspaceId', '==', user.cfiWorkspaceId)
         )
         const programsSnapshot = await getDocs(programsQuery)
-        const programs = programsSnapshot.docs.map(doc => ({ 
+        const allPrograms = programsSnapshot.docs.map(doc => ({ 
           id: doc.id, 
           ...doc.data() 
         } as TrainingProgram))
-        setActivePrograms(programs)
-
-        // Load progress statistics
-        const progressRef = collection(db, 'progress')
-        const progressQuery = query(
-          progressRef,
-          where('studentUid', '==', user.uid),
-          where('cfiWorkspaceId', '==', user.cfiWorkspaceId)
-        )
         
-        const progressSnapshot = await getDocs(progressQuery)
-        const progressData = progressSnapshot.docs.map(doc => doc.data() as Progress)
+        // Separate active and completed programs
+        const active = allPrograms.filter(p => p.status === 'ACTIVE')
+        const completed = allPrograms.filter(p => p.status === 'COMPLETED')
         
-        // Calculate statistics
-        const itemProgress = new Map<string, { ground?: Progress; flight?: Progress }>()
-        
-        progressData.forEach(p => {
-          const current = itemProgress.get(p.itemId) || {}
-          if (p.scoreType === 'GROUND' && (!current.ground || p.createdAt.toMillis() > current.ground.createdAt.toMillis())) {
-            current.ground = p
-          }
-          if (p.scoreType === 'FLIGHT' && (!current.flight || p.createdAt.toMillis() > current.flight.createdAt.toMillis())) {
-            current.flight = p
-          }
-          itemProgress.set(p.itemId, current)
-        })
-
-        let groundLearned = 0
-        let flightCompleted = 0
-        
-        itemProgress.forEach(progress => {
-          if (progress.ground?.score === 'LEARNED') groundLearned++
-          if (progress.flight && typeof progress.flight.score === 'number' && progress.flight.score >= 4) {
-            flightCompleted++
-          }
-        })
-
-        // Get total items count (this is approximate without loading all items)
-        const workspaceRef = doc(db, 'workspaces', user.cfiWorkspaceId)
-        const areasSnapshot = await getDocs(collection(workspaceRef, 'studyAreas'))
-        const totalAreas = areasSnapshot.docs.reduce((sum, doc) => sum + (doc.data().itemCount || 0), 0)
-
-        setProgressStats(prev => ({
-          ...prev,
-          totalItems: totalAreas,
-          groundLearned,
-          flightCompleted,
-        }))
+        setActivePrograms(active)
+        setCompletedPrograms(completed)
       } catch (error) {
         // Silently handle error
       } finally {
@@ -157,9 +112,6 @@ export const StudentDashboardHome: React.FC = () => {
     )
   }
 
-  const overallProgress = progressStats.totalItems > 0 
-    ? Math.round(((progressStats.groundLearned + progressStats.flightCompleted) / (progressStats.totalItems * 2)) * 100)
-    : 0
 
   return (
     <div className="px-4 sm:px-0">
@@ -184,139 +136,101 @@ export const StudentDashboardHome: React.FC = () => {
         </div>
       </div>
 
-      {/* Progress Overview */}
-      {activePrograms.length > 0 ? (
-        <div className="mt-6 bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900">
-            Training Progress
-          </h3>
-          {activePrograms.map(program => (
-            <div key={program.id} className="mt-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                {getCertificateFullName(program.certificate)}
-              </h4>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-500">
-                  Overall Progress
-                </span>
-                <span className="text-sm font-medium text-gray-900">{overallProgress}%</span>
+      {/* Training Programs */}
+      <div className="mt-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Training Programs</h3>
+        
+        {activePrograms.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {activePrograms.map(program => (
+              <div
+                key={program.id}
+                onClick={() => navigate(`/student/programs/${program.id}/progress`)}
+                className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+              >
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <AcademicCapIcon className="h-8 w-8 text-sky" />
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-900 truncate">
+                          {getCertificateFullName(program.certificate)}
+                        </dt>
+                        <dd className="mt-1 text-sm text-gray-500">
+                          Started {program.startDate.toDate().toLocaleDateString()}
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Active
+                    </span>
+                    {program.notes && (
+                      <p className="mt-2 text-sm text-gray-500 line-clamp-2">{program.notes}</p>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+            ))}
+          </div>
+        ) : (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h3 className="text-lg font-medium text-yellow-800">
+              No Active Training Programs
+            </h3>
+            <p className="mt-2 text-sm text-yellow-700">
+              Your instructor will initiate a training program for your specific certificate or rating.
+            </p>
+          </div>
+        )}
+        
+        {completedPrograms.length > 0 && (
+          <>
+            <h4 className="text-md font-medium text-gray-900 mt-6 mb-3">Completed Programs</h4>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {completedPrograms.map(program => (
                 <div
-                  className="bg-gradient-to-r from-sky to-green-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${overallProgress}%` }}
-                />
-              </div>
+                  key={program.id}
+                  onClick={() => navigate(`/student/programs/${program.id}/progress`)}
+                  className="bg-gray-50 overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                >
+                  <div className="p-5">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <AcademicCapIcon className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <dl>
+                          <dt className="text-sm font-medium text-gray-900 truncate">
+                            {getCertificateFullName(program.certificate)}
+                          </dt>
+                          <dd className="mt-1 text-sm text-gray-500">
+                            Completed {program.completedDate?.toDate().toLocaleDateString()}
+                          </dd>
+                        </dl>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Completed
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-yellow-800">
-            No Active Training Programs
-          </h3>
-          <p className="mt-2 text-sm text-yellow-700">
-            Your instructor will initiate a training program for your specific certificate or rating.
-          </p>
-        </div>
-      )}
-
-      <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
-        {/* Ground Progress */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <BookOpenIcon className="h-6 w-6 text-gray-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Ground Items Learned
-                  </dt>
-                  <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                    {progressStats.groundLearned}
-                  </dd>
-                  <dd className="text-sm text-gray-500">
-                    of {progressStats.totalItems} items
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Flight Progress */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <ChartBarIcon className="h-6 w-6 text-gray-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Flight Skills Mastered
-                  </dt>
-                  <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                    {progressStats.flightCompleted}
-                  </dd>
-                  <dd className="text-sm text-gray-500">
-                    score 4+ of 5
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Study Now */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <CalendarDaysIcon className="h-6 w-6 text-gray-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Ready to Study
-                  </dt>
-                  <dd className="mt-1">
-                    <Link
-                      to="/student/study"
-                      className="text-lg font-semibold text-sky hover:text-sky-600"
-                    >
-                      View Materials →
-                    </Link>
-                  </dd>
-                  <dd className="text-sm text-gray-500">
-                    Study at your pace
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
+
 
       {/* Quick Actions */}
       <div className="mt-8">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Link
-            to="/student/progress"
-            className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center">
-              <ChartBarIcon className="h-8 w-8 text-sky" />
-              <div className="ml-3">
-                <p className="text-base font-medium text-gray-900">View Detailed Progress</p>
-                <p className="text-sm text-gray-500">See your progress by area and item</p>
-              </div>
-            </div>
-          </Link>
-
           <Link
             to="/student/study"
             className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
@@ -326,6 +240,19 @@ export const StudentDashboardHome: React.FC = () => {
               <div className="ml-3">
                 <p className="text-base font-medium text-gray-900">Study Materials</p>
                 <p className="text-sm text-gray-500">Access your learning resources</p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/student/lessons"
+            className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center">
+              <CalendarDaysIcon className="h-8 w-8 text-sky" />
+              <div className="ml-3">
+                <p className="text-base font-medium text-gray-900">Upcoming Lessons</p>
+                <p className="text-sm text-gray-500">View your scheduled lessons</p>
               </div>
             </div>
           </Link>

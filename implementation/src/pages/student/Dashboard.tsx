@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { StudentDashboardHome } from './StudentDashboardHome'
 import { StudentProgress } from './Progress'
+import { StudentProgramProgress } from './StudentProgramProgress'
 
 const navigation = [
   { name: 'Dashboard', href: '/student', icon: HomeIcon },
@@ -76,6 +77,7 @@ export const StudentDashboard: React.FC = () => {
         <Routes>
           <Route index element={<StudentDashboardHome />} />
           <Route path="progress" element={<StudentProgress />} />
+          <Route path="programs/:programId/progress" element={<StudentProgramProgress />} />
           <Route path="lessons" element={<div>Lessons - Coming Soon</div>} />
           <Route path="study" element={<div>Study Materials - Coming Soon</div>} />
         </Routes>
