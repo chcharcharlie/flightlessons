@@ -123,9 +123,9 @@ export const AcceptInvitation: React.FC = () => {
 
       // Force a page refresh to update auth context with new role
       window.location.href = '/student'
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error accepting invitation:', err)
-      setError('Failed to accept invitation')
+      setError(`Failed to accept invitation: ${err.message || 'Unknown error'}`)
       setLoading(false)
     }
   }

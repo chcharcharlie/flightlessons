@@ -41,7 +41,11 @@ service cloud.firestore {
       );
       // Allow creation if user is authenticated and creating their own workspace
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.cfiUid;
-      allow update: if isSignedIn() && resource.data.cfiUid == request.auth.uid;
+      // Allow update by CFI or when incrementing student count during enrollment
+      allow update: if isSignedIn() && (
+        resource.data.cfiUid == request.auth.uid ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['studentCount']))
+      );
       allow delete: if false;
       
       // Study Areas subcollection
@@ -79,7 +83,12 @@ service cloud.firestore {
           get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid ||
           request.auth.uid == studentId
         );
-        allow write: if isCFI() && 
+        // Allow students to enroll themselves
+        allow create: if isSignedIn() && 
+          request.auth.uid == studentId &&
+          request.resource.data.uid == studentId;
+        // Allow CFI to update/delete
+        allow update, delete: if isSignedIn() && 
           get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
       }
     }
@@ -116,8 +125,12 @@ service cloud.firestore {
     match /invitations/{invitationId} {
       // Allow anyone to read their own invitation (by ID)
       allow read: if true;
-      // Only allow Cloud Functions to write invitations (handled by admin SDK)
-      allow write: if false;
+      // Allow updating invitation status when accepting
+      allow update: if isSignedIn() && 
+        request.auth.email == resource.data.email &&
+        resource.data.status == 'pending' &&
+        request.resource.data.status == 'accepted';
+      allow create, delete: if false;
     }
   }
 }
