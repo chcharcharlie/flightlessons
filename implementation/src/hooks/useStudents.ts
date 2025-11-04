@@ -75,13 +75,17 @@ export const useStudents = () => {
   const inviteStudent = async (email: string) => {
     if (!user?.cfiWorkspaceId) throw new Error('No workspace ID')
 
-    const inviteStudentFunction = httpsCallable(functions, 'inviteStudent')
+    const inviteStudentFunction = httpsCallable<
+      { email: string; workspaceId: string },
+      { success: boolean; invitationLink?: string; message?: string }
+    >(functions, 'inviteStudent')
     
     try {
-      await inviteStudentFunction({ 
+      const result = await inviteStudentFunction({ 
         email, 
         workspaceId: user.cfiWorkspaceId 
       })
+      return result.data
     } catch (err: any) {
       throw new Error(err.message || 'Failed to invite student')
     }

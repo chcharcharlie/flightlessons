@@ -7,6 +7,7 @@ import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
 import { CFIDashboard } from '@/pages/cfi/Dashboard'
 import { StudentDashboard } from '@/pages/student/Dashboard'
+import { AcceptInvitation } from '@/pages/AcceptInvitation'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +33,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/accept-invitation" element={<AcceptInvitation />} />
       
       {/* Protected routes */}
       <Route

@@ -4,6 +4,7 @@ import {
   PlusIcon,
   MagnifyingGlassIcon,
   ChartBarIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { useStudents, StudentWithDetails } from '@/hooks/useStudents'
 import { Certificate } from '@/types'
@@ -18,9 +19,13 @@ export const Students: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<StudentWithDetails | null>(null)
   const [showProgressModal, setShowProgressModal] = useState(false)
   const [selectedStudentForProgress, setSelectedStudentForProgress] = useState<StudentWithDetails | null>(null)
+  const [invitationLink, setInvitationLink] = useState<string | null>(null)
 
   const handleInviteStudent = async (email: string) => {
-    await inviteStudent(email)
+    const result = await inviteStudent(email)
+    if (result.invitationLink) {
+      setInvitationLink(result.invitationLink)
+    }
     setShowInviteModal(false)
   }
 
@@ -188,6 +193,74 @@ export const Students: React.FC = () => {
           }}
         />
       )}
+
+      {invitationLink && (
+        <InvitationLinkModal
+          link={invitationLink}
+          onClose={() => setInvitationLink(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+// Simple modal to show the invitation link
+const InvitationLinkModal: React.FC<{
+  link: string
+  onClose: () => void
+}> = ({ link, onClose }) => {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium text-gray-900">
+            Invitation Created
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-500"
+          >
+            <XMarkIcon className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 mb-3">
+            Share this link with your student to invite them to your workspace:
+          </p>
+          
+          <div className="bg-gray-50 p-3 rounded-md break-all text-sm font-mono">
+            {link}
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={handleCopy}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky"
+          >
+            {copied ? 'Copied!' : 'Copy Link'}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky"
+          >
+            Done
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

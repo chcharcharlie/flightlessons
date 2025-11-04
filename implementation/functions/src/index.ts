@@ -112,17 +112,32 @@ export const inviteStudent = onCall(async (request) => {
       throw new HttpsError('permission-denied', 'Invalid workspace');
     }
     
-    // TODO: Send invitation email
-    // For now, we'll just create a pending invitation
-    await db.collection('invitations').add({
+    // Get CFI details for the invitation
+    const cfiData = userDoc.data();
+    const cfiName = cfiData?.displayName || 'A flight instructor';
+    
+    // Create a pending invitation
+    const invitationRef = await db.collection('invitations').add({
       email,
       workspaceId,
       cfiUid: request.auth.uid,
+      cfiName,
       status: 'pending',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     
-    return { success: true };
+    // Generate a unique invitation link
+    const invitationLink = `${process.env.APP_URL || 'https://flightlessons-8b9bd.web.app'}/accept-invitation?id=${invitationRef.id}`;
+    
+    // For now, we'll return the invitation link
+    // In production, you would integrate with an email service like SendGrid
+    console.log(`Invitation link for ${email}: ${invitationLink}`);
+    
+    return { 
+      success: true, 
+      invitationLink,
+      message: `Invitation created. Share this link with ${email}: ${invitationLink}`
+    };
   } catch (error) {
     // Error inviting student
     throw new HttpsError('internal', 'Failed to invite student');
