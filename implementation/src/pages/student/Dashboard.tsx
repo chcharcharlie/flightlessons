@@ -17,7 +17,6 @@ import { StudentLessonDetail } from './StudentLessonDetail'
 const navigation = [
   { name: 'Dashboard', href: '/student', icon: HomeIcon },
   { name: 'Progress', href: '/student/progress', icon: ChartBarIcon },
-  { name: 'Lessons', href: '/student/lessons', icon: CalendarDaysIcon },
   { name: 'Study', href: '/student/study', icon: BookOpenIcon },
 ]
 

@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
-import { CFIWorkspace, User, TrainingProgram } from '@/types'
+import { CFIWorkspace, User, TrainingProgram, Lesson } from '@/types'
 import {
   CalendarDaysIcon,
   BookOpenIcon,
   ChartBarIcon,
   UserIcon,
   AcademicCapIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline'
 
 export const StudentDashboardHome: React.FC = () => {
@@ -19,6 +20,7 @@ export const StudentDashboardHome: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [activePrograms, setActivePrograms] = useState<TrainingProgram[]>([])
   const [completedPrograms, setCompletedPrograms] = useState<TrainingProgram[]>([])
+  const [upcomingLessons, setUpcomingLessons] = useState<Lesson[]>([])
 
   useEffect(() => {
     const loadCFIInfo = async () => {
@@ -65,6 +67,50 @@ export const StudentDashboardHome: React.FC = () => {
         
         setActivePrograms(active)
         setCompletedPrograms(completed)
+        
+        // Load upcoming lessons
+        try {
+          const lessonsQuery = query(
+            collection(db, 'lessons'),
+            where('studentUid', '==', user.uid),
+            where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+            where('status', '==', 'SCHEDULED'),
+            orderBy('scheduledDate', 'asc')
+          )
+          const lessonsSnapshot = await getDocs(lessonsQuery)
+          const lessons = lessonsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Lesson))
+          
+          // Filter only upcoming lessons
+          const upcoming = lessons.filter(l => l.scheduledDate.toDate() >= new Date())
+          setUpcomingLessons(upcoming)
+        } catch (lessonError) {
+          // If index is not ready, try without orderBy
+          try {
+            const lessonsQuery = query(
+              collection(db, 'lessons'),
+              where('studentUid', '==', user.uid),
+              where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+              where('status', '==', 'SCHEDULED')
+            )
+            const lessonsSnapshot = await getDocs(lessonsQuery)
+            const lessons = lessonsSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            } as Lesson))
+            
+            // Filter only upcoming lessons and sort manually
+            const upcoming = lessons
+              .filter(l => l.scheduledDate.toDate() >= new Date())
+              .sort((a, b) => a.scheduledDate.toMillis() - b.scheduledDate.toMillis())
+            setUpcomingLessons(upcoming)
+          } catch (fallbackError) {
+            // If still failing, just set empty array
+            setUpcomingLessons([])
+          }
+        }
       } catch (error) {
         // Silently handle error
       } finally {
@@ -86,6 +132,25 @@ export const StudentDashboardHome: React.FC = () => {
       default:
         return cert
     }
+  }
+  
+  const formatLessonDateTime = (timestamp: Timestamp) => {
+    const date = timestamp.toDate()
+    const now = new Date()
+    const tomorrow = new Date(now)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    
+    let dateString = ''
+    if (date.toDateString() === now.toDateString()) {
+      dateString = 'Today'
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      dateString = 'Tomorrow'
+    } else {
+      dateString = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    }
+    
+    const timeString = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    return `${dateString} at ${timeString}`
   }
 
   if (loading) {
@@ -226,11 +291,74 @@ export const StudentDashboardHome: React.FC = () => {
         )}
       </div>
 
+      {/* Upcoming Lessons */}
+      {upcomingLessons.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Upcoming Lessons</h3>
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <ul className="divide-y divide-gray-200">
+              {upcomingLessons.slice(0, 3).map(lesson => (
+                <li key={lesson.id}>
+                  <div
+                    onClick={() => navigate(`/student/lessons/${lesson.id}`)}
+                    className="p-4 hover:bg-gray-50 cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start">
+                        <CalendarDaysIcon className="h-6 w-6 text-sky mt-0.5" />
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-900">
+                            {lesson.title || 'Flight Lesson'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {formatLessonDateTime(lesson.scheduledDate)}
+                          </p>
+                          {lesson.plannedRoute && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              Route: {lesson.plannedRoute}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {lesson.scheduledDate.toDate() < new Date(Date.now() + 24 * 60 * 60 * 1000) && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          <ClockIcon className="h-3 w-3 mr-1" />
+                          Soon
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {upcomingLessons.length > 3 && (
+              <div className="bg-gray-50 px-4 py-3">
+                <p className="text-sm text-gray-500">
+                  {upcomingLessons.length - 3} more lessons scheduled
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="mt-8">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Link
+            to="/student/progress"
+            className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center">
+              <ChartBarIcon className="h-8 w-8 text-sky" />
+              <div className="ml-3">
+                <p className="text-base font-medium text-gray-900">View Progress</p>
+                <p className="text-sm text-gray-500">Track your training advancement</p>
+              </div>
+            </div>
+          </Link>
+
           <Link
             to="/student/study"
             className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
@@ -240,19 +368,6 @@ export const StudentDashboardHome: React.FC = () => {
               <div className="ml-3">
                 <p className="text-base font-medium text-gray-900">Study Materials</p>
                 <p className="text-sm text-gray-500">Access your learning resources</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/student/lessons"
-            className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center">
-              <CalendarDaysIcon className="h-8 w-8 text-sky" />
-              <div className="ml-3">
-                <p className="text-base font-medium text-gray-900">Upcoming Lessons</p>
-                <p className="text-sm text-gray-500">View your scheduled lessons</p>
               </div>
             </div>
           </Link>

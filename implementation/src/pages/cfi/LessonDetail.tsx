@@ -22,6 +22,7 @@ import {
   LessonItem,
   GroundScore,
   FlightScore,
+  Progress,
 } from '@/types'
 import {
   ArrowLeftIcon,
@@ -143,6 +144,63 @@ export const LessonDetail: React.FC = () => {
           ...doc.data()
         } as StudyItem))
         setItems(itemsData)
+
+        // Load student's existing progress for all items
+        const progressQuery = query(
+          collection(db, 'progress'),
+          where('studentUid', '==', lessonData.studentUid),
+          where('cfiWorkspaceId', '==', user.cfiWorkspaceId)
+        )
+        const progressSnapshot = await getDocs(progressQuery)
+        const progressData = progressSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Progress))
+
+        // For new lessons, pre-populate scores with existing progress
+        if (lessonData.status === 'SCHEDULED') {
+          const updatedScores = new Map(itemScores)
+          
+          // Group progress by itemId and get latest scores
+          const latestProgress = new Map<string, { ground?: Progress; flight?: Progress }>()
+          
+          progressData.forEach(progress => {
+            const existing = latestProgress.get(progress.itemId) || {}
+            
+            if (progress.scoreType === 'GROUND') {
+              if (!existing.ground || progress.createdAt.toMillis() > existing.ground.createdAt.toMillis()) {
+                existing.ground = progress
+              }
+            } else if (progress.scoreType === 'FLIGHT') {
+              if (!existing.flight || progress.createdAt.toMillis() > existing.flight.createdAt.toMillis()) {
+                existing.flight = progress
+              }
+            }
+            
+            latestProgress.set(progress.itemId, existing)
+          })
+
+          // Update scores for items that are already in the lesson
+          lessonData.items.forEach(lessonItem => {
+            const itemProgress = latestProgress.get(lessonItem.itemId)
+            if (itemProgress) {
+              const scores: { ground?: GroundScore; flight?: FlightScore } = {}
+              
+              if (itemProgress.ground) {
+                scores.ground = itemProgress.ground.score as GroundScore
+              }
+              if (itemProgress.flight) {
+                scores.flight = itemProgress.flight.score as FlightScore
+              }
+              
+              if (scores.ground || scores.flight) {
+                updatedScores.set(lessonItem.itemId, scores)
+              }
+            }
+          })
+          
+          setItemScores(updatedScores)
+        }
       } catch (error) {
         // Silently handle error
       } finally {
@@ -153,28 +211,43 @@ export const LessonDetail: React.FC = () => {
     loadLesson()
   }, [lessonId, user?.cfiWorkspaceId, navigate])
 
-  const handleSave = async () => {
-    if (!lesson) return
-
+  const handleSaveWithLesson = async (lessonToSave: Lesson) => {
     setSaving(true)
     try {
       // Build lesson items from selected items
       const lessonItems: LessonItem[] = Array.from(selectedItems).map(itemId => {
-        const score = itemScores.get(itemId)
+        const scores = itemScores.get(itemId)
         const notes = itemNotes.get(itemId)
-        const completed = lesson.items.find(i => i.itemId === itemId)?.completed || false
+        const item = items.find(i => i.id === itemId)
         
+        // Determine if item is completed based on scores
+        let completed = false
+        if (item && scores) {
+          // For ground items, completed means score is LEARNED
+          if ((item.type === 'GROUND' || item.type === 'BOTH') && scores.ground === 'LEARNED') {
+            completed = true
+          }
+          // For flight items, completed means score is 4 or 5
+          if ((item.type === 'FLIGHT' || item.type === 'BOTH') && scores.flight && scores.flight >= 4) {
+            completed = true
+          }
+          // For BOTH type items, both ground and flight need to meet criteria
+          if (item.type === 'BOTH') {
+            completed = scores.ground === 'LEARNED' && scores.flight !== undefined && scores.flight >= 4
+          }
+        }
+        
+        // Don't set score on the lesson item itself - we'll use itemScores map for progress recording
         return {
           itemId,
           planned: true,
           completed,
-          score: score?.ground || score?.flight,
           notes: notes || '',
         }
       })
 
       // Update lesson
-      await updateDoc(doc(db, 'lessons', lesson.id), {
+      await updateDoc(doc(db, 'lessons', lessonToSave.id), {
         actualRoute,
         aircraft,
         weatherNotes,
@@ -183,23 +256,25 @@ export const LessonDetail: React.FC = () => {
       })
 
       // If lesson is completed, record progress for completed items
-      if (lesson.status === 'COMPLETED') {
+      if (lessonToSave.status === 'COMPLETED') {
         const recordProgress = httpsCallable(functions, 'recordProgress')
         
         for (const lessonItem of lessonItems) {
-          if (lessonItem.completed && lessonItem.score !== undefined) {
+          const itemScore = itemScores.get(lessonItem.itemId)
+          
+          if (lessonItem.completed && itemScore && (itemScore.ground || itemScore.flight)) {
             const item = items.find(i => i.id === lessonItem.itemId)
             if (!item) continue
 
             // Record ground score
             if ((item.type === 'GROUND' || item.type === 'BOTH') && itemScores.get(lessonItem.itemId)?.ground) {
               await recordProgress({
-                studentUid: lesson.studentUid,
-                cfiWorkspaceId: lesson.cfiWorkspaceId,
+                studentUid: lessonToSave.studentUid,
+                cfiWorkspaceId: lessonToSave.cfiWorkspaceId,
                 itemId: lessonItem.itemId,
                 score: itemScores.get(lessonItem.itemId)?.ground,
                 scoreType: 'GROUND',
-                lessonId: lesson.id,
+                lessonId: lessonToSave.id,
                 notes: lessonItem.notes,
               })
             }
@@ -207,12 +282,12 @@ export const LessonDetail: React.FC = () => {
             // Record flight score
             if ((item.type === 'FLIGHT' || item.type === 'BOTH') && itemScores.get(lessonItem.itemId)?.flight) {
               await recordProgress({
-                studentUid: lesson.studentUid,
-                cfiWorkspaceId: lesson.cfiWorkspaceId,
+                studentUid: lessonToSave.studentUid,
+                cfiWorkspaceId: lessonToSave.cfiWorkspaceId,
                 itemId: lessonItem.itemId,
                 score: itemScores.get(lessonItem.itemId)?.flight,
                 scoreType: 'FLIGHT',
-                lessonId: lesson.id,
+                lessonId: lessonToSave.id,
                 notes: lessonItem.notes,
               })
             }
@@ -220,13 +295,18 @@ export const LessonDetail: React.FC = () => {
         }
       }
 
-      // Update local state
-      setLesson({ ...lesson, actualRoute, aircraft, weatherNotes, postNotes, items: lessonItems })
+      // Update local state with the correct status
+      setLesson({ ...lessonToSave, actualRoute, aircraft, weatherNotes, postNotes, items: lessonItems })
     } catch (error) {
       // Silently handle error
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleSave = async () => {
+    if (!lesson) return
+    await handleSaveWithLesson(lesson)
   }
 
   const handleStatusChange = async (newStatus: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED') => {
@@ -239,11 +319,15 @@ export const LessonDetail: React.FC = () => {
       }
 
       await updateDoc(doc(db, 'lessons', lesson.id), updates)
-      setLesson({ ...lesson, status: newStatus })
+      
+      // Update local state with new status
+      const updatedLesson = { ...lesson, status: newStatus }
+      setLesson(updatedLesson)
 
       // Save and record progress if completing
       if (newStatus === 'COMPLETED') {
-        await handleSave()
+        // Pass the updated lesson to ensure status is preserved
+        await handleSaveWithLesson(updatedLesson)
       }
     } catch (error) {
       // Silently handle error
@@ -683,23 +767,6 @@ export const LessonDetail: React.FC = () => {
                           className="mt-1 block w-full text-xs rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky"
                           placeholder="Add notes..."
                         />
-                      </div>
-
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={lessonItem?.completed || false}
-                          onChange={(e) => {
-                            const updatedItems = lesson.items.map(i =>
-                              i.itemId === itemId ? { ...i, completed: e.target.checked } : i
-                            )
-                            setLesson({ ...lesson, items: updatedItems })
-                          }}
-                          className="h-4 w-4 text-sky focus:ring-sky border-gray-300 rounded"
-                        />
-                        <label className="ml-2 text-xs text-gray-700">
-                          Completed in this lesson
-                        </label>
                       </div>
                     </div>
                   </div>

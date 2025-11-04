@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
-import { TrainingProgram, StudyArea, StudyItem, Progress, GroundScore, FlightScore } from '@/types'
-import { ChartBarIcon, BookOpenIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
+import { TrainingProgram, StudyArea, StudyItem, Progress, GroundScore, FlightScore, Lesson } from '@/types'
+import { ChartBarIcon, BookOpenIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, CalendarDaysIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 
 export const StudentProgramProgress: React.FC = () => {
   const { programId } = useParams<{ programId: string }>()
@@ -15,6 +15,8 @@ export const StudentProgramProgress: React.FC = () => {
   const [areas, setAreas] = useState<StudyArea[]>([])
   const [items, setItems] = useState<StudyItem[]>([])
   const [progress, setProgress] = useState<Progress[]>([])
+  const [lessons, setLessons] = useState<Lesson[]>([])
+  const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -80,6 +82,20 @@ export const StudentProgramProgress: React.FC = () => {
           ...doc.data()
         } as Progress))
         setProgress(progressData)
+        
+        // Load lessons for this student
+        const lessonsQuery = query(
+          collection(db, 'lessons'),
+          where('studentUid', '==', user.uid),
+          where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+          orderBy('scheduledDate', 'desc')
+        )
+        const lessonsSnapshot = await getDocs(lessonsQuery)
+        const lessonsData = lessonsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Lesson))
+        setLessons(lessonsData)
       } catch (error) {
         // Silently handle error
       } finally {
@@ -179,6 +195,41 @@ export const StudentProgramProgress: React.FC = () => {
       return (numScore / 5) * 100
     }
   }
+  
+  const toggleArea = (areaId: string) => {
+    const newExpanded = new Set(expandedAreas)
+    if (newExpanded.has(areaId)) {
+      newExpanded.delete(areaId)
+    } else {
+      newExpanded.add(areaId)
+    }
+    setExpandedAreas(newExpanded)
+  }
+  
+  const formatLessonDate = (timestamp: Timestamp) => {
+    const date = timestamp.toDate()
+    return date.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
+  
+  const getLessonStatusColor = (status: string) => {
+    switch (status) {
+      case 'SCHEDULED':
+        return 'bg-blue-100 text-blue-800'
+      case 'COMPLETED':
+        return 'bg-green-100 text-green-800'
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
 
   if (loading) {
     return (
@@ -225,6 +276,14 @@ export const StudentProgramProgress: React.FC = () => {
   }).length
 
   const overallProgress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0
+  
+  // Group lessons by status
+  const upcomingLessons = lessons.filter(l => 
+    l.status === 'SCHEDULED' && l.scheduledDate.toDate() >= new Date()
+  ).sort((a, b) => a.scheduledDate.toMillis() - b.scheduledDate.toMillis())
+  
+  const completedLessons = lessons.filter(l => l.status === 'COMPLETED')
+    .sort((a, b) => b.scheduledDate.toMillis() - a.scheduledDate.toMillis())
 
   return (
     <div className="px-4 sm:px-0">
@@ -244,7 +303,7 @@ export const StudentProgramProgress: React.FC = () => {
               {getCertificateFullName(program.certificate)} Progress
             </h2>
             <p className="mt-2 text-sm text-gray-700">
-              Track your progress for this training program
+              Track your progress and lessons for this training program
             </p>
           </div>
           <div className="mt-4 sm:mt-0">
@@ -277,127 +336,256 @@ export const StudentProgramProgress: React.FC = () => {
         </p>
       </div>
 
-      {/* Progress by Area */}
-      <div className="space-y-6">
-        {areas.map(area => {
-          const areaItems = items.filter(item => item.areaId === area.id)
-          const areaCompleted = areaItems.filter(item => {
-            const itemProgress = getItemProgress(item.id)
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column: Study Progress */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-medium text-gray-900">Study Progress by Area</h3>
+          {areas.map(area => {
+            const areaItems = items.filter(item => item.areaId === area.id)
+            const areaCompleted = areaItems.filter(item => {
+              const itemProgress = getItemProgress(item.id)
+              
+              if (item.type === 'GROUND' || item.type === 'BOTH') {
+                const groundComplete = itemProgress?.ground?.score === 'LEARNED'
+                if (!groundComplete) return false
+              }
+              
+              if (item.type === 'FLIGHT' || item.type === 'BOTH') {
+                const flightComplete = typeof itemProgress?.flight?.score === 'number' && itemProgress.flight.score >= 4
+                if (!flightComplete) return false
+              }
+              
+              return true
+            }).length
             
-            if (item.type === 'GROUND' || item.type === 'BOTH') {
-              const groundComplete = itemProgress?.ground?.score === 'LEARNED'
-              if (!groundComplete) return false
-            }
-            
-            if (item.type === 'FLIGHT' || item.type === 'BOTH') {
-              const flightComplete = typeof itemProgress?.flight?.score === 'number' && itemProgress.flight.score >= 4
-              if (!flightComplete) return false
-            }
-            
-            return true
-          }).length
-          
-          const areaProgress = areaItems.length > 0 ? Math.round((areaCompleted / areaItems.length) * 100) : 0
+            const areaProgress = areaItems.length > 0 ? Math.round((areaCompleted / areaItems.length) * 100) : 0
+            const isExpanded = expandedAreas.has(area.id)
 
-          return (
-            <div key={area.id} className="bg-white shadow rounded-lg">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-medium text-gray-900">{area.name}</h4>
-                  <span className="text-sm font-medium text-gray-500">
-                    {areaCompleted}/{areaItems.length} completed
-                  </span>
+            return (
+              <div key={area.id} className="bg-white shadow rounded-lg">
+                <div className="p-4 border-b border-gray-200">
+                  <button
+                    onClick={() => toggleArea(area.id)}
+                    className="w-full flex items-center justify-between text-left"
+                  >
+                    <div className="flex items-center">
+                      {isExpanded ? (
+                        <ChevronDownIcon className="h-5 w-5 text-gray-400 mr-2" />
+                      ) : (
+                        <ChevronRightIcon className="h-5 w-5 text-gray-400 mr-2" />
+                      )}
+                      <h4 className="text-base font-medium text-gray-900">{area.name}</h4>
+                    </div>
+                    <span className="text-sm font-medium text-gray-500">
+                      {areaCompleted}/{areaItems.length}
+                    </span>
+                  </button>
+                  <div className="mt-2 ml-7 mr-4">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-sky h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${areaProgress}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-sky h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${areaProgress}%` }}
-                  />
-                </div>
+
+                {isExpanded && areaItems.length > 0 && (
+                  <div className="divide-y divide-gray-200">
+                    {areaItems.map(item => {
+                      const itemProgress = getItemProgress(item.id)
+                      const showGround = item.type === 'GROUND' || item.type === 'BOTH'
+                      const showFlight = item.type === 'FLIGHT' || item.type === 'BOTH'
+
+                      return (
+                        <div key={item.id} className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h5 className="text-sm font-medium text-gray-900">{item.name}</h5>
+                              <p className="mt-1 text-sm text-gray-500 line-clamp-2">{item.description}</p>
+                            </div>
+                            <span className={`ml-4 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              item.type === 'GROUND'
+                                ? 'bg-blue-100 text-blue-800'
+                                : item.type === 'FLIGHT'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-purple-100 text-purple-800'
+                            }`}>
+                              {item.type}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-2 gap-4">
+                            {showGround && (
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs font-medium text-gray-500 flex items-center">
+                                    <BookOpenIcon className="h-3 w-3 mr-1" />
+                                    Ground
+                                  </span>
+                                  <span className={`text-xs font-medium ${getScoreColor(itemProgress?.ground?.score, 'GROUND')}`}>
+                                    {getScoreDisplay(itemProgress?.ground?.score, 'GROUND')}
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                  <div
+                                    className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                                    style={{ width: `${getProgressBar(itemProgress?.ground?.score, 'GROUND')}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {showFlight && (
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs font-medium text-gray-500 flex items-center">
+                                    <ChartBarIcon className="h-3 w-3 mr-1" />
+                                    Flight
+                                  </span>
+                                  <span className={`text-xs font-medium ${getScoreColor(itemProgress?.flight?.score, 'FLIGHT')}`}>
+                                    {getScoreDisplay(itemProgress?.flight?.score, 'FLIGHT')}
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                  <div
+                                    className="bg-green-500 h-1.5 rounded-full transition-all duration-500"
+                                    style={{ width: `${getProgressBar(itemProgress?.flight?.score, 'FLIGHT')}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {itemProgress && (itemProgress.ground?.notes || itemProgress.flight?.notes) && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-500 italic">
+                                Last note: {itemProgress.ground?.notes || itemProgress.flight?.notes}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
+            )
+          })}
+        </div>
 
-              {areaItems.length > 0 && (
-                <div className="divide-y divide-gray-200">
-                  {areaItems.map(item => {
-                    const itemProgress = getItemProgress(item.id)
-                    const showGround = item.type === 'GROUND' || item.type === 'BOTH'
-                    const showFlight = item.type === 'FLIGHT' || item.type === 'BOTH'
+        {/* Right Column: Lessons */}
+        <div className="space-y-6">
+          <h3 className="text-lg font-medium text-gray-900">Lessons</h3>
 
-                    return (
-                      <div key={item.id} className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h5 className="text-sm font-medium text-gray-900">{item.name}</h5>
-                            <p className="mt-1 text-sm text-gray-500 line-clamp-2">{item.description}</p>
-                          </div>
-                          <span className={`ml-4 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                            item.type === 'GROUND'
-                              ? 'bg-blue-100 text-blue-800'
-                              : item.type === 'FLIGHT'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-purple-100 text-purple-800'
-                          }`}>
-                            {item.type}
-                          </span>
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-2 gap-4">
-                          {showGround && (
-                            <div>
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-medium text-gray-500 flex items-center">
-                                  <BookOpenIcon className="h-3 w-3 mr-1" />
-                                  Ground
-                                </span>
-                                <span className={`text-xs font-medium ${getScoreColor(itemProgress?.ground?.score, 'GROUND')}`}>
-                                  {getScoreDisplay(itemProgress?.ground?.score, 'GROUND')}
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                <div
-                                  className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
-                                  style={{ width: `${getProgressBar(itemProgress?.ground?.score, 'GROUND')}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {showFlight && (
-                            <div>
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-medium text-gray-500 flex items-center">
-                                  <ChartBarIcon className="h-3 w-3 mr-1" />
-                                  Flight
-                                </span>
-                                <span className={`text-xs font-medium ${getScoreColor(itemProgress?.flight?.score, 'FLIGHT')}`}>
-                                  {getScoreDisplay(itemProgress?.flight?.score, 'FLIGHT')}
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                <div
-                                  className="bg-green-500 h-1.5 rounded-full transition-all duration-500"
-                                  style={{ width: `${getProgressBar(itemProgress?.flight?.score, 'FLIGHT')}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {itemProgress && (itemProgress.ground?.notes || itemProgress.flight?.notes) && (
-                          <div className="mt-2">
-                            <p className="text-xs text-gray-500 italic">
-                              Last note: {itemProgress.ground?.notes || itemProgress.flight?.notes}
+          {/* Upcoming Lessons */}
+          {upcomingLessons.length > 0 && (
+            <div className="bg-white shadow rounded-lg">
+              <div className="p-4 border-b border-gray-200">
+                <h4 className="text-base font-medium text-gray-900 flex items-center">
+                  <CalendarDaysIcon className="h-5 w-5 text-sky mr-2" />
+                  Upcoming Lessons
+                </h4>
+              </div>
+              <ul className="divide-y divide-gray-200">
+                {upcomingLessons.slice(0, 5).map(lesson => (
+                  <li key={lesson.id}>
+                    <div
+                      onClick={() => navigate(`/student/lessons/${lesson.id}`)}
+                      className="p-4 hover:bg-gray-50 cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {lesson.title || 'Untitled Lesson'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {formatLessonDate(lesson.scheduledDate)}
+                          </p>
+                          {lesson.plannedRoute && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              Route: {lesson.plannedRoute}
                             </p>
-                          </div>
-                        )}
+                          )}
+                        </div>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getLessonStatusColor(lesson.status)}`}>
+                          {lesson.status}
+                        </span>
                       </div>
-                    )
-                  })}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {upcomingLessons.length > 5 && (
+                <div className="p-4 bg-gray-50">
+                  <p className="text-sm text-gray-500">
+                    {upcomingLessons.length - 5} more upcoming lessons
+                  </p>
                 </div>
               )}
             </div>
-          )
-        })}
+          )}
+
+          {/* Completed Lessons */}
+          {completedLessons.length > 0 && (
+            <div className="bg-white shadow rounded-lg">
+              <div className="p-4 border-b border-gray-200">
+                <h4 className="text-base font-medium text-gray-900 flex items-center">
+                  <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
+                  Completed Lessons
+                </h4>
+              </div>
+              <ul className="divide-y divide-gray-200">
+                {completedLessons.slice(0, 5).map(lesson => (
+                  <li key={lesson.id}>
+                    <div
+                      onClick={() => navigate(`/student/lessons/${lesson.id}`)}
+                      className="p-4 hover:bg-gray-50 cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {lesson.title || 'Untitled Lesson'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {formatLessonDate(lesson.scheduledDate)}
+                          </p>
+                          {lesson.items.length > 0 && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              {lesson.items.filter(i => i.completed).length}/{lesson.items.length} items completed
+                            </p>
+                          )}
+                        </div>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getLessonStatusColor(lesson.status)}`}>
+                          {lesson.status}
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {completedLessons.length > 5 && (
+                <div className="p-4 bg-gray-50">
+                  <p className="text-sm text-gray-500">
+                    {completedLessons.length - 5} more completed lessons
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* No Lessons */}
+          {lessons.length === 0 && (
+            <div className="bg-white shadow rounded-lg p-6 text-center">
+              <CalendarDaysIcon className="mx-auto h-12 w-12 text-gray-300" />
+              <p className="mt-2 text-sm text-gray-500">No lessons scheduled yet</p>
+              <p className="mt-1 text-sm text-gray-500">
+                Your instructor will schedule lessons as you progress
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
