@@ -38,6 +38,7 @@ export interface WorkspaceSettings {
 export interface StudyArea {
   id: string
   name: string
+  certificate: Certificate
   order: number
   itemCount: number
   createdAt: Timestamp

@@ -9,6 +9,7 @@ import {
   ClipboardDocumentListIcon,
   ArrowLeftOnRectangleIcon,
 } from '@heroicons/react/24/outline'
+import { StudyItems } from './StudyItems'
 
 const navigation = [
   { name: 'Dashboard', href: '/cfi', icon: HomeIcon },
@@ -76,7 +77,7 @@ export const CFIDashboard: React.FC = () => {
         <Routes>
           <Route index element={<CFIDashboardHome />} />
           <Route path="students" element={<div>Students</div>} />
-          <Route path="study-items" element={<div>Study Items</div>} />
+          <Route path="study-items" element={<StudyItems />} />
           <Route path="lessons" element={<div>Lessons</div>} />
           <Route path="acs" element={<div>ACS Coverage</div>} />
         </Routes>
