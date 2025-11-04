@@ -27,7 +27,7 @@ export const Lessons: React.FC = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [lessons, setLessons] = useState<Lesson[]>([])
-  const [students, setStudents] = useState<Map<string, { student: Student; user: User; programs: TrainingProgram[] }>>()
+  const [students, setStudents] = useState<Map<string, { student: Student; user: User; programs: TrainingProgram[] }>>(new Map())
   const [loading, setLoading] = useState(true)
   const [showNewLesson, setShowNewLesson] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState('')
@@ -225,7 +225,7 @@ export const Lessons: React.FC = () => {
                 className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-sky focus:outline-none focus:ring-sky sm:text-sm"
               >
                 <option value="">Select a student</option>
-                {students && Array.from(students.entries()).map(([uid, data]) => (
+                {Array.from(students.entries()).map(([uid, data]) => (
                   <option key={uid} value={uid}>
                     {data.user.displayName}
                     {data.programs.length > 0 && ` - ${data.programs.map(p => p.certificate).join(', ')}`}
