@@ -111,5 +111,13 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if false;
     }
+    
+    // Invitations collection
+    match /invitations/{invitationId} {
+      // Allow anyone to read their own invitation (by ID)
+      allow read: if true;
+      // Only allow Cloud Functions to write invitations (handled by admin SDK)
+      allow write: if false;
+    }
   }
 }
