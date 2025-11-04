@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/types'
@@ -109,6 +109,11 @@ export const AcceptInvitation: React.FC = () => {
         currentCertificate: 'PRIVATE',
       })
 
+      // Update workspace student count
+      await updateDoc(workspaceRef, {
+        studentCount: increment(1)
+      })
+
       // Update invitation status
       await updateDoc(doc(db, 'invitations', invitationId), {
         status: 'accepted',
@@ -116,8 +121,8 @@ export const AcceptInvitation: React.FC = () => {
         acceptedBy: firebaseUser.uid,
       })
 
-      // Redirect to student dashboard
-      navigate('/student')
+      // Force a page refresh to update auth context with new role
+      window.location.href = '/student'
     } catch (err) {
       console.error('Error accepting invitation:', err)
       setError('Failed to accept invitation')
