@@ -74,8 +74,9 @@ export const TrainingPrograms: React.FC = () => {
           ...doc.data()
         } as TrainingProgram))
         setPrograms(programsData)
-      } catch (error) {
-        // Silently handle error
+      } catch (error: any) {
+        console.error('Error loading training programs:', error)
+        setError('Failed to load training programs: ' + error.message)
       } finally {
         setLoading(false)
       }

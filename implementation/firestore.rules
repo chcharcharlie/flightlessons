@@ -140,10 +140,10 @@ service cloud.firestore {
     
     // Training Programs collection
     match /trainingPrograms/{programId} {
-      // Allow students to read their own programs, CFIs to read all in their workspace
+      // Allow students to read their own programs, CFIs to read programs in their workspace
       allow read: if isSignedIn() && (
-        (resource != null && resource.data.studentUid == request.auth.uid) ||
-        isCFI()
+        resource.data.studentUid == request.auth.uid ||
+        (isCFI() && resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId)
       );
       // Allow CFIs to create programs in their workspace
       allow create: if isCFI() && 
