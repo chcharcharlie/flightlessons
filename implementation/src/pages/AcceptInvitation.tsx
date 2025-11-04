@@ -70,56 +70,83 @@ export const AcceptInvitation: React.FC = () => {
         return
       }
 
-      // Update user to be a student
-      const userDocRef = doc(db, 'users', firebaseUser.uid)
-      const userDoc = await getDoc(userDocRef)
-      
-      if (!userDoc.exists()) {
-        // Create user document if it doesn't exist
-        await setDoc(userDocRef, {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          displayName: firebaseUser.displayName || '',
-          role: 'STUDENT' as UserRole,
-          cfiWorkspaceId: invitation.workspaceId,
-          createdAt: serverTimestamp(),
-          settings: {
-            notifications: {
-              email: true,
-              lessonReminders: true,
+      try {
+        // Step 1: Update user to be a student
+        console.log('Step 1: Updating user document...')
+        const userDocRef = doc(db, 'users', firebaseUser.uid)
+        const userDoc = await getDoc(userDocRef)
+        
+        if (!userDoc.exists()) {
+          // Create user document if it doesn't exist
+          console.log('Creating new user document...')
+          await setDoc(userDocRef, {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || '',
+            role: 'STUDENT' as UserRole,
+            cfiWorkspaceId: invitation.workspaceId,
+            createdAt: serverTimestamp(),
+            settings: {
+              notifications: {
+                email: true,
+                lessonReminders: true,
+              },
             },
-          },
-        })
-      } else {
-        // Update existing user
-        await updateDoc(userDocRef, {
-          role: 'STUDENT',
-          cfiWorkspaceId: invitation.workspaceId,
-        })
+          })
+        } else {
+          // Update existing user
+          console.log('Updating existing user document...')
+          await updateDoc(userDocRef, {
+            role: 'STUDENT',
+            cfiWorkspaceId: invitation.workspaceId,
+          })
+        }
+      } catch (err: any) {
+        console.error('Failed at Step 1 (user update):', err)
+        throw new Error(`Failed to update user: ${err.message}`)
       }
 
-      // Add student to workspace
-      const workspaceRef = doc(db, 'workspaces', invitation.workspaceId)
-      const studentRef = doc(workspaceRef, 'students', firebaseUser.uid)
-      
-      await setDoc(studentRef, {
-        uid: firebaseUser.uid,
-        enrollmentDate: serverTimestamp(),
-        status: 'ACTIVE',
-        currentCertificate: 'PRIVATE',
-      })
+      try {
+        // Step 2: Add student to workspace
+        console.log('Step 2: Adding student to workspace...')
+        const workspaceRef = doc(db, 'workspaces', invitation.workspaceId)
+        const studentRef = doc(workspaceRef, 'students', firebaseUser.uid)
+        
+        await setDoc(studentRef, {
+          uid: firebaseUser.uid,
+          enrollmentDate: serverTimestamp(),
+          status: 'ACTIVE',
+          currentCertificate: 'PRIVATE',
+        })
+      } catch (err: any) {
+        console.error('Failed at Step 2 (student enrollment):', err)
+        throw new Error(`Failed to enroll in workspace: ${err.message}`)
+      }
 
-      // Update workspace student count
-      await updateDoc(workspaceRef, {
-        studentCount: increment(1)
-      })
+      try {
+        // Step 3: Update workspace student count
+        console.log('Step 3: Updating workspace student count...')
+        const workspaceRef = doc(db, 'workspaces', invitation.workspaceId)
+        await updateDoc(workspaceRef, {
+          studentCount: increment(1)
+        })
+      } catch (err: any) {
+        console.error('Failed at Step 3 (workspace update):', err)
+        throw new Error(`Failed to update workspace: ${err.message}`)
+      }
 
-      // Update invitation status
-      await updateDoc(doc(db, 'invitations', invitationId), {
-        status: 'accepted',
-        acceptedAt: serverTimestamp(),
-        acceptedBy: firebaseUser.uid,
-      })
+      try {
+        // Step 4: Update invitation status
+        console.log('Step 4: Updating invitation status...')
+        await updateDoc(doc(db, 'invitations', invitationId), {
+          status: 'accepted',
+          acceptedAt: serverTimestamp(),
+          acceptedBy: firebaseUser.uid,
+        })
+      } catch (err: any) {
+        console.error('Failed at Step 4 (invitation update):', err)
+        throw new Error(`Failed to update invitation: ${err.message}`)
+      }
 
       // Force a page refresh to update auth context with new role
       window.location.href = '/student'
