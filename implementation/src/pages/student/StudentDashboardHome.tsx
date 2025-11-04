@@ -32,22 +32,28 @@ export const StudentDashboardHome: React.FC = () => {
 
       try {
         // Load workspace info
+        console.log('Loading workspace:', user.cfiWorkspaceId)
         const workspaceDoc = await getDoc(doc(db, 'workspaces', user.cfiWorkspaceId))
         if (!workspaceDoc.exists()) {
+          console.log('Workspace not found')
           setLoading(false)
           return
         }
 
         const workspace = { id: workspaceDoc.id, ...workspaceDoc.data() } as CFIWorkspace
+        console.log('Workspace loaded:', workspace)
         
         // Load CFI info
+        console.log('Loading CFI:', workspace.cfiUid)
         const cfiDoc = await getDoc(doc(db, 'users', workspace.cfiUid))
         if (!cfiDoc.exists()) {
+          console.log('CFI not found')
           setLoading(false)
           return
         }
 
         const cfi = cfiDoc.data() as User
+        console.log('CFI loaded:', cfi.displayName)
         setCfiInfo({ workspace, cfi })
 
         // Load student's enrollment info
