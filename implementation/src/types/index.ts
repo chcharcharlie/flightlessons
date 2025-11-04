@@ -64,18 +64,24 @@ export interface ReferenceMaterial {
   url: string
 }
 
-export interface LessonTemplate {
+export interface LessonPlan {
   id: string
+  certificate: Certificate // Certificate this plan is for (PPL, IR, CPL)
+  cfiWorkspaceId: string
+  orderNumber: number // Sequence in the certificate curriculum
   title: string
-  motivation: string
-  objectives: string[]
-  itemIds: string[]
-  preStudyMaterials: string[]
+  motivation: string // Why this lesson matters
+  objectives: string[] // What student will learn/accomplish
+  itemIds: string[] // Study items to cover
+  planDescription: string // What to do, where to fly, procedures, etc.
+  referenceMaterials: ReferenceMaterial[]
+  preStudyHomework: string // What student should prepare
   estimatedDuration: {
     ground: number // minutes
     flight: number // hours
   }
   createdAt: Timestamp
+  updatedAt: Timestamp
 }
 
 export type StudentStatus = 'ACTIVE' | 'INACTIVE' | 'COMPLETED'
@@ -124,10 +130,18 @@ export interface Lesson {
   id: string
   cfiWorkspaceId: string
   studentUid: string
-  templateId?: string
+  lessonPlanId?: string // Reference to lesson plan if used
   scheduledDate: Timestamp
   completedDate?: Timestamp
   status: LessonStatus
+  // Fields from lesson plan (copied or customized)
+  title?: string
+  motivation?: string
+  objectives?: string[]
+  planDescription?: string
+  referenceMaterials?: ReferenceMaterial[]
+  preStudyHomework?: string
+  // Execution details
   plannedRoute?: string
   actualRoute?: string
   weatherNotes?: string

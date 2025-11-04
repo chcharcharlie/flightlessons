@@ -14,7 +14,7 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Student, User, TrainingProgram, Certificate } from '@/types'
-import { AcademicCapIcon, PlusIcon, PauseIcon, CheckIcon, ChartBarIcon, PlayIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { AcademicCapIcon, PlusIcon, PauseIcon, CheckIcon, ChartBarIcon, PlayIcon, ArrowPathIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 
 export const TrainingPrograms: React.FC = () => {
@@ -328,6 +328,16 @@ export const TrainingPrograms: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
+                          navigate(`/cfi/programs/${program.id}/lesson-plans`)
+                        }}
+                        className="text-sky hover:text-sky-600 mr-2"
+                        title="Lesson Plans"
+                      >
+                        <ClipboardDocumentListIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
                           navigate(`/cfi/programs/${program.id}/progress`)
                         }}
                         className="text-sky hover:text-sky-600 mr-2"
@@ -397,6 +407,16 @@ export const TrainingPrograms: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/cfi/programs/${program.id}/lesson-plans`)
+                            }}
+                            className="text-gray-500 hover:text-gray-600 mr-2"
+                            title="Lesson Plans"
+                          >
+                            <ClipboardDocumentListIcon className="h-5 w-5" />
+                          </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()

@@ -4,9 +4,11 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Lesson, User } from '@/types'
 import { CalendarDaysIcon, CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline'
+import { useNavigate } from 'react-router-dom'
 
 export const StudentLessons: React.FC = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [cfi, setCfi] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -111,8 +113,10 @@ export const StudentLessons: React.FC = () => {
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
             <ul className="divide-y divide-gray-200">
               {upcomingLessons.map(lesson => (
-                <li key={lesson.id} className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center">
+                <li key={lesson.id}>
+                  <div 
+                    onClick={() => navigate(`/student/lessons/${lesson.id}`)}
+                    className="px-4 py-4 sm:px-6 hover:bg-gray-50 cursor-pointer flex items-center">
                     <div className="flex-shrink-0">
                       {getLessonStatusIcon(lesson.status)}
                     </div>
@@ -151,8 +155,10 @@ export const StudentLessons: React.FC = () => {
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
             <ul className="divide-y divide-gray-200">
               {pastLessons.map(lesson => (
-                <li key={lesson.id} className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center">
+                <li key={lesson.id}>
+                  <div 
+                    onClick={() => navigate(`/student/lessons/${lesson.id}`)}
+                    className="px-4 py-4 sm:px-6 hover:bg-gray-50 cursor-pointer flex items-center">
                     <div className="flex-shrink-0">
                       {getLessonStatusIcon(lesson.status)}
                     </div>

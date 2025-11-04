@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
-import { Lesson, Student, User, TrainingProgram } from '@/types'
+import { Lesson, Student, User, TrainingProgram, LessonPlan } from '@/types'
 import {
   CalendarDaysIcon,
   PlusIcon,
@@ -32,8 +32,11 @@ export const Lessons: React.FC = () => {
   const [showNewLesson, setShowNewLesson] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState('')
   const [selectedProgram, setSelectedProgram] = useState('')
+  const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([])
+  const [selectedPlan, setSelectedPlan] = useState<string>('')
   const [lessonDate, setLessonDate] = useState(new Date().toISOString().split('T')[0])
   const [lessonTime, setLessonTime] = useState('09:00')
+  const [title, setTitle] = useState('')
   const [plannedRoute, setPlannedRoute] = useState('')
   const [preNotes, setPreNotes] = useState('')
 
@@ -47,55 +50,72 @@ export const Lessons: React.FC = () => {
 
     const loadData = async () => {
       try {
-        // Load lessons
-        const lessonsQuery = query(
-          collection(db, 'lessons'),
-          where('cfiWorkspaceId', '==', workspaceId),
-          orderBy('scheduledDate', 'desc')
-        )
-        const lessonsSnapshot = await getDocs(lessonsQuery)
-        const lessonsData = lessonsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Lesson))
-        setLessons(lessonsData)
+        // Try to load lessons (may fail if index doesn't exist)
+        try {
+          const lessonsQuery = query(
+            collection(db, 'lessons'),
+            where('cfiWorkspaceId', '==', workspaceId),
+            orderBy('scheduledDate', 'desc')
+          )
+          const lessonsSnapshot = await getDocs(lessonsQuery)
+          const lessonsData = lessonsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Lesson))
+          setLessons(lessonsData)
+        } catch (lessonsError) {
+          // Continue loading students even if lessons fail
+        }
 
         // Load students with their programs
         const studentsMap = new Map<string, { student: Student; user: User; programs: TrainingProgram[] }>()
-        const studentsSnapshot = await getDocs(collection(db, 'workspaces', workspaceId, 'students'))
+        const workspaceRef = doc(db, 'workspaces', workspaceId)
+        const studentsRef = collection(workspaceRef, 'students')
+        const studentsSnapshot = await getDocs(studentsRef)
         
         for (const studentDoc of studentsSnapshot.docs) {
           const studentData = studentDoc.data() as Student
           
           // Get user data
           const userDoc = await getDoc(doc(db, 'users', studentData.uid))
-          if (!userDoc.exists()) continue
+          if (!userDoc.exists()) {
+            continue
+          }
           
-          const userData = userDoc.data() as User
+          const userData = { uid: userDoc.id, ...userDoc.data() } as User
           
           // Get active programs for this student
-          const programsQuery = query(
-            collection(db, 'trainingPrograms'),
-            where('studentUid', '==', studentData.uid),
-            where('cfiWorkspaceId', '==', workspaceId),
-            where('status', '==', 'ACTIVE')
-          )
-          const programsSnapshot = await getDocs(programsQuery)
-          const programs = programsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as TrainingProgram))
-          
-          studentsMap.set(studentData.uid, {
-            student: studentData,
-            user: userData,
-            programs
-          })
+          try {
+            const programsQuery = query(
+              collection(db, 'trainingPrograms'),
+              where('studentUid', '==', studentData.uid),
+              where('cfiWorkspaceId', '==', workspaceId),
+              where('status', '==', 'ACTIVE')
+            )
+            const programsSnapshot = await getDocs(programsQuery)
+            const programs = programsSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            } as TrainingProgram))
+            
+            studentsMap.set(studentData.uid, {
+              student: studentData,
+              user: userData,
+              programs
+            })
+          } catch (programError) {
+            // Still add student even if programs fail to load
+            studentsMap.set(studentData.uid, {
+              student: studentData,
+              user: userData,
+              programs: []
+            })
+          }
         }
         
         setStudents(studentsMap)
       } catch (error) {
-        // Silently handle error
+        // Silently handle errors
       } finally {
         setLoading(false)
       }
@@ -104,24 +124,103 @@ export const Lessons: React.FC = () => {
     loadData()
   }, [workspaceId])
 
+  // Load lesson plans when student is selected
+  useEffect(() => {
+    if (!selectedStudent || !workspaceId) {
+      setLessonPlans([])
+      setSelectedPlan('')
+      return
+    }
+
+    const studentData = students.get(selectedStudent)
+    if (!studentData || studentData.programs.length === 0) {
+      setLessonPlans([])
+      setSelectedPlan('')
+      return
+    }
+
+    const loadLessonPlans = async () => {
+      try {
+        const allPlans: LessonPlan[] = []
+        
+        // Get unique certificates from student's active programs
+        const certificates = new Set(studentData.programs.map(p => p.certificate))
+        
+        for (const certificate of certificates) {
+          const plansQuery = query(
+            collection(db, 'lessonPlans'),
+            where('certificate', '==', certificate),
+            where('cfiWorkspaceId', '==', workspaceId),
+            orderBy('orderNumber', 'asc')
+          )
+          const plansSnapshot = await getDocs(plansQuery)
+          const plans = plansSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as LessonPlan))
+          allPlans.push(...plans)
+        }
+        
+        // Sort by certificate and order number
+        allPlans.sort((a, b) => {
+          if (a.certificate !== b.certificate) {
+            return a.certificate.localeCompare(b.certificate)
+          }
+          return a.orderNumber - b.orderNumber
+        })
+        
+        setLessonPlans(allPlans)
+      } catch (error) {
+        // Silently handle error
+        setLessonPlans([])
+      }
+    }
+
+    loadLessonPlans()
+  }, [selectedStudent, students, workspaceId])
+
   const handleCreateLesson = async () => {
     if (!selectedStudent || !lessonDate || !lessonTime) return
 
     try {
       const scheduledDateTime = new Date(`${lessonDate}T${lessonTime}`)
       
-      const newLesson: Omit<Lesson, 'id'> = {
+      let lessonData: Omit<Lesson, 'id'> = {
         cfiWorkspaceId: workspaceId,
         studentUid: selectedStudent,
         scheduledDate: Timestamp.fromDate(scheduledDateTime),
         status: 'SCHEDULED',
+        title: title || undefined,
         plannedRoute: plannedRoute,
         preNotes: preNotes,
         items: [],
         createdAt: Timestamp.now(),
       }
 
-      const docRef = await addDoc(collection(db, 'lessons'), newLesson)
+      // If a lesson plan is selected, copy its data
+      if (selectedPlan) {
+        const selectedLessonPlan = lessonPlans.find(p => p.id === selectedPlan)
+        if (selectedLessonPlan) {
+          lessonData = {
+            ...lessonData,
+            lessonPlanId: selectedPlan,
+            title: title || selectedLessonPlan.title,
+            motivation: selectedLessonPlan.motivation,
+            objectives: selectedLessonPlan.objectives,
+            planDescription: selectedLessonPlan.planDescription,
+            referenceMaterials: selectedLessonPlan.referenceMaterials,
+            preStudyHomework: selectedLessonPlan.preStudyHomework,
+            // Convert item IDs to LessonItems
+            items: selectedLessonPlan.itemIds.map(itemId => ({
+              itemId,
+              planned: true,
+              completed: false,
+            })),
+          }
+        }
+      }
+
+      const docRef = await addDoc(collection(db, 'lessons'), lessonData)
       
       // Navigate to lesson detail page
       navigate(`/cfi/lessons/${docRef.id}`)
@@ -234,6 +333,27 @@ export const Lessons: React.FC = () => {
               </select>
             </div>
 
+            {lessonPlans.length > 0 && (
+              <div>
+                <label htmlFor="lessonPlan" className="block text-sm font-medium text-gray-700">
+                  Lesson Plan (optional)
+                </label>
+                <select
+                  id="lessonPlan"
+                  value={selectedPlan}
+                  onChange={(e) => setSelectedPlan(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-sky focus:outline-none focus:ring-sky sm:text-sm"
+                >
+                  <option value="">Custom lesson (no plan)</option>
+                  {lessonPlans.map(plan => (
+                    <option key={plan.id} value={plan.id}>
+                      Lesson {plan.orderNumber}: {plan.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label htmlFor="date" className="block text-sm font-medium text-gray-700">
                 Date
@@ -260,7 +380,23 @@ export const Lessons: React.FC = () => {
               />
             </div>
 
-            <div>
+            {!selectedPlan && (
+              <div className="sm:col-span-2">
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                  Lesson Title (optional)
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g., Introduction to Pattern Work"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                />
+              </div>
+            )}
+
+            <div className={selectedPlan ? "" : "sm:col-span-2"}>
               <label htmlFor="route" className="block text-sm font-medium text-gray-700">
                 Planned Route (optional)
               </label>
@@ -294,6 +430,10 @@ export const Lessons: React.FC = () => {
               onClick={() => {
                 setShowNewLesson(false)
                 setSelectedStudent('')
+                setSelectedProgram('')
+                setSelectedPlan('')
+                setLessonPlans([])
+                setTitle('')
                 setLessonDate(new Date().toISOString().split('T')[0])
                 setLessonTime('09:00')
                 setPlannedRoute('')
@@ -401,6 +541,7 @@ export const Lessons: React.FC = () => {
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
                             {getStudentName(lesson.studentUid)}
+                            {lesson.title && <span className="ml-2 text-gray-500">- {lesson.title}</span>}
                           </div>
                           <div className="text-sm text-gray-500">
                             {formatLessonDateTime(lesson.scheduledDate)}

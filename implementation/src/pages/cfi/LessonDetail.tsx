@@ -398,7 +398,56 @@ export const LessonDetail: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* Lesson Info */}
           <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Lesson Information</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              {lesson.title || 'Lesson Information'}
+            </h3>
+            
+            {lesson.motivation && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-1">Motivation</p>
+                <p className="text-sm text-gray-600">{lesson.motivation}</p>
+              </div>
+            )}
+            
+            {lesson.objectives && lesson.objectives.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-1">Learning Objectives</p>
+                <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                  {lesson.objectives.map((obj, i) => (
+                    <li key={i}>{obj}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {lesson.planDescription && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-1">Lesson Plan</p>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">{lesson.planDescription}</p>
+              </div>
+            )}
+            
+            {lesson.preStudyHomework && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-1">Pre-Study Homework</p>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">{lesson.preStudyHomework}</p>
+              </div>
+            )}
+            
+            {lesson.referenceMaterials && lesson.referenceMaterials.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-1">Reference Materials</p>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  {lesson.referenceMaterials.map((material, i) => (
+                    <li key={i}>
+                      <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-sky hover:text-sky-600">
+                        {material.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>

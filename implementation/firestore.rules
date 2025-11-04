@@ -114,10 +114,13 @@ service cloud.firestore {
     match /lessons/{lessonId} {
       allow read: if isSignedIn() && (
         resource.data.studentUid == request.auth.uid ||
-        (isCFI() && exists(/databases/$(database)/documents/workspaces/$(resource.data.cfiWorkspaceId)))
+        (isCFI() && resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId)
       );
-      allow write: if isCFI() && 
-        exists(/databases/$(database)/documents/workspaces/$(request.resource.data.cfiWorkspaceId));
+      allow create: if isCFI() && 
+        request.resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId;
+      allow update: if isCFI() && 
+        resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId;
+      allow delete: if false;
     }
     
     // ACS Elements (read-only, populated by admin)
@@ -150,6 +153,21 @@ service cloud.firestore {
         request.resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId &&
         request.resource.data.createdBy == request.auth.uid;
       // Allow CFIs to update/delete programs in their workspace
+      allow update, delete: if isCFI() && 
+        resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId;
+    }
+    
+    // Lesson Plans collection (certificate-based, not program-specific)
+    match /lessonPlans/{planId} {
+      // Allow reading if user is CFI in the workspace or student enrolled in a program for this certificate
+      allow read: if isSignedIn() && (
+        (isCFI() && resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId) ||
+        (getUserData().role == 'STUDENT' && 
+         getUserData().cfiWorkspaceId == resource.data.cfiWorkspaceId)
+      );
+      // Allow CFIs to create/update/delete plans in their workspace
+      allow create: if isCFI() && 
+        request.resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId;
       allow update, delete: if isCFI() && 
         resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId;
     }
