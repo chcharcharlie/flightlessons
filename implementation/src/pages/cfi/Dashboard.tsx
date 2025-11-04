@@ -12,6 +12,7 @@ import {
 import { StudyItems } from './StudyItems'
 import { Students } from './Students'
 import { TrainingPrograms } from './TrainingPrograms'
+import { ProgramProgress } from './ProgramProgress'
 
 const navigation = [
   { name: 'Dashboard', href: '/cfi', icon: HomeIcon },
@@ -81,6 +82,7 @@ export const CFIDashboard: React.FC = () => {
           <Route index element={<CFIDashboardHome />} />
           <Route path="students" element={<Students />} />
           <Route path="programs" element={<TrainingPrograms />} />
+          <Route path="programs/:programId/progress" element={<ProgramProgress />} />
           <Route path="study-items" element={<StudyItems />} />
           <Route path="lessons" element={<div>Lessons</div>} />
           <Route path="acs" element={<div>ACS Coverage</div>} />

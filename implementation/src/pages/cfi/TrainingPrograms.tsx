@@ -14,10 +14,12 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Student, User, TrainingProgram, Certificate } from '@/types'
-import { AcademicCapIcon, PlusIcon, PauseIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { AcademicCapIcon, PlusIcon, PauseIcon, CheckIcon, ChartBarIcon } from '@heroicons/react/24/outline'
+import { useNavigate } from 'react-router-dom'
 
 export const TrainingPrograms: React.FC = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [students, setStudents] = useState<Array<Student & { userData: User }>>([])
   const [programs, setPrograms] = useState<TrainingProgram[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,7 +77,6 @@ export const TrainingPrograms: React.FC = () => {
         } as TrainingProgram))
         setPrograms(programsData)
       } catch (error: any) {
-        console.error('Error loading training programs:', error)
         setError('Failed to load training programs: ' + error.message)
       } finally {
         setLoading(false)
@@ -299,7 +300,7 @@ export const TrainingPrograms: React.FC = () => {
           <ul className="divide-y divide-gray-200">
             {programs.filter(p => p.status === 'ACTIVE').map((program) => (
               <li key={program.id}>
-                <div className="px-4 py-4 sm:px-6">
+                <div className="px-4 py-4 sm:px-6 hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/cfi/programs/${program.id}/progress`)}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <AcademicCapIcon className="h-8 w-8 text-sky mr-3" />
@@ -316,18 +317,34 @@ export const TrainingPrograms: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/cfi/programs/${program.id}/progress`)
+                        }}
+                        className="text-sky hover:text-sky-600 mr-2"
+                        title="View Progress"
+                      >
+                        <ChartBarIcon className="h-5 w-5" />
+                      </button>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Active
                       </span>
                       <button
-                        onClick={() => handleUpdateStatus(program.id, 'PAUSED')}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleUpdateStatus(program.id, 'PAUSED')
+                        }}
                         className="text-gray-400 hover:text-gray-500"
                         title="Pause Program"
                       >
                         <PauseIcon className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handleUpdateStatus(program.id, 'COMPLETED')}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleUpdateStatus(program.id, 'COMPLETED')
+                        }}
                         className="text-gray-400 hover:text-gray-500"
                         title="Complete Program"
                       >
@@ -358,7 +375,7 @@ export const TrainingPrograms: React.FC = () => {
               <ul className="divide-y divide-gray-200">
                 {programs.filter(p => p.status !== 'ACTIVE').map((program) => (
                   <li key={program.id} className="bg-gray-50">
-                    <div className="px-4 py-4 sm:px-6">
+                    <div className="px-4 py-4 sm:px-6 hover:bg-gray-100 cursor-pointer" onClick={() => navigate(`/cfi/programs/${program.id}/progress`)}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
                           <AcademicCapIcon className="h-8 w-8 text-gray-400 mr-3" />
@@ -372,6 +389,16 @@ export const TrainingPrograms: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/cfi/programs/${program.id}/progress`)
+                            }}
+                            className="text-gray-500 hover:text-gray-600 mr-2"
+                            title="View Progress"
+                          >
+                            <ChartBarIcon className="h-5 w-5" />
+                          </button>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             program.status === 'COMPLETED' 
                               ? 'bg-gray-100 text-gray-800'
@@ -381,7 +408,10 @@ export const TrainingPrograms: React.FC = () => {
                           </span>
                           {program.status === 'PAUSED' && (
                             <button
-                              onClick={() => handleUpdateStatus(program.id, 'ACTIVE')}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleUpdateStatus(program.id, 'ACTIVE')
+                              }}
                               className="text-gray-400 hover:text-gray-500"
                               title="Resume Program"
                             >

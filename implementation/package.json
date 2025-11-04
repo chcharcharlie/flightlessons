@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "emulators": "firebase emulators:start --account ccehshmily@gmail.com",
     "deploy:rules": "firebase deploy --only firestore:rules --account ccehshmily@gmail.com",
+    "deploy:indexes": "firebase deploy --only firestore:indexes --account ccehshmily@gmail.com",
     "deploy:storage": "firebase deploy --only storage --account ccehshmily@gmail.com",
     "deploy:functions": "firebase deploy --only functions --account ccehshmily@gmail.com",
     "deploy": "npm run build && firebase deploy --account ccehshmily@gmail.com",

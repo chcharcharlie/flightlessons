@@ -13,7 +13,6 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { InviteStudentModal } from '@/components/students/InviteStudentModal'
 import { StudentDetailModal } from '@/components/students/StudentDetailModal'
-import { StudentProgressModal } from '@/components/students/StudentProgressModal'
 
 export const Students: React.FC = () => {
   const { user } = useAuth()
@@ -21,8 +20,6 @@ export const Students: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<StudentWithDetails | null>(null)
-  const [showProgressModal, setShowProgressModal] = useState(false)
-  const [selectedStudentForProgress, setSelectedStudentForProgress] = useState<StudentWithDetails | null>(null)
   const [invitationLink, setInvitationLink] = useState<string | null>(null)
   const [studentPrograms, setStudentPrograms] = useState<Map<string, TrainingProgram[]>>(new Map())
 
@@ -182,17 +179,6 @@ export const Students: React.FC = () => {
                       Enrolled: {new Date(student.enrollmentDate.toDate()).toLocaleDateString()}
                     </div>
                   </div>
-                  
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedStudentForProgress(student)
-                      setShowProgressModal(true)
-                    }}
-                    className="text-gray-400 hover:text-gray-500"
-                  >
-                    <ChartBarIcon className="h-5 w-5" />
-                  </button>
                 </div>
               </div>
             ))}
@@ -220,24 +206,12 @@ export const Students: React.FC = () => {
         />
       )}
 
-      {selectedStudent && !showProgressModal && (
+      {selectedStudent && (
         <StudentDetailModal
           student={selectedStudent}
           onClose={() => setSelectedStudent(null)}
           onViewProgress={() => {
-            setSelectedStudentForProgress(selectedStudent)
-            setShowProgressModal(true)
-            setSelectedStudent(null)
-          }}
-        />
-      )}
-
-      {showProgressModal && selectedStudentForProgress && (
-        <StudentProgressModal
-          student={selectedStudentForProgress}
-          onClose={() => {
-            setShowProgressModal(false)
-            setSelectedStudentForProgress(null)
+            // This is now handled in StudentDetailModal with navigation
           }}
         />
       )}

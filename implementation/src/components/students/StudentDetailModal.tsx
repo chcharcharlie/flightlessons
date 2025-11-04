@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { XMarkIcon, ChartBarIcon, CalendarIcon, AcademicCapIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, ChartBarIcon, CalendarIcon, AcademicCapIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { StudentWithDetails } from '@/hooks/useStudents'
 import { Certificate, TrainingProgram } from '@/types'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
 interface StudentDetailModalProps {
   student: StudentWithDetails
@@ -18,8 +19,13 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   onViewProgress,
 }) => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [programs, setPrograms] = useState<TrainingProgram[]>([])  
   const [loadingPrograms, setLoadingPrograms] = useState(true)
+  const [showNewProgram, setShowNewProgram] = useState(false)
+  const [selectedCertificate, setSelectedCertificate] = useState<Certificate>('PRIVATE')
+  const [notes, setNotes] = useState('')
+  const [creatingProgram, setCreatingProgram] = useState(false)
 
   useEffect(() => {
     if (!user?.cfiWorkspaceId) return
@@ -44,6 +50,48 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
 
     loadPrograms()
   }, [student.uid, user?.cfiWorkspaceId])
+
+  const handleCreateProgram = async () => {
+    if (!user?.cfiWorkspaceId) return
+    
+    setCreatingProgram(true)
+    try {
+      const newProgram = {
+        cfiWorkspaceId: user.cfiWorkspaceId,
+        studentUid: student.uid,
+        certificate: selectedCertificate,
+        status: 'ACTIVE' as const,
+        startDate: Timestamp.now(),
+        notes,
+        createdAt: Timestamp.now(),
+        createdBy: user.uid,
+      }
+      
+      await addDoc(collection(db, 'trainingPrograms'), newProgram)
+      
+      // Reload programs
+      const programsQuery = query(
+        collection(db, 'trainingPrograms'),
+        where('studentUid', '==', student.uid),
+        where('cfiWorkspaceId', '==', user.cfiWorkspaceId)
+      )
+      const programsSnapshot = await getDocs(programsQuery)
+      const programsData = programsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as TrainingProgram))
+      setPrograms(programsData)
+      
+      // Reset form
+      setShowNewProgram(false)
+      setSelectedCertificate('PRIVATE')
+      setNotes('')
+    } catch (error) {
+      // Silently handle error
+    } finally {
+      setCreatingProgram(false)
+    }
+  }
   const getCertificateFullName = (cert: Certificate) => {
     switch (cert) {
       case 'PRIVATE':
@@ -97,7 +145,16 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           </div>
 
           <div>
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Training Programs</h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-medium text-gray-900">Training Programs</h4>
+              <button
+                onClick={() => setShowNewProgram(!showNewProgram)}
+                className="text-sky hover:text-sky-600"
+                title="Add new program"
+              >
+                <PlusIcon className="h-4 w-4" />
+              </button>
+            </div>
             {loadingPrograms ? (
               <div className="animate-pulse h-4 bg-gray-200 rounded w-1/2"></div>
             ) : programs.length > 0 ? (
@@ -139,13 +196,71 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             </div>
           </div>
 
+          {showNewProgram && (
+            <div className="border-t border-gray-200 pt-4">
+              <h5 className="text-sm font-medium text-gray-900 mb-3">Start New Program</h5>
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="certificate" className="block text-xs font-medium text-gray-700">
+                    Certificate/Rating
+                  </label>
+                  <select
+                    id="certificate"
+                    value={selectedCertificate}
+                    onChange={(e) => setSelectedCertificate(e.target.value as Certificate)}
+                    className="mt-1 block w-full rounded-md border-gray-300 py-1 pl-3 pr-10 text-sm focus:border-sky focus:outline-none focus:ring-sky"
+                  >
+                    <option value="PRIVATE">Private Pilot License (PPL)</option>
+                    <option value="INSTRUMENT">Instrument Rating (IR)</option>
+                    <option value="COMMERCIAL">Commercial Pilot License (CPL)</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="notes" className="block text-xs font-medium text-gray-700">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    id="notes"
+                    rows={2}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky text-sm"
+                    placeholder="Any initial notes..."
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={() => {
+                      setShowNewProgram(false)
+                      setSelectedCertificate('PRIVATE')
+                      setNotes('')
+                    }}
+                    className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateProgram}
+                    disabled={creatingProgram}
+                    className="px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-sky hover:bg-sky-600 disabled:opacity-50"
+                  >
+                    {creatingProgram ? 'Creating...' : 'Create'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <h4 className="text-sm font-medium text-gray-900 mb-2">Actions</h4>
             <div className="space-y-2">
               {programs.filter(p => p.status === 'ACTIVE').map(program => (
                 <button
                   key={program.id}
-                  onClick={onViewProgress}
+                  onClick={() => {
+                    onClose()
+                    navigate(`/cfi/programs/${program.id}/progress`)
+                  }}
                   className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                 >
                   <ChartBarIcon className="h-4 w-4 mr-2" />
@@ -154,7 +269,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               ))}
               {programs.filter(p => p.status === 'ACTIVE').length === 0 && (
                 <p className="text-sm text-gray-500 text-center py-2">
-                  Assign a training program to view progress
+                  Start a training program to view progress
                 </p>
               )}
             </div>
