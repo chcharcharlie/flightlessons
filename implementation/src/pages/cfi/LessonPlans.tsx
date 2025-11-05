@@ -770,6 +770,26 @@ export const LessonPlans: React.FC = () => {
     setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
   }
 
+  // Create context for drag handles
+  const DragHandleContext = React.createContext<any>(null)
+
+  // Drag Handle Component
+  const DragHandle = ({ className }: { className?: string }) => {
+    const context = React.useContext(DragHandleContext)
+    if (!context) return <Bars3Icon className="h-4 w-4" />
+    
+    return (
+      <button
+        {...context.listeners}
+        {...context.attributes}
+        className={className || "text-gray-400 hover:text-gray-600 cursor-move"}
+        title="Drag to reorder"
+      >
+        <Bars3Icon className="h-4 w-4" />
+      </button>
+    )
+  }
+
   // Sortable Area Component
   const SortableArea = ({ area, children }: { area: StudyArea; children: React.ReactNode }) => {
     const {
@@ -788,11 +808,11 @@ export const LessonPlans: React.FC = () => {
     }
 
     return (
-      <div ref={setNodeRef} style={style} className={isDragging ? 'z-50' : ''} data-handler={listeners}>
-        {React.cloneElement(children as React.ReactElement, {
-          dragHandleProps: { ...attributes, ...listeners }
-        })}
-      </div>
+      <DragHandleContext.Provider value={{ listeners, attributes }}>
+        <div ref={setNodeRef} style={style} className={isDragging ? 'z-50' : ''}>
+          {children}
+        </div>
+      </DragHandleContext.Provider>
     )
   }
 
@@ -814,11 +834,11 @@ export const LessonPlans: React.FC = () => {
     }
 
     return (
-      <div ref={setNodeRef} style={style} className={isDragging ? 'z-50' : ''}>
-        {React.cloneElement(children as React.ReactElement, {
-          dragHandleProps: { ...attributes, ...listeners }
-        })}
-      </div>
+      <DragHandleContext.Provider value={{ listeners, attributes }}>
+        <div ref={setNodeRef} style={style} className={isDragging ? 'z-50' : ''}>
+          {children}
+        </div>
+      </DragHandleContext.Provider>
     )
   }
 
@@ -914,7 +934,7 @@ export const LessonPlans: React.FC = () => {
 
                 return (
                   <SortableArea key={area.id} area={area}>
-                    <div className="p-4" {...(area as any).dragHandleProps}>
+                    <div className="p-4">
                       <div className="flex items-center justify-between">
                         <button
                           onClick={() => toggleArea(area.id)}
@@ -961,13 +981,7 @@ export const LessonPlans: React.FC = () => {
                           </>
                         ) : (
                           <>
-                            <button
-                              {...((area as any).dragHandleProps || {})}
-                              className="text-gray-400 hover:text-gray-600 cursor-move"
-                              title="Drag to reorder"
-                            >
-                              <Bars3Icon className="h-4 w-4" />
-                            </button>
+                            <DragHandle />
                             <button
                               onClick={() => setAddingItemFor(area.id)}
                               className="text-sky hover:text-sky-600"
@@ -1060,7 +1074,7 @@ export const LessonPlans: React.FC = () => {
 
                             return (
                               <SortableItem key={item.id} item={item}>
-                                <div className="flex items-start justify-between p-2 bg-gray-50 rounded" {...(item as any).dragHandleProps}>
+                                <div className="flex items-start justify-between p-2 bg-gray-50 rounded">
                               {isEditingItem ? (
                                 <div className="flex-1 space-y-2">
                                   <input
@@ -1124,13 +1138,7 @@ export const LessonPlans: React.FC = () => {
                                   </>
                                 ) : (
                                   <>
-                                    <button
-                                      {...((item as any).dragHandleProps || {})}
-                                      className="text-gray-400 hover:text-gray-600 cursor-move"
-                                      title="Drag to reorder"
-                                    >
-                                      <Bars3Icon className="h-4 w-4" />
-                                    </button>
+                                    <DragHandle />
                                     <button
                                       onClick={() => handleEditItem(item)}
                                       className="text-gray-400 hover:text-gray-500"
