@@ -55,6 +55,7 @@ export interface StudyItem {
   evaluationCriteria: string
   acsCodeMappings: string[]
   referenceMaterials: ReferenceMaterial[]
+  order?: number
   createdAt: Timestamp
 }
 

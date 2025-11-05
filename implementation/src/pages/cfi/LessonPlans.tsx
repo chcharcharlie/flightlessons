@@ -11,6 +11,7 @@ import {
   addDoc,
   updateDoc,
   Timestamp,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
@@ -25,7 +26,30 @@ import {
   XMarkIcon,
   CalendarDaysIcon,
   ClipboardDocumentListIcon,
+  Bars3Icon,
 } from '@heroicons/react/24/outline'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  DragOverlay,
+  Active,
+  Over,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface EditingLessonPlan extends LessonPlan {
   isEditing?: boolean
@@ -62,6 +86,19 @@ export const LessonPlans: React.FC = () => {
   })
 
   const workspaceId = user?.cfiWorkspaceId || ''
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   useEffect(() => {
     if (!workspaceId) {
@@ -80,6 +117,7 @@ export const LessonPlans: React.FC = () => {
           id: doc.id,
           ...doc.data()
         } as StudyItem))
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
         setStudyItems(allItems)
         
         // Organize areas by certificate
@@ -163,7 +201,145 @@ export const LessonPlans: React.FC = () => {
   }
 
   const getItemsForArea = (areaId: string) => {
-    return studyItems.filter(item => item.areaId === areaId)
+    return studyItems
+      .filter(item => item.areaId === areaId)
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+  }
+
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }
+
+  const handleDragOver = (event: DragOverEvent) => {
+    setOverId(event.over?.id as string || null)
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveId(null)
+    setOverId(null)
+    
+    if (!over || active.id === over.id) return
+    
+    const activeId = active.id as string
+    const overId = over.id as string
+    
+    // Determine if we're moving an area or an item
+    const activeArea = (studyAreas.get(selectedCertificate) || []).find(a => a.id === activeId)
+    const overArea = (studyAreas.get(selectedCertificate) || []).find(a => a.id === overId)
+    const activeItem = studyItems.find(i => i.id === activeId)
+    const overItem = studyItems.find(i => i.id === overId)
+    
+    if (activeArea && overArea) {
+      // Reordering areas
+      const areas = studyAreas.get(selectedCertificate) || []
+      const oldIndex = areas.findIndex(a => a.id === activeId)
+      const newIndex = areas.findIndex(a => a.id === overId)
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newAreas = arrayMove(areas, oldIndex, newIndex)
+        
+        // Update order in local state
+        const updatedAreas = newAreas.map((area, index) => ({ ...area, order: index }))
+        setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
+        
+        // Update in Firebase
+        try {
+          const batch = writeBatch(db)
+          const workspaceRef = doc(db, 'workspaces', workspaceId)
+          
+          updatedAreas.forEach((area, index) => {
+            const areaRef = doc(workspaceRef, 'studyAreas', area.id)
+            batch.update(areaRef, { order: index })
+          })
+          
+          await batch.commit()
+        } catch (error) {
+          console.error('Error updating area order:', error)
+        }
+      }
+    } else if (activeItem) {
+      // Moving an item
+      let newAreaId = activeItem.areaId
+      let targetIndex = 0
+      
+      if (overArea) {
+        // Dropping on an area - add as last item in that area
+        newAreaId = overArea.id
+        const areaItems = getItemsForArea(newAreaId)
+        targetIndex = areaItems.length
+      } else if (overItem) {
+        // Dropping on another item
+        newAreaId = overItem.areaId
+        const areaItems = getItemsForArea(newAreaId)
+        targetIndex = areaItems.findIndex(i => i.id === overItem.id)
+      }
+      
+      // Update items
+      const updatedItems = [...studyItems]
+      const itemIndex = updatedItems.findIndex(i => i.id === activeItem.id)
+      
+      if (itemIndex !== -1) {
+        // Update the item's area if it changed
+        updatedItems[itemIndex] = { ...updatedItems[itemIndex], areaId: newAreaId }
+        
+        // Reorder items within areas
+        const itemsByArea = new Map<string, StudyItem[]>()
+        updatedItems.forEach(item => {
+          const areaItems = itemsByArea.get(item.areaId) || []
+          areaItems.push(item)
+          itemsByArea.set(item.areaId, areaItems)
+        })
+        
+        // Update order for all items
+        const finalItems: StudyItem[] = []
+        itemsByArea.forEach((items, areaId) => {
+          const sortedItems = items.map((item, index) => ({ ...item, order: index }))
+          finalItems.push(...sortedItems)
+        })
+        
+        setStudyItems(finalItems)
+        
+        // Update in Firebase
+        try {
+          const batch = writeBatch(db)
+          const workspaceRef = doc(db, 'workspaces', workspaceId)
+          
+          // Update the moved item's area and order
+          const movedItem = finalItems.find(i => i.id === activeItem.id)
+          if (movedItem) {
+            const itemRef = doc(workspaceRef, 'studyItems', movedItem.id)
+            batch.update(itemRef, { 
+              areaId: movedItem.areaId,
+              order: movedItem.order || 0
+            })
+          }
+          
+          // Update order for all items in affected areas
+          const affectedAreaIds = new Set([activeItem.areaId, newAreaId])
+          affectedAreaIds.forEach(areaId => {
+            const areaItems = finalItems.filter(i => i.areaId === areaId)
+            areaItems.forEach((item, index) => {
+              const itemRef = doc(workspaceRef, 'studyItems', item.id)
+              batch.update(itemRef, { order: index })
+            })
+          })
+          
+          await batch.commit()
+          
+          // Update area item counts
+          const areas = studyAreas.get(selectedCertificate) || []
+          const updatedAreas = areas.map(area => ({
+            ...area,
+            itemCount: finalItems.filter(i => i.areaId === area.id).length
+          }))
+          setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
+        } catch (error) {
+          console.error('Error updating item order:', error)
+        }
+      }
+    }
   }
 
   const calculateCoverage = () => {
@@ -594,6 +770,68 @@ export const LessonPlans: React.FC = () => {
     setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
   }
 
+  // Sortable Area Component
+  const SortableArea = ({ area, children, dragHandleProps }: { area: StudyArea; children: React.ReactNode; dragHandleProps?: any }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: area.id })
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    }
+    
+    const childrenWithProps = React.Children.map(children, child => {
+      if (React.isValidElement(child)) {
+        return React.cloneElement(child, { dragHandleProps: { ...attributes, ...listeners } } as any)
+      }
+      return child
+    })
+
+    return (
+      <div ref={setNodeRef} style={style} className={isDragging ? 'z-50' : ''}>
+        {childrenWithProps}
+      </div>
+    )
+  }
+
+  // Sortable Item Component  
+  const SortableItem = ({ item, children }: { item: StudyItem; children: React.ReactNode }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: item.id })
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    }
+    
+    const childrenWithProps = React.Children.map(children, child => {
+      if (React.isValidElement(child)) {
+        return React.cloneElement(child, { dragHandleProps: { ...attributes, ...listeners } } as any)
+      }
+      return child
+    })
+
+    return (
+      <div ref={setNodeRef} style={style} className={isDragging ? 'z-50' : ''}>
+        {childrenWithProps}
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="px-4 sm:px-0">
@@ -610,7 +848,14 @@ export const LessonPlans: React.FC = () => {
   const plans = lessonPlans.get(selectedCertificate) || []
 
   return (
-    <div className="px-4 sm:px-0">
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="px-4 sm:px-0">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Curriculum Management</h2>
@@ -667,19 +912,24 @@ export const LessonPlans: React.FC = () => {
               </div>
             </div>
 
-            <div className="divide-y divide-gray-200">
-              {areas.map(area => {
+            <SortableContext
+              items={areas.map(a => a.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="divide-y divide-gray-200">
+                {areas.map(area => {
                 const areaItems = getItemsForArea(area.id)
                 const isExpanded = expandedAreas.has(area.id)
                 const isEditingArea = editingArea === area.id
 
                 return (
-                  <div key={area.id} className="p-4">
-                    <div className="flex items-center justify-between">
-                      <button
-                        onClick={() => toggleArea(area.id)}
-                        className="flex-1 flex items-center text-left"
-                      >
+                  <SortableArea key={area.id} area={area}>
+                    <div className="p-4" {...(area as any).dragHandleProps}>
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => toggleArea(area.id)}
+                          className="flex-1 flex items-center text-left"
+                        >
                         {isExpanded ? (
                           <ChevronDownIcon className="h-5 w-5 text-gray-400 mr-2" />
                         ) : (
@@ -721,6 +971,13 @@ export const LessonPlans: React.FC = () => {
                           </>
                         ) : (
                           <>
+                            <button
+                              {...((area as any).dragHandleProps || {})}
+                              className="text-gray-400 hover:text-gray-600 cursor-move"
+                              title="Drag to reorder"
+                            >
+                              <Bars3Icon className="h-4 w-4" />
+                            </button>
                             <button
                               onClick={() => setAddingItemFor(area.id)}
                               className="text-sky hover:text-sky-600"
@@ -803,12 +1060,17 @@ export const LessonPlans: React.FC = () => {
                     )}
 
                     {isExpanded && (
-                      <div className="mt-3 space-y-2">
-                        {areaItems.map(item => {
-                          const isEditingItem = editingItem === item.id
+                      <SortableContext
+                        items={areaItems.map(i => i.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="mt-3 space-y-2">
+                          {areaItems.map(item => {
+                            const isEditingItem = editingItem === item.id
 
-                          return (
-                            <div key={item.id} className="flex items-start justify-between p-2 bg-gray-50 rounded">
+                            return (
+                              <SortableItem key={item.id} item={item}>
+                                <div className="flex items-start justify-between p-2 bg-gray-50 rounded" {...(item as any).dragHandleProps}>
                               {isEditingItem ? (
                                 <div className="flex-1 space-y-2">
                                   <input
@@ -873,6 +1135,13 @@ export const LessonPlans: React.FC = () => {
                                 ) : (
                                   <>
                                     <button
+                                      {...((item as any).dragHandleProps || {})}
+                                      className="text-gray-400 hover:text-gray-600 cursor-move"
+                                      title="Drag to reorder"
+                                    >
+                                      <Bars3Icon className="h-4 w-4" />
+                                    </button>
+                                    <button
                                       onClick={() => handleEditItem(item)}
                                       className="text-gray-400 hover:text-gray-500"
                                     >
@@ -887,14 +1156,19 @@ export const LessonPlans: React.FC = () => {
                                   </>
                                 )}
                               </div>
-                            </div>
-                          )
-                        })}
-                      </div>
+                                </div>
+                              </SortableItem>
+                            )
+                          })}
+                        </div>
+                      </SortableContext>
                     )}
-                  </div>
+                    </div>
+                  </SortableArea>
                 )
               })}
+              </div>
+            </SortableContext>
 
               {/* Add area button */}
               {!addingAreaFor && (
@@ -938,11 +1212,6 @@ export const LessonPlans: React.FC = () => {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Syllabus */}
         <div>
           <div className="bg-white shadow rounded-lg">
             <div className="p-4 border-b border-gray-200">
@@ -1279,6 +1548,15 @@ export const LessonPlans: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+      <DragOverlay>
+        {activeId ? (
+          <div className="bg-white shadow-lg rounded p-2 opacity-90">
+            {areas.find(a => a.id === activeId)?.name || 
+             studyItems.find(i => i.id === activeId)?.name}
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   )
 }
