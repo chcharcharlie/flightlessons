@@ -118,6 +118,7 @@ export const LessonPlans: React.FC = () => {
           ...doc.data()
         } as StudyItem))
           .sort((a, b) => (a.order || 0) - (b.order || 0))
+        console.log('Loaded study items:', allItems.map(i => ({ id: i.id, name: i.name, order: i.order, areaId: i.areaId })))
         setStudyItems(allItems)
         
         // Organize areas by certificate
@@ -225,11 +226,20 @@ export const LessonPlans: React.FC = () => {
     const activeId = active.id as string
     const overId = over.id as string
     
+    console.log('Drag end:', { activeId, overId })
+    
     // Determine if we're moving an area or an item
     const activeArea = (studyAreas.get(selectedCertificate) || []).find(a => a.id === activeId)
     const overArea = (studyAreas.get(selectedCertificate) || []).find(a => a.id === overId)
     const activeItem = studyItems.find(i => i.id === activeId)
     const overItem = studyItems.find(i => i.id === overId)
+    
+    console.log('Drag types:', { 
+      activeArea: !!activeArea, 
+      overArea: !!overArea, 
+      activeItem: !!activeItem, 
+      overItem: !!overItem 
+    })
     
     if (activeArea && overArea) {
       // Reordering areas
@@ -277,40 +287,69 @@ export const LessonPlans: React.FC = () => {
         if (targetIndex === -1) targetIndex = 0
       }
       
-      // Group items by area
+      // Group all items by area first, maintaining their current order
       const itemsByArea = new Map<string, StudyItem[]>()
-      studyItems.forEach(item => {
-        const areaItems = itemsByArea.get(item.areaId) || []
-        areaItems.push(item)
-        itemsByArea.set(item.areaId, areaItems)
+      
+      // Get all unique area IDs
+      const areaIds = new Set(studyItems.map(item => item.areaId))
+      
+      // Group items by area, preserving order
+      areaIds.forEach(areaId => {
+        const areaItems = studyItems
+          .filter(item => item.areaId === areaId)
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
+        itemsByArea.set(areaId, areaItems)
       })
       
-      // Remove item from its current area
-      const oldAreaItems = itemsByArea.get(activeItem.areaId) || []
-      const oldIndex = oldAreaItems.findIndex(i => i.id === activeItem.id)
-      if (oldIndex !== -1) {
-        oldAreaItems.splice(oldIndex, 1)
+      if (activeItem.areaId === newAreaId) {
+        // Moving within the same area
+        const areaItems = itemsByArea.get(newAreaId) || []
+        const oldIndex = areaItems.findIndex(i => i.id === activeItem.id)
+        
+        console.log('Moving within same area:', {
+          areaId: newAreaId,
+          oldIndex,
+          targetIndex,
+          areaItemsCount: areaItems.length
+        })
+        
+        if (oldIndex !== -1 && oldIndex !== targetIndex) {
+          // Use arrayMove to reorder
+          const reorderedItems = arrayMove(areaItems, oldIndex, targetIndex)
+          itemsByArea.set(newAreaId, reorderedItems)
+          console.log('Reordered items:', reorderedItems.map(i => ({ id: i.id, name: i.name, order: i.order })))
+        }
+      } else {
+        // Moving between areas
+        const oldAreaItems = itemsByArea.get(activeItem.areaId) || []
+        const newAreaItems = itemsByArea.get(newAreaId) || []
+        
+        // Remove from old area
+        const oldIndex = oldAreaItems.findIndex(i => i.id === activeItem.id)
+        if (oldIndex !== -1) {
+          oldAreaItems.splice(oldIndex, 1)
+          itemsByArea.set(activeItem.areaId, oldAreaItems)
+        }
+        
+        // Add to new area
+        const itemToMove = { ...activeItem, areaId: newAreaId }
+        newAreaItems.splice(targetIndex, 0, itemToMove)
+        itemsByArea.set(newAreaId, newAreaItems)
       }
       
-      // Add item to new area at target position
-      const newAreaItems = itemsByArea.get(newAreaId) || []
-      const itemToMove = { ...activeItem, areaId: newAreaId }
-      
-      // If moving within same area, adjust target index if needed
-      if (activeItem.areaId === newAreaId && oldIndex < targetIndex) {
-        targetIndex = Math.max(0, targetIndex - 1)
-      }
-      
-      newAreaItems.splice(targetIndex, 0, itemToMove)
-      itemsByArea.set(newAreaId, newAreaItems)
-      
-      // Update order for all items and flatten
+      // Rebuild the complete items array with updated orders
       const finalItems: StudyItem[] = []
       itemsByArea.forEach((items, areaId) => {
         items.forEach((item, index) => {
-          finalItems.push({ ...item, order: index })
+          finalItems.push({ ...item, areaId, order: index })
         })
       })
+      
+      console.log('Final items after reorder:', finalItems.filter(i => i.areaId === newAreaId).map(i => ({ 
+        id: i.id, 
+        name: i.name, 
+        order: i.order 
+      })))
       
       setStudyItems(finalItems)
       
@@ -319,7 +358,7 @@ export const LessonPlans: React.FC = () => {
         const batch = writeBatch(db)
         const workspaceRef = doc(db, 'workspaces', workspaceId)
         
-        // Update order for all items in affected areas
+        // Update all items in affected areas
         const affectedAreaIds = new Set([activeItem.areaId, newAreaId])
         affectedAreaIds.forEach(areaId => {
           const areaItems = finalItems.filter(i => i.areaId === areaId)
@@ -327,20 +366,22 @@ export const LessonPlans: React.FC = () => {
             const itemRef = doc(workspaceRef, 'studyItems', item.id)
             batch.update(itemRef, { 
               areaId: item.areaId,
-              order: item.order || 0
+              order: item.order
             })
           })
         })
         
         await batch.commit()
         
-        // Update area item counts
-        const areas = studyAreas.get(selectedCertificate) || []
-        const updatedAreas = areas.map(area => ({
-          ...area,
-          itemCount: finalItems.filter(i => i.areaId === area.id).length
-        }))
-        setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
+        // Update area item counts if moving between areas
+        if (activeItem.areaId !== newAreaId) {
+          const areas = studyAreas.get(selectedCertificate) || []
+          const updatedAreas = areas.map(area => ({
+            ...area,
+            itemCount: finalItems.filter(i => i.areaId === area.id).length
+          }))
+          setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
+        }
       } catch (error) {
         console.error('Error updating item order:', error)
       }
@@ -553,6 +594,10 @@ export const LessonPlans: React.FC = () => {
     try {
       const workspaceRef = doc(db, 'workspaces', workspaceId)
       
+      // Get the current items in this area to determine the order
+      const areaItems = getItemsForArea(addingItemFor)
+      const nextOrder = areaItems.length
+      
       // Add new item
       const newItem = {
         areaId: addingItemFor,
@@ -562,6 +607,7 @@ export const LessonPlans: React.FC = () => {
         evaluationCriteria: newItemData.evaluationCriteria?.trim() || '',
         acsCodeMappings: [],
         referenceMaterials: [],
+        order: nextOrder,
         createdAt: Timestamp.now()
       }
       
@@ -582,8 +628,8 @@ export const LessonPlans: React.FC = () => {
         setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
       }
       
-      // Update local items state
-      setStudyItems([...studyItems, { ...newItem, id: docRef.id }])
+      // Update local items state - maintain the new item with its order
+      setStudyItems([...studyItems, { ...newItem, id: docRef.id, order: nextOrder }])
       
       setAddingItemFor(null)
       setNewItemData({
