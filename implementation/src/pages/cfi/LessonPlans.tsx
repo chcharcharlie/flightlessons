@@ -1212,6 +1212,10 @@ export const LessonPlans: React.FC = () => {
                   </div>
                 </div>
               )}
+          </div>
+        </div>
+        
+        {/* Right Column: Syllabus */}
         <div>
           <div className="bg-white shadow rounded-lg">
             <div className="p-4 border-b border-gray-200">
