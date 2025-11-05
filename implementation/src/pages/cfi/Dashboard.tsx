@@ -9,7 +9,6 @@ import {
   ClipboardDocumentListIcon,
   ArrowLeftOnRectangleIcon,
 } from '@heroicons/react/24/outline'
-import { StudyItems } from './StudyItems'
 import { Students } from './Students'
 import { TrainingPrograms } from './TrainingPrograms'
 import { ProgramProgress } from './ProgramProgress'
@@ -22,8 +21,7 @@ const navigation = [
   { name: 'Dashboard', href: '/cfi', icon: HomeIcon },
   { name: 'Students', href: '/cfi/students', icon: UserGroupIcon },
   { name: 'Programs', href: '/cfi/programs', icon: AcademicCapIcon },
-  { name: 'Study Items', href: '/cfi/study-items', icon: BookOpenIcon },
-  { name: 'Lesson Plans', href: '/cfi/lesson-plans', icon: BookOpenIcon },
+  { name: 'Curriculum', href: '/cfi/curriculum', icon: BookOpenIcon },
   { name: 'Lessons', href: '/cfi/lessons', icon: ClipboardDocumentListIcon },
 ]
 
@@ -87,10 +85,9 @@ export const CFIDashboard: React.FC = () => {
           <Route path="students" element={<Students />} />
           <Route path="programs" element={<TrainingPrograms />} />
           <Route path="programs/:programId/progress" element={<ProgramProgress />} />
-          <Route path="study-items" element={<StudyItems />} />
-          <Route path="lesson-plans" element={<LessonPlans />} />
-          <Route path="lesson-plans/:certificate/:planId" element={<LessonPlanDetail />} />
-          <Route path="lesson-plans/:certificate/:planId/edit" element={<LessonPlanDetail />} />
+          <Route path="curriculum" element={<LessonPlans />} />
+          <Route path="curriculum/:certificate/:planId" element={<LessonPlanDetail />} />
+          <Route path="curriculum/:certificate/:planId/edit" element={<LessonPlanDetail />} />
           <Route path="lessons" element={<Lessons />} />
           <Route path="lessons/:lessonId" element={<LessonDetail />} />
         </Routes>

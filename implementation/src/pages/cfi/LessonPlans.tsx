@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   collection,
   query,
@@ -8,26 +8,57 @@ import {
   getDocs,
   deleteDoc,
   doc,
+  addDoc,
+  updateDoc,
+  Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
-import { LessonPlan, Certificate } from '@/types'
+import { LessonPlan, Certificate, StudyArea, StudyItem } from '@/types'
 import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-  DocumentDuplicateIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  CheckIcon,
+  XMarkIcon,
+  CalendarDaysIcon,
   ClipboardDocumentListIcon,
-  AcademicCapIcon,
 } from '@heroicons/react/24/outline'
+
+interface EditingLessonPlan extends LessonPlan {
+  isEditing?: boolean
+  selectedItems?: Set<string>
+  expandedAreas?: Set<string>
+}
 
 export const LessonPlans: React.FC = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   
-  const [lessonPlans, setLessonPlans] = useState<Map<Certificate, LessonPlan[]>>(new Map())
+  const [lessonPlans, setLessonPlans] = useState<Map<Certificate, EditingLessonPlan[]>>(new Map())
+  const [studyAreas, setStudyAreas] = useState<Map<Certificate, StudyArea[]>>(new Map())
+  const [studyItems, setStudyItems] = useState<StudyItem[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate>('PRIVATE')
+  const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
+  const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set())
+  const [editingArea, setEditingArea] = useState<string | null>(null)
+  const [editingAreaName, setEditingAreaName] = useState('')
+  const [editingItem, setEditingItem] = useState<string | null>(null)
+  const [editingItemData, setEditingItemData] = useState<Partial<StudyItem>>({})
+  const [addingAreaFor, setAddingAreaFor] = useState<Certificate | null>(null)
+  const [newAreaName, setNewAreaName] = useState('')
+  const [addingItemFor, setAddingItemFor] = useState<string | null>(null)
+  const [newItemData, setNewItemData] = useState<Partial<StudyItem>>({
+    name: '',
+    type: 'GROUND',
+    description: '',
+    evaluationCriteria: '',
+    acsCodeMappings: [],
+    referenceMaterials: []
+  })
 
   const workspaceId = user?.cfiWorkspaceId || ''
 
@@ -37,12 +68,34 @@ export const LessonPlans: React.FC = () => {
       return
     }
 
-    const loadLessonPlans = async () => {
+    const loadData = async () => {
       try {
-        const plansMap = new Map<Certificate, LessonPlan[]>()
+        // Load study areas and items
+        const workspaceRef = doc(db, 'workspaces', workspaceId)
+        const areasSnapshot = await getDocs(collection(workspaceRef, 'studyAreas'))
+        const itemsSnapshot = await getDocs(collection(workspaceRef, 'studyItems'))
         
-        // Load lesson plans for all certificates
+        const allItems = itemsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as StudyItem))
+        setStudyItems(allItems)
+        
+        // Organize areas by certificate
+        const areasMap = new Map<Certificate, StudyArea[]>()
         const certificates: Certificate[] = ['PRIVATE', 'INSTRUMENT', 'COMMERCIAL']
+        
+        for (const cert of certificates) {
+          const certAreas = areasSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as StudyArea))
+            .filter(area => area.certificate === cert)
+            .sort((a, b) => a.order - b.order)
+          areasMap.set(cert, certAreas)
+        }
+        setStudyAreas(areasMap)
+        
+        // Load lesson plans
+        const plansMap = new Map<Certificate, EditingLessonPlan[]>()
         
         for (const cert of certificates) {
           const plansQuery = query(
@@ -51,42 +104,29 @@ export const LessonPlans: React.FC = () => {
             where('cfiWorkspaceId', '==', workspaceId),
             orderBy('orderNumber', 'asc')
           )
+          
           const plansSnapshot = await getDocs(plansQuery)
           const plans = plansSnapshot.docs.map(doc => ({
             id: doc.id,
-            ...doc.data()
-          } as LessonPlan))
+            ...doc.data(),
+            isEditing: false,
+            selectedItems: new Set((doc.data() as LessonPlan).itemIds),
+            expandedAreas: new Set(),
+          } as EditingLessonPlan))
           
           plansMap.set(cert, plans)
         }
         
         setLessonPlans(plansMap)
       } catch (error) {
-        // Silently handle error
+        console.error('Error loading data:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    loadLessonPlans()
+    loadData()
   }, [workspaceId])
-
-  const handleDeletePlan = async (planId: string, certificate: Certificate) => {
-    if (!confirm('Are you sure you want to delete this lesson plan?')) return
-
-    try {
-      await deleteDoc(doc(db, 'lessonPlans', planId))
-      
-      // Update local state
-      const currentPlans = lessonPlans.get(certificate) || []
-      const updatedPlans = currentPlans.filter(p => p.id !== planId)
-      const newMap = new Map(lessonPlans)
-      newMap.set(certificate, updatedPlans)
-      setLessonPlans(newMap)
-    } catch (error) {
-      // Silently handle error
-    }
-  }
 
   const getCertificateFullName = (cert: Certificate) => {
     switch (cert) {
@@ -101,15 +141,369 @@ export const LessonPlans: React.FC = () => {
     }
   }
 
-  const formatDuration = (duration: { ground: number; flight: number }) => {
-    const parts = []
-    if (duration.ground > 0) {
-      parts.push(`${duration.ground} min ground`)
+  const getItemsForArea = (areaId: string) => {
+    return studyItems.filter(item => item.areaId === areaId)
+  }
+
+  const calculateCoverage = () => {
+    const areas = studyAreas.get(selectedCertificate) || []
+    const plans = lessonPlans.get(selectedCertificate) || []
+    
+    const allItemIds = new Set<string>()
+    const coveredItemIds = new Set<string>()
+    
+    // Get all items for this certificate
+    areas.forEach(area => {
+      const items = getItemsForArea(area.id)
+      items.forEach(item => allItemIds.add(item.id))
+    })
+    
+    // Get covered items from all lesson plans
+    plans.forEach(plan => {
+      plan.itemIds.forEach(itemId => coveredItemIds.add(itemId))
+    })
+    
+    const total = allItemIds.size
+    const covered = Array.from(coveredItemIds).filter(id => allItemIds.has(id)).length
+    
+    return total > 0 ? Math.round((covered / total) * 100) : 0
+  }
+
+  const toggleArea = (areaId: string) => {
+    const newExpanded = new Set(expandedAreas)
+    if (newExpanded.has(areaId)) {
+      newExpanded.delete(areaId)
+    } else {
+      newExpanded.add(areaId)
     }
-    if (duration.flight > 0) {
-      parts.push(`${duration.flight} hr flight`)
+    setExpandedAreas(newExpanded)
+  }
+
+  const togglePlan = (planId: string) => {
+    const newExpanded = new Set(expandedPlans)
+    if (newExpanded.has(planId)) {
+      newExpanded.delete(planId)
+    } else {
+      newExpanded.add(planId)
     }
-    return parts.join(' + ') || 'No duration set'
+    setExpandedPlans(newExpanded)
+  }
+
+  const handleDeleteArea = async (area: StudyArea) => {
+    if (!window.confirm(`Are you sure you want to delete the study area "${area.name}" and all its items?`)) return
+    
+    try {
+      const workspaceRef = doc(db, 'workspaces', workspaceId)
+      
+      // Delete all items in this area
+      const areaItems = getItemsForArea(area.id)
+      for (const item of areaItems) {
+        await deleteDoc(doc(workspaceRef, 'studyItems', item.id))
+      }
+      
+      // Delete the area
+      await deleteDoc(doc(workspaceRef, 'studyAreas', area.id))
+      
+      // Reload data
+      window.location.reload()
+    } catch (error) {
+      console.error('Error deleting area:', error)
+      alert('Failed to delete study area')
+    }
+  }
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!window.confirm('Are you sure you want to delete this study item?')) return
+    
+    try {
+      const workspaceRef = doc(db, 'workspaces', workspaceId)
+      await deleteDoc(doc(workspaceRef, 'studyItems', itemId))
+      
+      // Update local state
+      setStudyItems(studyItems.filter(item => item.id !== itemId))
+      
+      // Update item count in the area
+      const item = studyItems.find(i => i.id === itemId)
+      if (item) {
+        const areas = studyAreas.get(selectedCertificate) || []
+        const area = areas.find(a => a.id === item.areaId)
+        if (area) {
+          const updatedAreas = areas.map(a => 
+            a.id === area.id ? { ...a, itemCount: a.itemCount - 1 } : a
+          )
+          setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      alert('Failed to delete study item')
+    }
+  }
+
+  const handleEditArea = (area: StudyArea) => {
+    setEditingArea(area.id)
+    setEditingAreaName(area.name)
+  }
+
+  const handleSaveArea = async () => {
+    if (!editingArea || !editingAreaName.trim()) return
+    
+    try {
+      const workspaceRef = doc(db, 'workspaces', workspaceId)
+      await updateDoc(doc(workspaceRef, 'studyAreas', editingArea), {
+        name: editingAreaName.trim()
+      })
+      
+      // Update local state
+      const areas = studyAreas.get(selectedCertificate) || []
+      const updatedAreas = areas.map(a => 
+        a.id === editingArea ? { ...a, name: editingAreaName.trim() } : a
+      )
+      setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
+      
+      setEditingArea(null)
+      setEditingAreaName('')
+    } catch (error) {
+      console.error('Error updating area:', error)
+      alert('Failed to update study area')
+    }
+  }
+
+  const handleEditItem = (item: StudyItem) => {
+    setEditingItem(item.id)
+    setEditingItemData({
+      name: item.name,
+      type: item.type,
+      description: item.description,
+      evaluationCriteria: item.evaluationCriteria,
+    })
+  }
+
+  const handleSaveItem = async () => {
+    if (!editingItem || !editingItemData.name?.trim()) return
+    
+    try {
+      const workspaceRef = doc(db, 'workspaces', workspaceId)
+      await updateDoc(doc(workspaceRef, 'studyItems', editingItem), {
+        name: editingItemData.name.trim(),
+        type: editingItemData.type,
+        description: editingItemData.description?.trim() || '',
+        evaluationCriteria: editingItemData.evaluationCriteria?.trim() || '',
+      })
+      
+      // Update local state
+      setStudyItems(studyItems.map(item => 
+        item.id === editingItem 
+          ? { 
+              ...item, 
+              name: editingItemData.name!.trim(),
+              type: editingItemData.type!,
+              description: editingItemData.description?.trim() || '',
+              evaluationCriteria: editingItemData.evaluationCriteria?.trim() || '',
+            } 
+          : item
+      ))
+      
+      setEditingItem(null)
+      setEditingItemData({})
+    } catch (error) {
+      console.error('Error updating item:', error)
+      alert('Failed to update study item')
+    }
+  }
+
+  const handleAddArea = async () => {
+    if (!addingAreaFor || !newAreaName.trim()) return
+    
+    try {
+      const workspaceRef = doc(db, 'workspaces', workspaceId)
+      
+      // Get next order number
+      const areas = studyAreas.get(addingAreaFor) || []
+      const nextOrder = areas.length > 0 ? Math.max(...areas.map(a => a.order)) + 1 : 1
+      
+      // Add new area
+      const newArea = {
+        name: newAreaName.trim(),
+        certificate: addingAreaFor,
+        order: nextOrder,
+        itemCount: 0,
+        createdAt: Timestamp.now()
+      }
+      
+      const docRef = await addDoc(collection(workspaceRef, 'studyAreas'), newArea)
+      
+      // Update local state
+      const updatedAreas = [...areas, { ...newArea, id: docRef.id }]
+      setStudyAreas(new Map(studyAreas).set(addingAreaFor, updatedAreas))
+      
+      setAddingAreaFor(null)
+      setNewAreaName('')
+    } catch (error) {
+      console.error('Error adding area:', error)
+      alert('Failed to add study area')
+    }
+  }
+
+  const handleAddItem = async () => {
+    if (!addingItemFor || !newItemData.name?.trim()) return
+    
+    try {
+      const workspaceRef = doc(db, 'workspaces', workspaceId)
+      
+      // Add new item
+      const newItem = {
+        areaId: addingItemFor,
+        name: newItemData.name.trim(),
+        type: newItemData.type || 'GROUND',
+        description: newItemData.description?.trim() || '',
+        evaluationCriteria: newItemData.evaluationCriteria?.trim() || '',
+        acsCodeMappings: [],
+        referenceMaterials: [],
+        createdAt: Timestamp.now()
+      }
+      
+      const docRef = await addDoc(collection(workspaceRef, 'studyItems'), newItem)
+      
+      // Update item count in area
+      const areas = studyAreas.get(selectedCertificate) || []
+      const area = areas.find(a => a.id === addingItemFor)
+      if (area) {
+        await updateDoc(doc(workspaceRef, 'studyAreas', addingItemFor), {
+          itemCount: area.itemCount + 1
+        })
+        
+        // Update local state
+        const updatedAreas = areas.map(a => 
+          a.id === addingItemFor ? { ...a, itemCount: a.itemCount + 1 } : a
+        )
+        setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
+      }
+      
+      // Update local items state
+      setStudyItems([...studyItems, { ...newItem, id: docRef.id }])
+      
+      setAddingItemFor(null)
+      setNewItemData({
+        name: '',
+        type: 'GROUND',
+        description: '',
+        evaluationCriteria: '',
+        acsCodeMappings: [],
+        referenceMaterials: []
+      })
+    } catch (error) {
+      console.error('Error adding item:', error)
+      alert('Failed to add study item')
+    }
+  }
+
+  const handleDeletePlan = async (planId: string) => {
+    if (!window.confirm('Are you sure you want to delete this lesson plan?')) return
+    
+    try {
+      await deleteDoc(doc(db, 'lessonPlans', planId))
+      
+      // Update local state
+      const plans = lessonPlans.get(selectedCertificate) || []
+      const updatedPlans = plans.filter(p => p.id !== planId)
+      setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
+    } catch (error) {
+      console.error('Error deleting plan:', error)
+      alert('Failed to delete lesson plan')
+    }
+  }
+
+  const handleEditPlan = (planId: string) => {
+    const plans = lessonPlans.get(selectedCertificate) || []
+    const updatedPlans = plans.map(p => ({
+      ...p,
+      isEditing: p.id === planId,
+      expandedAreas: p.id === planId ? new Set<string>() : p.expandedAreas
+    }))
+    setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
+  }
+
+  const handleSavePlan = async (plan: EditingLessonPlan) => {
+    try {
+      const updateData: any = {
+        title: plan.title,
+        motivation: plan.motivation,
+        objectives: plan.objectives,
+        itemIds: Array.from(plan.selectedItems || []),
+        planDescription: plan.planDescription,
+        preStudyHomework: plan.preStudyHomework,
+        estimatedDuration: plan.estimatedDuration,
+        updatedAt: Timestamp.now()
+      }
+      
+      await updateDoc(doc(db, 'lessonPlans', plan.id), updateData)
+      
+      // Update local state
+      const plans = lessonPlans.get(selectedCertificate) || []
+      const updatedPlans = plans.map(p => 
+        p.id === plan.id 
+          ? { ...p, ...updateData, isEditing: false, selectedItems: new Set(updateData.itemIds) }
+          : p
+      )
+      setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
+    } catch (error) {
+      console.error('Error updating plan:', error)
+      alert('Failed to update lesson plan')
+    }
+  }
+
+  const handleCancelEdit = (planId: string) => {
+    const plans = lessonPlans.get(selectedCertificate) || []
+    const updatedPlans = plans.map(p => ({
+      ...p,
+      isEditing: false
+    }))
+    setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
+  }
+
+  const updatePlanField = (planId: string, field: keyof LessonPlan, value: any) => {
+    const plans = lessonPlans.get(selectedCertificate) || []
+    const updatedPlans = plans.map(p => 
+      p.id === planId ? { ...p, [field]: value } : p
+    )
+    setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
+  }
+
+  const togglePlanItem = (planId: string, itemId: string) => {
+    const plans = lessonPlans.get(selectedCertificate) || []
+    const plan = plans.find(p => p.id === planId)
+    if (!plan || !plan.selectedItems) return
+    
+    const newSelected = new Set(plan.selectedItems)
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId)
+    } else {
+      newSelected.add(itemId)
+    }
+    
+    const updatedPlans = plans.map(p => 
+      p.id === planId ? { ...p, selectedItems: newSelected } : p
+    )
+    setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
+  }
+
+  const togglePlanArea = (planId: string, areaId: string) => {
+    const plans = lessonPlans.get(selectedCertificate) || []
+    const plan = plans.find(p => p.id === planId)
+    if (!plan || !plan.expandedAreas) return
+    
+    const newExpanded = new Set(plan.expandedAreas)
+    if (newExpanded.has(areaId)) {
+      newExpanded.delete(areaId)
+    } else {
+      newExpanded.add(areaId)
+    }
+    
+    const updatedPlans = plans.map(p => 
+      p.id === planId ? { ...p, expandedAreas: newExpanded } : p
+    )
+    setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
   }
 
   if (loading) {
@@ -123,152 +517,657 @@ export const LessonPlans: React.FC = () => {
     )
   }
 
-  const currentPlans = lessonPlans.get(selectedCertificate) || []
+  const coverage = calculateCoverage()
+  const areas = studyAreas.get(selectedCertificate) || []
+  const plans = lessonPlans.get(selectedCertificate) || []
 
   return (
     <div className="px-4 sm:px-0">
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Lesson Plan Templates</h2>
-        <p className="mt-2 text-sm text-gray-700">
-          Create standardized lesson plans for each certificate that will be used for all students
-        </p>
+      <div className="sm:flex sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Curriculum Management</h2>
+          <p className="mt-2 text-sm text-gray-700">
+            Manage study items and lesson plans for your training programs
+          </p>
+        </div>
       </div>
 
       {/* Certificate Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="mt-6 border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
-          {(['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'] as Certificate[]).map((cert) => {
-            const planCount = lessonPlans.get(cert)?.length || 0
-            return (
-              <button
-                key={cert}
-                onClick={() => setSelectedCertificate(cert)}
-                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-                  selectedCertificate === cert
-                    ? 'border-sky text-sky'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {getCertificateFullName(cert)}
-                {planCount > 0 && (
-                  <span className="ml-2 text-gray-400">({planCount})</span>
-                )}
-              </button>
-            )
-          })}
+          {(['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'] as Certificate[]).map((cert) => (
+            <button
+              key={cert}
+              onClick={() => setSelectedCertificate(cert)}
+              className={`
+                py-2 px-1 border-b-2 font-medium text-sm
+                ${selectedCertificate === cert
+                  ? 'border-sky text-sky'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }
+              `}
+            >
+              {getCertificateFullName(cert)}
+            </button>
+          ))}
         </nav>
       </div>
 
-      {/* Add New Plan Button */}
-      <div className="flex justify-end mb-6">
-        <button
-          onClick={() => navigate(`/cfi/lesson-plans/${selectedCertificate}/new`)}
-          className="inline-flex items-center justify-center rounded-md border border-transparent bg-sky px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
-        >
-          <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-          Create Lesson Plan
-        </button>
-      </div>
+      {/* Two Column Layout */}
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column: Study Items */}
+        <div>
+          <div className="bg-white shadow rounded-lg">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">Study Items</h3>
+                <button
+                  onClick={() => navigate(`/cfi/curriculum/${selectedCertificate.toLowerCase()}/new`)}
+                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-sky hover:bg-sky-600"
+                >
+                  <PlusIcon className="h-4 w-4 mr-1" />
+                  Add Plan
+                </button>
+              </div>
+              
+              {/* Coverage Progress Bar */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-500">Syllabus Coverage</span>
+                  <span className="text-sm font-medium text-gray-900">{coverage}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-sky to-green-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${coverage}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  {plans.flatMap(p => p.itemIds).filter((id, i, arr) => arr.indexOf(id) === i).length} of {studyItems.filter(item => areas.some(a => a.id === item.areaId)).length} items included in syllabus
+                </p>
+              </div>
+            </div>
 
-      {/* Lesson Plans List */}
-      {currentPlans.length > 0 ? (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {currentPlans.map((plan) => (
-              <li key={plan.id}>
-                <div className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-sky text-white rounded-full h-10 w-10 flex items-center justify-center font-medium text-sm">
-                          {plan.orderNumber}
-                        </div>
-                        <div className="ml-4">
-                          <h3 className="text-lg font-medium text-gray-900">
-                            {plan.title}
-                          </h3>
-                          <p className="mt-1 text-sm text-gray-500">
-                            {plan.motivation}
-                          </p>
-                          <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
-                            <span className="flex items-center">
-                              <ClipboardDocumentListIcon className="h-4 w-4 mr-1" />
-                              {plan.itemIds.length} items
-                            </span>
-                            <span>{formatDuration(plan.estimatedDuration)}</span>
-                            {plan.objectives.length > 0 && (
-                              <span>{plan.objectives.length} objectives</span>
-                            )}
+            <div className="divide-y divide-gray-200">
+              {areas.map(area => {
+                const areaItems = getItemsForArea(area.id)
+                const isExpanded = expandedAreas.has(area.id)
+                const isEditingArea = editingArea === area.id
+
+                return (
+                  <div key={area.id} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => toggleArea(area.id)}
+                        className="flex-1 flex items-center text-left"
+                      >
+                        {isExpanded ? (
+                          <ChevronDownIcon className="h-5 w-5 text-gray-400 mr-2" />
+                        ) : (
+                          <ChevronRightIcon className="h-5 w-5 text-gray-400 mr-2" />
+                        )}
+                        {isEditingArea ? (
+                          <input
+                            type="text"
+                            value={editingAreaName}
+                            onChange={(e) => setEditingAreaName(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                          />
+                        ) : (
+                          <div className="flex-1">
+                            <h4 className="text-sm font-medium text-gray-900">{area.name}</h4>
+                            <p className="text-xs text-gray-500">{areaItems.length} items</p>
                           </div>
-                        </div>
+                        )}
+                      </button>
+                      <div className="flex items-center space-x-2 ml-4">
+                        {isEditingArea ? (
+                          <>
+                            <button
+                              onClick={handleSaveArea}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <CheckIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingArea(null)
+                                setEditingAreaName('')
+                              }}
+                              className="text-gray-400 hover:text-gray-500"
+                            >
+                              <XMarkIcon className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setAddingItemFor(area.id)}
+                              className="text-sky hover:text-sky-600"
+                              title="Add item"
+                            >
+                              <PlusIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleEditArea(area)}
+                              className="text-gray-400 hover:text-gray-500"
+                              title="Edit area"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteArea(area)}
+                              className="text-red-600 hover:text-red-700"
+                              title="Delete area"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => navigate(`/cfi/lesson-plans/${selectedCertificate}/${plan.id}/edit`)}
-                        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                        title="Edit plan"
-                      >
-                        <PencilIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => navigate(`/cfi/lesson-plans/${selectedCertificate}/duplicate-${plan.id}`)}
-                        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                        title="Duplicate plan"
-                      >
-                        <DocumentDuplicateIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeletePlan(plan.id, selectedCertificate)}
-                        className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50"
-                        title="Delete plan"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
+                    {/* Add item form */}
+                    {addingItemFor === area.id && (
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="space-y-3">
+                          <input
+                            type="text"
+                            placeholder="Item name"
+                            value={newItemData.name}
+                            onChange={(e) => setNewItemData({ ...newItemData, name: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                          />
+                          <select
+                            value={newItemData.type}
+                            onChange={(e) => setNewItemData({ ...newItemData, type: e.target.value as any })}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                          >
+                            <option value="GROUND">Ground</option>
+                            <option value="FLIGHT">Flight</option>
+                            <option value="BOTH">Both</option>
+                          </select>
+                          <textarea
+                            placeholder="Description"
+                            value={newItemData.description}
+                            onChange={(e) => setNewItemData({ ...newItemData, description: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                            rows={2}
+                          />
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              onClick={() => {
+                                setAddingItemFor(null)
+                                setNewItemData({
+                                  name: '',
+                                  type: 'GROUND',
+                                  description: '',
+                                  evaluationCriteria: '',
+                                  acsCodeMappings: [],
+                                  referenceMaterials: []
+                                })
+                              }}
+                              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-700"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleAddItem}
+                              className="px-3 py-1 text-sm text-white bg-sky rounded hover:bg-sky-600"
+                            >
+                              Add Item
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                  {/* Objectives */}
-                  {plan.objectives.length > 0 && (
-                    <div className="mt-3">
-                      <h4 className="text-sm font-medium text-gray-700">Objectives:</h4>
-                      <ul className="mt-1 text-sm text-gray-600 list-disc list-inside">
-                        {plan.objectives.slice(0, 3).map((obj, i) => (
-                          <li key={i}>{obj}</li>
-                        ))}
-                        {plan.objectives.length > 3 && (
-                          <li className="text-gray-400">
-                            And {plan.objectives.length - 3} more...
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  )}
+                    {isExpanded && (
+                      <div className="mt-3 space-y-2">
+                        {areaItems.map(item => {
+                          const isEditingItem = editingItem === item.id
+
+                          return (
+                            <div key={item.id} className="flex items-start justify-between p-2 bg-gray-50 rounded">
+                              {isEditingItem ? (
+                                <div className="flex-1 space-y-2">
+                                  <input
+                                    type="text"
+                                    value={editingItemData.name}
+                                    onChange={(e) => setEditingItemData({ ...editingItemData, name: e.target.value })}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                  />
+                                  <select
+                                    value={editingItemData.type}
+                                    onChange={(e) => setEditingItemData({ ...editingItemData, type: e.target.value as any })}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                  >
+                                    <option value="GROUND">Ground</option>
+                                    <option value="FLIGHT">Flight</option>
+                                    <option value="BOTH">Both</option>
+                                  </select>
+                                  <textarea
+                                    value={editingItemData.description}
+                                    onChange={(e) => setEditingItemData({ ...editingItemData, description: e.target.value })}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    rows={2}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{item.name}</p>
+                                  <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1 ${
+                                    item.type === 'GROUND'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : item.type === 'FLIGHT'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-purple-100 text-purple-800'
+                                  }`}>
+                                    {item.type}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex items-center space-x-2 ml-4">
+                                {isEditingItem ? (
+                                  <>
+                                    <button
+                                      onClick={handleSaveItem}
+                                      className="text-green-600 hover:text-green-700"
+                                    >
+                                      <CheckIcon className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditingItem(null)
+                                        setEditingItemData({})
+                                      }}
+                                      className="text-gray-400 hover:text-gray-500"
+                                    >
+                                      <XMarkIcon className="h-4 w-4" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => handleEditItem(item)}
+                                      className="text-gray-400 hover:text-gray-500"
+                                    >
+                                      <PencilIcon className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteItem(item.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <TrashIcon className="h-4 w-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Add area button */}
+              {!addingAreaFor && (
+                <div className="p-4">
+                  <button
+                    onClick={() => setAddingAreaFor(selectedCertificate)}
+                    className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Add Study Area
+                  </button>
                 </div>
-              </li>
-            ))}
-          </ul>
+              )}
+
+              {/* Add area form */}
+              {addingAreaFor === selectedCertificate && (
+                <div className="p-4 bg-gray-50">
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      placeholder="Study area name"
+                      value={newAreaName}
+                      onChange={(e) => setNewAreaName(e.target.value)}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded"
+                    />
+                    <button
+                      onClick={handleAddArea}
+                      className="px-3 py-2 text-sm text-white bg-sky rounded hover:bg-sky-600"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAddingAreaFor(null)
+                        setNewAreaName('')
+                      }}
+                      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
-          <ClipboardDocumentListIcon className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-2 text-sm text-gray-500">
-            No lesson plans created for {getCertificateFullName(selectedCertificate)}
-          </p>
-          <p className="mt-1 text-sm text-gray-500">
-            Create standardized lesson plans that all students will follow
-          </p>
-          <button
-            onClick={() => navigate(`/cfi/lesson-plans/${selectedCertificate}/new`)}
-            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-sky hover:bg-sky-600"
-          >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-            Create First Lesson Plan
-          </button>
+
+        {/* Right Column: Syllabus */}
+        <div>
+          <div className="bg-white shadow rounded-lg">
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Syllabus</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {plans.length} lesson plans in sequence
+              </p>
+            </div>
+
+            <div className="divide-y divide-gray-200">
+              {plans.map((plan) => {
+                const isExpanded = expandedPlans.has(plan.id)
+                const isEditing = plan.isEditing || false
+                const planItems = studyItems.filter(item => plan.itemIds.includes(item.id))
+
+                return (
+                  <div key={plan.id} className="p-4">
+                    <div className="flex items-start justify-between">
+                      <button
+                        onClick={() => togglePlan(plan.id)}
+                        className="flex-1 flex items-start text-left"
+                      >
+                        {isExpanded ? (
+                          <ChevronDownIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+                        ) : (
+                          <ChevronRightIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={plan.title}
+                              onChange={(e) => updatePlanField(plan.id, 'title', e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-full px-2 py-1 text-sm font-medium border border-gray-300 rounded"
+                            />
+                          ) : (
+                            <>
+                              <p className="text-sm font-medium text-gray-900">
+                                Lesson {plan.orderNumber}: {plan.title}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {planItems.length} study items • Est. {plan.estimatedDuration.ground}min ground, {plan.estimatedDuration.flight}hr flight
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </button>
+                      <div className="flex items-center space-x-2 ml-4">
+                        {isEditing ? (
+                          <>
+                            <button
+                              onClick={() => handleSavePlan(plan)}
+                              className="text-green-600 hover:text-green-700"
+                              title="Save"
+                            >
+                              <CheckIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleCancelEdit(plan.id)}
+                              className="text-gray-400 hover:text-gray-500"
+                              title="Cancel"
+                            >
+                              <XMarkIcon className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleEditPlan(plan.id)}
+                              className="text-gray-400 hover:text-gray-500"
+                              title="Edit"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePlan(plan.id)}
+                              className="text-red-600 hover:text-red-700"
+                              title="Delete"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="mt-4 space-y-3">
+                        {isEditing ? (
+                          <>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Motivation
+                              </label>
+                              <textarea
+                                value={plan.motivation}
+                                onChange={(e) => updatePlanField(plan.id, 'motivation', e.target.value)}
+                                rows={2}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Objectives (one per line)
+                              </label>
+                              <textarea
+                                value={plan.objectives?.join('\n') || ''}
+                                onChange={(e) => updatePlanField(plan.id, 'objectives', e.target.value.split('\n').filter(o => o.trim()))}
+                                rows={3}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Plan Description
+                              </label>
+                              <textarea
+                                value={plan.planDescription}
+                                onChange={(e) => updatePlanField(plan.id, 'planDescription', e.target.value)}
+                                rows={3}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Pre-Study Homework
+                              </label>
+                              <textarea
+                                value={plan.preStudyHomework}
+                                onChange={(e) => updatePlanField(plan.id, 'preStudyHomework', e.target.value)}
+                                rows={2}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Ground Duration (minutes)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={plan.estimatedDuration.ground}
+                                  onChange={(e) => updatePlanField(plan.id, 'estimatedDuration', { 
+                                    ...plan.estimatedDuration, 
+                                    ground: parseInt(e.target.value) || 0 
+                                  })}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Flight Duration (hours)
+                                </label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={plan.estimatedDuration.flight}
+                                  onChange={(e) => updatePlanField(plan.id, 'estimatedDuration', { 
+                                    ...plan.estimatedDuration, 
+                                    flight: parseFloat(e.target.value) || 0 
+                                  })}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-2">
+                                Study Items
+                              </label>
+                              <div className="space-y-2 max-h-60 overflow-y-auto">
+                                {areas.map(area => {
+                                  const areaItems = getItemsForArea(area.id)
+                                  if (areaItems.length === 0) return null
+                                  
+                                  const isAreaExpanded = plan.expandedAreas?.has(area.id)
+
+                                  return (
+                                    <div key={area.id} className="border border-gray-200 rounded">
+                                      <button
+                                        type="button"
+                                        onClick={() => togglePlanArea(plan.id, area.id)}
+                                        className="w-full px-3 py-2 text-left flex items-center justify-between hover:bg-gray-50"
+                                      >
+                                        <span className="text-sm font-medium text-gray-700">{area.name}</span>
+                                        {isAreaExpanded ? (
+                                          <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+                                        ) : (
+                                          <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+                                        )}
+                                      </button>
+                                      {isAreaExpanded && (
+                                        <div className="px-3 py-2 space-y-1 border-t border-gray-200">
+                                          {areaItems.map(item => (
+                                            <label key={item.id} className="flex items-center">
+                                              <input
+                                                type="checkbox"
+                                                checked={plan.selectedItems?.has(item.id) || false}
+                                                onChange={() => togglePlanItem(plan.id, item.id)}
+                                                className="h-3.5 w-3.5 text-sky border-gray-300 rounded"
+                                              />
+                                              <span className="ml-2 text-sm text-gray-600">{item.name}</span>
+                                              <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                                                item.type === 'GROUND'
+                                                  ? 'bg-blue-100 text-blue-800'
+                                                  : item.type === 'FLIGHT'
+                                                  ? 'bg-green-100 text-green-800'
+                                                  : 'bg-purple-100 text-purple-800'
+                                              }`}>
+                                                {item.type === 'BOTH' ? 'G&F' : item.type}
+                                              </span>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {plan.motivation && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-700">Motivation</p>
+                                <p className="text-sm text-gray-600 mt-1">{plan.motivation}</p>
+                              </div>
+                            )}
+
+                            {plan.objectives && plan.objectives.length > 0 && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-700">Objectives</p>
+                                <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
+                                  {plan.objectives.map((obj, i) => (
+                                    <li key={i}>{obj}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {plan.planDescription && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-700">Plan Description</p>
+                                <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{plan.planDescription}</p>
+                              </div>
+                            )}
+
+                            {plan.preStudyHomework && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-700">Pre-Study Homework</p>
+                                <p className="text-sm text-gray-600 mt-1">{plan.preStudyHomework}</p>
+                              </div>
+                            )}
+
+                            {planItems.length > 0 && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-700">Study Items</p>
+                                <ul className="mt-1 space-y-1">
+                                  {planItems.map(item => (
+                                    <li key={item.id} className="text-sm text-gray-600 flex items-center">
+                                      <span className="mr-2">•</span>
+                                      <span>{item.name}</span>
+                                      <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                                        item.type === 'GROUND'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : item.type === 'FLIGHT'
+                                          ? 'bg-green-100 text-green-800'
+                                          : 'bg-purple-100 text-purple-800'
+                                      }`}>
+                                        {item.type === 'BOTH' ? 'G&F' : item.type}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {plans.length === 0 && (
+                <div className="p-8 text-center">
+                  <ClipboardDocumentListIcon className="mx-auto h-12 w-12 text-gray-300" />
+                  <p className="mt-2 text-sm text-gray-500">No lesson plans yet</p>
+                  <button
+                    onClick={() => navigate(`/cfi/curriculum/${selectedCertificate.toLowerCase()}/new`)}
+                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-sky hover:bg-sky-600"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Create First Lesson Plan
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
