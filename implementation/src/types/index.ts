@@ -130,8 +130,9 @@ export interface Lesson {
   id: string
   cfiWorkspaceId: string
   studentUid: string
+  programId?: string // Reference to the training program
   lessonPlanId?: string // Reference to lesson plan if used
-  scheduledDate: Timestamp
+  scheduledDate: Timestamp | null
   completedDate?: Timestamp
   status: LessonStatus
   // Fields from lesson plan (copied or customized)
@@ -144,6 +145,7 @@ export interface Lesson {
   // Execution details
   plannedRoute?: string
   actualRoute?: string
+  actualDate?: Timestamp
   weatherNotes?: string
   aircraft?: string
   preNotes?: string
@@ -158,6 +160,8 @@ export interface LessonItem {
   completed: boolean
   score?: FlightScore | GroundScore
   notes?: string
+  includeGround?: boolean
+  includeFlight?: boolean
 }
 
 export interface ACSElement {

@@ -126,6 +126,9 @@ export const StudentLessonDetail: React.FC = () => {
   }
 
   const formatLessonDateTime = (timestamp: any) => {
+    if (!timestamp) {
+      return 'Unscheduled'
+    }
     const date = timestamp.toDate()
     return date.toLocaleString('en-US', {
       weekday: 'long',

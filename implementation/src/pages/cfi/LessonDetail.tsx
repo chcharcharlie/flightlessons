@@ -30,8 +30,14 @@ import {
   CheckIcon,
   XMarkIcon,
   PlusIcon,
-  TrashIcon,
+  ChevronRightIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline'
+
+interface ItemWithSelection extends StudyItem {
+  includeGround?: boolean
+  includeFlight?: boolean
+}
 
 export const LessonDetail: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>()
@@ -45,17 +51,152 @@ export const LessonDetail: React.FC = () => {
   const [items, setItems] = useState<StudyItem[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [hasChanges, setHasChanges] = useState(false)
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false)
 
-  // Form state
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'planning' | 'execution'>('planning')
+
+  // Planning tab state - editable lesson fields
+  const [title, setTitle] = useState('')
+  const [motivation, setMotivation] = useState('')
+  const [objectives, setObjectives] = useState('')
+  const [planDescription, setPlanDescription] = useState('')
+  const [preStudyHomework, setPreStudyHomework] = useState('')
+  const [plannedRoute, setPlannedRoute] = useState('')
+  const [preNotes, setPreNotes] = useState('')
+  
+  // Study items state for planning
+  const [selectedItemsMap, setSelectedItemsMap] = useState<Map<string, ItemWithSelection>>(new Map())
+  const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
+  const [showAddItems, setShowAddItems] = useState(false)
+
+  // Execution tab state
+  const [actualDate, setActualDate] = useState('')
+  const [actualTime, setActualTime] = useState('')
   const [actualRoute, setActualRoute] = useState('')
   const [aircraft, setAircraft] = useState('')
   const [weatherNotes, setWeatherNotes] = useState('')
   const [postNotes, setPostNotes] = useState('')
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [itemScores, setItemScores] = useState<Map<string, { ground?: GroundScore; flight?: FlightScore }>>(new Map())
   const [itemNotes, setItemNotes] = useState<Map<string, string>>(new Map())
-  const [showAddItems, setShowAddItems] = useState(false)
-  const [selectedArea, setSelectedArea] = useState('')
+  
+  // Track initial auto-populated values
+  const [initialActualDate, setInitialActualDate] = useState('')
+  const [initialActualTime, setInitialActualTime] = useState('')
+  const [initialItemScores, setInitialItemScores] = useState<Map<string, { ground?: GroundScore; flight?: FlightScore }>>(new Map())
+
+  // Track changes to enable/disable save button
+  useEffect(() => {
+    if (!lesson || loading || !initialLoadComplete) return
+    
+    if (lesson.status === 'SCHEDULED') {
+      const planningChanged = 
+        title !== (lesson.title || '') ||
+        motivation !== (lesson.motivation || '') ||
+        objectives !== (lesson.objectives?.join('\n') || '') ||
+        planDescription !== (lesson.planDescription || '') ||
+        preStudyHomework !== (lesson.preStudyHomework || '') ||
+        plannedRoute !== (lesson.plannedRoute || '') ||
+        preNotes !== (lesson.preNotes || '')
+      
+      // Check if actual date/time have changed from initial values
+      const executionChanged = 
+        actualDate !== initialActualDate ||
+        actualTime !== initialActualTime ||
+        actualRoute !== (lesson.actualRoute || '') ||
+        aircraft !== (lesson.aircraft || '') ||
+        weatherNotes !== (lesson.weatherNotes || '') ||
+        postNotes !== (lesson.postNotes || '')
+      
+      // Check if items have changed
+      const currentItems = Array.from(selectedItemsMap.values()).map(item => ({
+        itemId: item.id,
+        planned: true,
+        completed: false,
+        includeGround: item.includeGround,
+        includeFlight: item.includeFlight,
+      }))
+      
+      const lessonItemsForComparison = (lesson.items || [])
+        .filter(li => li.planned)
+        .map(li => ({
+          itemId: li.itemId,
+          planned: true,
+          completed: false,
+          includeGround: li.includeGround,
+          includeFlight: li.includeFlight,
+        }))
+      
+      const itemsChanged = JSON.stringify(currentItems.sort((a, b) => a.itemId.localeCompare(b.itemId))) !== 
+                          JSON.stringify(lessonItemsForComparison.sort((a, b) => a.itemId.localeCompare(b.itemId)))
+      
+      // Check if scores or notes have changed
+      let scoresChanged = false
+      
+      // Compare current scores with initial auto-populated scores
+      for (const [itemId, currentScore] of itemScores) {
+        const initialScore = initialItemScores.get(itemId)
+        if (!initialScore) {
+          // This is a new score that wasn't initially populated
+          if (currentScore.ground !== undefined || currentScore.flight !== undefined) {
+            scoresChanged = true
+            break
+          }
+        } else {
+          // Compare with initial auto-populated values
+          if (currentScore.ground !== initialScore.ground || currentScore.flight !== initialScore.flight) {
+            scoresChanged = true
+            break
+          }
+        }
+      }
+      
+      // Also check if any scores were removed
+      if (!scoresChanged) {
+        for (const [itemId, initialScore] of initialItemScores) {
+          if (!itemScores.has(itemId)) {
+            scoresChanged = true
+            break
+          }
+        }
+      }
+      
+      // Check if notes have changed
+      if (!scoresChanged) {
+        for (const lessonItem of lesson.items || []) {
+          const currentNotes = itemNotes.get(lessonItem.itemId)
+          if ((currentNotes || '') !== (lessonItem.notes || '')) {
+            scoresChanged = true
+            break
+          }
+        }
+      }
+      
+      const hasAnyChanges = planningChanged || executionChanged || itemsChanged || scoresChanged
+      setHasChanges(hasAnyChanges)
+    } else if (lesson && lesson.status !== 'SCHEDULED') {
+      // For completed/cancelled lessons, only check execution fields
+      // Check if actual date/time have changed
+      let actualDateTimeValue = ''
+      if (lesson.actualDate) {
+        const actualDateObj = lesson.actualDate.toDate()
+        actualDateTimeValue = `${actualDateObj.toISOString().split('T')[0]}T${actualDateObj.toTimeString().slice(0, 5)}`
+      }
+      const currentDateTime = actualDate && actualTime ? `${actualDate}T${actualTime}` : ''
+      
+      const executionChanged = 
+        currentDateTime !== actualDateTimeValue ||
+        actualRoute !== (lesson.actualRoute || '') ||
+        aircraft !== (lesson.aircraft || '') ||
+        weatherNotes !== (lesson.weatherNotes || '') ||
+        postNotes !== (lesson.postNotes || '')
+      
+      setHasChanges(executionChanged)
+    }
+  }, [lesson, loading, initialLoadComplete, title, motivation, objectives, planDescription, preStudyHomework, plannedRoute, preNotes,
+      actualDate, actualTime, actualRoute, aircraft, weatherNotes, postNotes, selectedItemsMap, itemScores, itemNotes, items,
+      initialActualDate, initialActualTime, initialItemScores])
 
   useEffect(() => {
     if (!lessonId || !user?.cfiWorkspaceId) {
@@ -81,33 +222,57 @@ export const LessonDetail: React.FC = () => {
         }
 
         setLesson(lessonData)
+        
+        // Initialize planning fields
+        setTitle(lessonData.title || '')
+        setMotivation(lessonData.motivation || '')
+        setObjectives(lessonData.objectives?.join('\n') || '')
+        setPlanDescription(lessonData.planDescription || '')
+        setPreStudyHomework(lessonData.preStudyHomework || '')
+        setPlannedRoute(lessonData.plannedRoute || '')
+        setPreNotes(lessonData.preNotes || '')
+        
+        // Initialize execution fields
+        let autoPopulatedDate = ''
+        let autoPopulatedTime = ''
+        
+        if (lessonData.actualDate) {
+          const actualDateObj = lessonData.actualDate.toDate()
+          const dateValue = actualDateObj.toISOString().split('T')[0]
+          const timeValue = actualDateObj.toTimeString().slice(0, 5)
+          setActualDate(dateValue)
+          setActualTime(timeValue)
+          // Set initial values to compare against
+          setInitialActualDate(dateValue)
+          setInitialActualTime(timeValue)
+        } else if (lessonData.scheduledDate && lessonData.scheduledDate !== null) {
+          // Auto-populate from scheduled date if no actual date set
+          const scheduledDateObj = lessonData.scheduledDate.toDate()
+          // Only auto-populate if it's not an unscheduled lesson
+          if (scheduledDateObj.getFullYear() < 2099) {
+            autoPopulatedDate = scheduledDateObj.toISOString().split('T')[0]
+            autoPopulatedTime = scheduledDateObj.toTimeString().slice(0, 5)
+            setActualDate(autoPopulatedDate)
+            setActualTime(autoPopulatedTime)
+            // Set initial values to auto-populated values
+            setInitialActualDate(autoPopulatedDate)
+            setInitialActualTime(autoPopulatedTime)
+          } else {
+            setActualDate('')
+            setActualTime('')
+            setInitialActualDate('')
+            setInitialActualTime('')
+          }
+        } else {
+          setActualDate('')
+          setActualTime('')
+          setInitialActualDate('')
+          setInitialActualTime('')
+        }
         setActualRoute(lessonData.actualRoute || '')
         setAircraft(lessonData.aircraft || '')
         setWeatherNotes(lessonData.weatherNotes || '')
         setPostNotes(lessonData.postNotes || '')
-
-        // Set selected items and scores from existing lesson items
-        const selected = new Set<string>()
-        const scores = new Map<string, { ground?: GroundScore; flight?: FlightScore }>()
-        const notes = new Map<string, string>()
-        
-        lessonData.items.forEach(item => {
-          if (item.planned) selected.add(item.itemId)
-          if (item.score !== undefined) {
-            const existingScore = scores.get(item.itemId) || {}
-            // Determine if it's ground or flight score based on the type
-            if (typeof item.score === 'string') {
-              scores.set(item.itemId, { ...existingScore, ground: item.score as GroundScore })
-            } else {
-              scores.set(item.itemId, { ...existingScore, flight: item.score as FlightScore })
-            }
-          }
-          if (item.notes) notes.set(item.itemId, item.notes)
-        })
-        
-        setSelectedItems(selected)
-        setItemScores(scores)
-        setItemNotes(notes)
 
         // Load student info
         const studentDoc = await getDoc(doc(db, 'users', lessonData.studentUid))
@@ -145,6 +310,39 @@ export const LessonDetail: React.FC = () => {
         } as StudyItem))
         setItems(itemsData)
 
+        // Initialize selected items with ground/flight selection from lesson
+        const selectedMap = new Map<string, ItemWithSelection>()
+        const scores = new Map<string, { ground?: GroundScore; flight?: FlightScore }>()
+        const notes = new Map<string, string>()
+        
+        lessonData.items.forEach(lessonItem => {
+          if (lessonItem.planned) {
+            const item = itemsData.find(i => i.id === lessonItem.itemId)
+            if (item) {
+              selectedMap.set(lessonItem.itemId, {
+                ...item,
+                includeGround: lessonItem.includeGround,
+                includeFlight: lessonItem.includeFlight,
+              })
+            }
+          }
+          
+          // Initialize scores and notes
+          if (lessonItem.score !== undefined) {
+            const existingScore = scores.get(lessonItem.itemId) || {}
+            if (typeof lessonItem.score === 'string') {
+              scores.set(lessonItem.itemId, { ...existingScore, ground: lessonItem.score as GroundScore })
+            } else {
+              scores.set(lessonItem.itemId, { ...existingScore, flight: lessonItem.score as FlightScore })
+            }
+          }
+          if (lessonItem.notes) notes.set(lessonItem.itemId, lessonItem.notes)
+        })
+        
+        setSelectedItemsMap(selectedMap)
+        setItemScores(scores)
+        setItemNotes(notes)
+
         // Load student's existing progress for all items
         const progressQuery = query(
           collection(db, 'progress'),
@@ -157,52 +355,66 @@ export const LessonDetail: React.FC = () => {
           ...doc.data()
         } as Progress))
 
-        // For new lessons, pre-populate scores with existing progress
-        if (lessonData.status === 'SCHEDULED') {
-          const updatedScores = new Map(itemScores)
+        // Pre-populate scores with existing progress
+        const updatedScores = new Map(scores)
+        
+        // Group progress by itemId and get latest scores
+        const latestProgress = new Map<string, { ground?: Progress; flight?: Progress }>()
+        
+        progressData.forEach(progress => {
+          const existing = latestProgress.get(progress.itemId) || {}
           
-          // Group progress by itemId and get latest scores
-          const latestProgress = new Map<string, { ground?: Progress; flight?: Progress }>()
-          
-          progressData.forEach(progress => {
-            const existing = latestProgress.get(progress.itemId) || {}
-            
-            if (progress.scoreType === 'GROUND') {
-              if (!existing.ground || progress.createdAt.toMillis() > existing.ground.createdAt.toMillis()) {
-                existing.ground = progress
-              }
-            } else if (progress.scoreType === 'FLIGHT') {
-              if (!existing.flight || progress.createdAt.toMillis() > existing.flight.createdAt.toMillis()) {
-                existing.flight = progress
-              }
+          if (progress.scoreType === 'GROUND') {
+            if (!existing.ground || progress.createdAt.toMillis() > existing.ground.createdAt.toMillis()) {
+              existing.ground = progress
             }
-            
-            latestProgress.set(progress.itemId, existing)
-          })
+          } else if (progress.scoreType === 'FLIGHT') {
+            if (!existing.flight || progress.createdAt.toMillis() > existing.flight.createdAt.toMillis()) {
+              existing.flight = progress
+            }
+          }
+          
+          latestProgress.set(progress.itemId, existing)
+        })
 
-          // Update scores for items that are already in the lesson
-          lessonData.items.forEach(lessonItem => {
-            const itemProgress = latestProgress.get(lessonItem.itemId)
-            if (itemProgress) {
-              const scores: { ground?: GroundScore; flight?: FlightScore } = {}
-              
-              if (itemProgress.ground) {
-                scores.ground = itemProgress.ground.score as GroundScore
-              }
-              if (itemProgress.flight) {
-                scores.flight = itemProgress.flight.score as FlightScore
-              }
-              
-              if (scores.ground || scores.flight) {
-                updatedScores.set(lessonItem.itemId, scores)
-              }
-            }
-          })
+        // Only populate scores from progress if they're not already in the lesson
+        lessonData.items.forEach(lessonItem => {
+          // Skip if this item already has a score in the lesson
+          if (lessonItem.score !== undefined) {
+            return
+          }
           
-          setItemScores(updatedScores)
+          const itemProgress = latestProgress.get(lessonItem.itemId)
+          if (itemProgress) {
+            const existingScore = updatedScores.get(lessonItem.itemId) || {}
+            
+            // Only add progress scores if they don't exist in the lesson
+            if (!existingScore.ground && itemProgress.ground) {
+              existingScore.ground = itemProgress.ground.score as GroundScore
+            }
+            if (!existingScore.flight && itemProgress.flight) {
+              existingScore.flight = itemProgress.flight.score as FlightScore
+            }
+            
+            if (existingScore.ground || existingScore.flight) {
+              updatedScores.set(lessonItem.itemId, existingScore)
+            }
+          }
+        })
+        
+        setItemScores(updatedScores)
+        // Store initial auto-populated scores for change detection
+        setInitialItemScores(new Map(updatedScores))
+
+        // If lesson is completed or cancelled, show execution tab
+        if (lessonData.status !== 'SCHEDULED') {
+          setActiveTab('execution')
         }
+        
+        // Mark initial load as complete
+        setInitialLoadComplete(true)
       } catch (error) {
-        // Silently handle error
+        console.error('Error loading lesson:', error)
       } finally {
         setLoading(false)
       }
@@ -211,108 +423,109 @@ export const LessonDetail: React.FC = () => {
     loadLesson()
   }, [lessonId, user?.cfiWorkspaceId, navigate])
 
-  const handleSaveWithLesson = async (lessonToSave: Lesson) => {
+  const handleSave = async () => {
+    if (!lesson) return
+    
     setSaving(true)
     try {
       // Build lesson items from selected items
-      const lessonItems: LessonItem[] = Array.from(selectedItems).map(itemId => {
-        const scores = itemScores.get(itemId)
-        const notes = itemNotes.get(itemId)
-        const item = items.find(i => i.id === itemId)
+      const lessonItems: LessonItem[] = Array.from(selectedItemsMap.values()).map(item => {
+        const scores = itemScores.get(item.id)
+        const notes = itemNotes.get(item.id)
         
         // Determine if item is completed based on scores
         let completed = false
-        if (item && scores) {
-          // For ground items, completed means score is LEARNED
-          if ((item.type === 'GROUND' || item.type === 'BOTH') && scores.ground === 'LEARNED') {
-            completed = true
-          }
-          // For flight items, completed means score is 4 or 5
-          if ((item.type === 'FLIGHT' || item.type === 'BOTH') && scores.flight && scores.flight >= 4) {
-            completed = true
-          }
-          // For BOTH type items, both ground and flight need to meet criteria
-          if (item.type === 'BOTH') {
-            completed = scores.ground === 'LEARNED' && scores.flight !== undefined && scores.flight >= 4
+        if (scores) {
+          // Check based on what's included in the lesson
+          if (item.type === 'GROUND' || (item.type === 'BOTH' && item.includeGround && !item.includeFlight)) {
+            completed = scores.ground === 'LEARNED'
+          } else if (item.type === 'FLIGHT' || (item.type === 'BOTH' && !item.includeGround && item.includeFlight)) {
+            completed = scores.flight !== undefined && scores.flight >= 4
+          } else if (item.type === 'BOTH' && item.includeGround && item.includeFlight) {
+            // For BOTH items where both are included, both need to meet criteria
+            const groundComplete = scores.ground === 'LEARNED'
+            const flightComplete = scores.flight !== undefined && scores.flight >= 4
+            completed = groundComplete && flightComplete
           }
         }
         
-        // Don't set score on the lesson item itself - we'll use itemScores map for progress recording
-        return {
-          itemId,
+        const lessonItem: LessonItem = {
+          itemId: item.id,
           planned: true,
           completed,
-          notes: notes || '',
         }
-      })
-
-      // Update lesson
-      await updateDoc(doc(db, 'lessons', lessonToSave.id), {
-        actualRoute,
-        aircraft,
-        weatherNotes,
-        postNotes,
-        items: lessonItems,
-      })
-
-      // If lesson is completed, record progress for completed items
-      if (lessonToSave.status === 'COMPLETED') {
-        const recordProgress = httpsCallable(functions, 'recordProgress')
         
-        for (const lessonItem of lessonItems) {
-          const itemScore = itemScores.get(lessonItem.itemId)
-          
-          if (lessonItem.completed && itemScore && (itemScore.ground || itemScore.flight)) {
-            const item = items.find(i => i.id === lessonItem.itemId)
-            if (!item) continue
-
-            // Record ground score
-            if ((item.type === 'GROUND' || item.type === 'BOTH') && itemScores.get(lessonItem.itemId)?.ground) {
-              await recordProgress({
-                studentUid: lessonToSave.studentUid,
-                cfiWorkspaceId: lessonToSave.cfiWorkspaceId,
-                itemId: lessonItem.itemId,
-                score: itemScores.get(lessonItem.itemId)?.ground,
-                scoreType: 'GROUND',
-                lessonId: lessonToSave.id,
-                notes: lessonItem.notes,
-              })
-            }
-
-            // Record flight score
-            if ((item.type === 'FLIGHT' || item.type === 'BOTH') && itemScores.get(lessonItem.itemId)?.flight) {
-              await recordProgress({
-                studentUid: lessonToSave.studentUid,
-                cfiWorkspaceId: lessonToSave.cfiWorkspaceId,
-                itemId: lessonItem.itemId,
-                score: itemScores.get(lessonItem.itemId)?.flight,
-                scoreType: 'FLIGHT',
-                lessonId: lessonToSave.id,
-                notes: lessonItem.notes,
-              })
-            }
-          }
+        // Only include optional fields if they have values
+        if (notes) lessonItem.notes = notes
+        if (item.type === 'BOTH') {
+          if (item.includeGround !== undefined) lessonItem.includeGround = item.includeGround
+          if (item.includeFlight !== undefined) lessonItem.includeFlight = item.includeFlight
         }
+        
+        // Store scores in the lesson item (temporarily until completion)
+        if (scores) {
+          // For now we just store one score - will need to handle this better later
+          if (scores.ground) lessonItem.score = scores.ground
+          else if (scores.flight) lessonItem.score = scores.flight
+        }
+        
+        return lessonItem
+      })
+
+      // Update lesson with all fields
+      const updates: any = {
+        items: lessonItems,
       }
 
-      // Update local state with the correct status
-      setLesson({ ...lessonToSave, actualRoute, aircraft, weatherNotes, postNotes, items: lessonItems })
+      // Always update execution fields (use null instead of undefined for Firestore)
+      if (actualDate && actualTime) {
+        updates.actualDate = Timestamp.fromDate(new Date(`${actualDate}T${actualTime}`))
+      }
+      if (actualRoute) updates.actualRoute = actualRoute
+      if (aircraft) updates.aircraft = aircraft
+      if (weatherNotes) updates.weatherNotes = weatherNotes
+      if (postNotes) updates.postNotes = postNotes
+
+      // Only update planning fields if lesson is scheduled
+      if (lesson.status === 'SCHEDULED') {
+        if (title) updates.title = title
+        if (motivation) updates.motivation = motivation
+        if (objectives) updates.objectives = objectives.split('\n').filter(o => o.trim())
+        if (planDescription) updates.planDescription = planDescription
+        if (preStudyHomework) updates.preStudyHomework = preStudyHomework
+        if (plannedRoute) updates.plannedRoute = plannedRoute
+        if (preNotes) updates.preNotes = preNotes
+      }
+
+      await updateDoc(doc(db, 'lessons', lesson.id), updates)
+
+      // Note: Progress is now recorded when completing the lesson, not when saving
+
+      // Update local state
+      setLesson({ 
+        ...lesson, 
+        ...updates,
+      })
+      
+      // Update initial scores to the newly saved scores to reset change detection
+      setInitialItemScores(new Map(itemScores))
+      
+      setHasChanges(false)
     } catch (error) {
-      // Silently handle error
+      console.error('Error saving lesson:', error)
     } finally {
       setSaving(false)
     }
-  }
-
-  const handleSave = async () => {
-    if (!lesson) return
-    await handleSaveWithLesson(lesson)
   }
 
   const handleStatusChange = async (newStatus: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED') => {
     if (!lesson) return
 
     try {
+      // Save current changes first
+      await handleSave()
+
+      // Then update status
       const updates: any = { status: newStatus }
       if (newStatus === 'COMPLETED') {
         updates.completedDate = Timestamp.now()
@@ -320,30 +533,117 @@ export const LessonDetail: React.FC = () => {
 
       await updateDoc(doc(db, 'lessons', lesson.id), updates)
       
-      // Update local state with new status
-      const updatedLesson = { ...lesson, status: newStatus }
-      setLesson(updatedLesson)
-
-      // Save and record progress if completing
+      // If completing lesson, record progress
       if (newStatus === 'COMPLETED') {
-        // Pass the updated lesson to ensure status is preserved
-        await handleSaveWithLesson(updatedLesson)
+        const recordProgress = httpsCallable(functions, 'recordProgress')
+        
+        for (const lessonItem of lesson.items || []) {
+          const itemScore = itemScores.get(lessonItem.itemId)
+          
+          if (lessonItem.planned && itemScore) {
+            // Record ground score if included
+            if (lessonItem.includeGround && itemScore.ground) {
+              await recordProgress({
+                studentUid: lesson.studentUid,
+                cfiWorkspaceId: lesson.cfiWorkspaceId,
+                itemId: lessonItem.itemId,
+                score: itemScore.ground,
+                scoreType: 'GROUND',
+                lessonId: lesson.id,
+                notes: itemNotes.get(lessonItem.itemId) || '',
+              })
+            }
+
+            // Record flight score if included
+            if (lessonItem.includeFlight && itemScore.flight) {
+              await recordProgress({
+                studentUid: lesson.studentUid,
+                cfiWorkspaceId: lesson.cfiWorkspaceId,
+                itemId: lessonItem.itemId,
+                score: itemScore.flight,
+                scoreType: 'FLIGHT',
+                lessonId: lesson.id,
+                notes: itemNotes.get(lessonItem.itemId) || '',
+              })
+            }
+          }
+        }
+      }
+      
+      // Update local state with new status
+      setLesson({ ...lesson, status: newStatus })
+
+      // Switch to execution tab if completing
+      if (newStatus === 'COMPLETED') {
+        setActiveTab('execution')
       }
     } catch (error) {
-      // Silently handle error
+      console.error('Error changing status:', error)
     }
   }
 
-  const toggleItemSelection = (itemId: string) => {
-    const newSelected = new Set(selectedItems)
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId)
-      itemScores.delete(itemId)
-      itemNotes.delete(itemId)
+  const toggleAreaExpanded = (areaId: string) => {
+    const newExpanded = new Set(expandedAreas)
+    if (newExpanded.has(areaId)) {
+      newExpanded.delete(areaId)
     } else {
-      newSelected.add(itemId)
+      newExpanded.add(areaId)
     }
-    setSelectedItems(newSelected)
+    setExpandedAreas(newExpanded)
+  }
+
+  const toggleItemSelection = (item: StudyItem | ItemWithSelection) => {
+    const newSelectedMap = new Map(selectedItemsMap)
+    
+    if (newSelectedMap.has(item.id)) {
+      newSelectedMap.delete(item.id)
+      // Also remove scores and notes
+      itemScores.delete(item.id)
+      itemNotes.delete(item.id)
+      setItemScores(new Map(itemScores))
+      setItemNotes(new Map(itemNotes))
+    } else {
+      // If includeGround/includeFlight are already set, use them
+      if ('includeGround' in item && 'includeFlight' in item) {
+        newSelectedMap.set(item.id, item as ItemWithSelection)
+      } else {
+        // Default to including both ground and flight for BOTH items
+        newSelectedMap.set(item.id, {
+          ...item,
+          includeGround: item.type === 'GROUND' || item.type === 'BOTH',
+          includeFlight: item.type === 'FLIGHT' || item.type === 'BOTH',
+        })
+      }
+    }
+    
+    setSelectedItemsMap(newSelectedMap)
+  }
+
+  const toggleItemGroundFlight = (itemId: string, type: 'ground' | 'flight') => {
+    const newSelectedMap = new Map(selectedItemsMap)
+    const item = newSelectedMap.get(itemId)
+    
+    if (item) {
+      if (type === 'ground') {
+        item.includeGround = !item.includeGround
+      } else {
+        item.includeFlight = !item.includeFlight
+      }
+      
+      // If both are unchecked, remove the item
+      if (item.type === 'BOTH' && !item.includeGround && !item.includeFlight) {
+        newSelectedMap.delete(itemId)
+        // Also remove scores and notes
+        itemScores.delete(itemId)
+        itemNotes.delete(itemId)
+        setItemScores(new Map(itemScores))
+        setItemNotes(new Map(itemNotes))
+      } else {
+        newSelectedMap.set(itemId, { ...item })
+      }
+      
+      setSelectedItemsMap(newSelectedMap)
+    }
   }
 
   const updateItemScore = (itemId: string, scoreType: 'ground' | 'flight', score: GroundScore | FlightScore | undefined) => {
@@ -409,6 +709,17 @@ export const LessonDetail: React.FC = () => {
   const activeCertificates = programs.map(p => p.certificate)
   const relevantAreas = areas.filter(a => activeCertificates.includes(a.certificate))
   const relevantAreaIds = relevantAreas.map(a => a.id)
+  const relevantItems = items.filter(item => relevantAreaIds.includes(item.areaId))
+
+  // Group items by area for hierarchical display
+  const itemsByArea = new Map<string, StudyItem[]>()
+  relevantItems.forEach(item => {
+    const areaItems = itemsByArea.get(item.areaId) || []
+    areaItems.push(item)
+    itemsByArea.set(item.areaId, areaItems)
+  })
+
+  const isReadOnly = lesson.status !== 'SCHEDULED'
 
   return (
     <div className="px-4 sm:px-0 max-w-7xl mx-auto">
@@ -429,33 +740,44 @@ export const LessonDetail: React.FC = () => {
             </h2>
             <p className="mt-2 text-sm text-gray-700">
               <CalendarDaysIcon className="inline-block h-4 w-4 mr-1" />
-              {lesson.scheduledDate.toDate().toLocaleString('en-US', {
+              {lesson.scheduledDate ? lesson.scheduledDate.toDate().toLocaleString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
                 hour: 'numeric',
                 minute: '2-digit',
-              })}
+              }) : 'Not scheduled'}
             </p>
           </div>
-          <div className="mt-4 sm:mt-0 flex space-x-3">
+          <div className="mt-4 sm:mt-0 flex items-center space-x-3">
             {lesson.status === 'SCHEDULED' && (
               <>
                 <button
-                  onClick={() => handleStatusChange('CANCELLED')}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  onClick={handleSave}
+                  disabled={saving || !hasChanges}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-sky hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <XMarkIcon className="h-4 w-4 mr-1" />
-                  Cancel
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
-                <button
-                  onClick={() => handleStatusChange('COMPLETED')}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                >
-                  <CheckIcon className="h-4 w-4 mr-1" />
-                  Complete
-                </button>
+                {activeTab === 'planning' && (
+                  <button
+                    onClick={() => handleStatusChange('CANCELLED')}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <XMarkIcon className="h-4 w-4 mr-1" />
+                    Cancel Lesson
+                  </button>
+                )}
+                {activeTab === 'execution' && (
+                  <button
+                    onClick={() => handleStatusChange('COMPLETED')}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckIcon className="h-4 w-4 mr-1" />
+                    Complete Lesson
+                  </button>
+                )}
               </>
             )}
             {lesson.status === 'CANCELLED' && (
@@ -477,63 +799,425 @@ export const LessonDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Lesson Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Lesson Info */}
+      {/* Tab Navigation for scheduled lessons */}
+      {!isReadOnly && (
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('planning')}
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'planning'
+                  ? 'border-sky text-sky-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Lesson Planning
+            </button>
+            <button
+              onClick={() => setActiveTab('execution')}
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'execution'
+                  ? 'border-sky text-sky-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Lesson Execution
+            </button>
+          </nav>
+        </div>
+      )}
+
+      {/* Planning Tab Content */}
+      {(activeTab === 'planning' && !isReadOnly) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Lesson Planning Fields */}
+          <div className="space-y-6">
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Lesson Plan
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                    placeholder="Enter lesson title"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="motivation" className="block text-sm font-medium text-gray-700">
+                    Motivation
+                  </label>
+                  <textarea
+                    id="motivation"
+                    rows={2}
+                    value={motivation}
+                    onChange={(e) => setMotivation(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                    placeholder="Why is this lesson important?"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="objectives" className="block text-sm font-medium text-gray-700">
+                    Learning Objectives
+                  </label>
+                  <textarea
+                    id="objectives"
+                    rows={3}
+                    value={objectives}
+                    onChange={(e) => setObjectives(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                    placeholder="What will the student learn? (one per line)"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="planDescription" className="block text-sm font-medium text-gray-700">
+                    Lesson Plan Description
+                  </label>
+                  <textarea
+                    id="planDescription"
+                    rows={4}
+                    value={planDescription}
+                    onChange={(e) => setPlanDescription(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                    placeholder="Describe the lesson activities and flow"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="preStudyHomework" className="block text-sm font-medium text-gray-700">
+                    Pre-Study Homework
+                  </label>
+                  <textarea
+                    id="preStudyHomework"
+                    rows={2}
+                    value={preStudyHomework}
+                    onChange={(e) => setPreStudyHomework(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                    placeholder="What should the student prepare before the lesson?"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="plannedRoute" className="block text-sm font-medium text-gray-700">
+                    Planned Route
+                  </label>
+                  <input
+                    type="text"
+                    id="plannedRoute"
+                    value={plannedRoute}
+                    onChange={(e) => setPlannedRoute(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                    placeholder="e.g., KPAO - KHAF - KPAO"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="preNotes" className="block text-sm font-medium text-gray-700">
+                    Pre-Lesson Notes
+                  </label>
+                  <textarea
+                    id="preNotes"
+                    rows={3}
+                    value={preNotes}
+                    onChange={(e) => setPreNotes(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                    placeholder="Any preparation notes or focus areas"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Study Items Selection */}
+          <div className="space-y-6">
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Study Items</h3>
+                <button
+                  onClick={() => setShowAddItems(!showAddItems)}
+                  className="text-sm text-sky hover:text-sky-600"
+                >
+                  <PlusIcon className="h-4 w-4 inline mr-1" />
+                  {showAddItems ? 'Done Adding' : 'Add Items'}
+                </button>
+              </div>
+
+              {/* Item Selection Mode */}
+              {showAddItems && (
+                <div className="mb-6 border-b pb-4">
+                  <p className="text-sm text-gray-500 mb-3">
+                    Select items to add to this lesson
+                  </p>
+                  
+                  {/* Areas with items */}
+                  <div className="space-y-2">
+                    {relevantAreas.map(area => {
+                      const areaItems = itemsByArea.get(area.id) || []
+                      if (areaItems.length === 0) return null
+                      
+                      const isExpanded = expandedAreas.has(area.id)
+                      
+                      return (
+                        <div key={area.id} className="border rounded-md">
+                          <button
+                            onClick={() => toggleAreaExpanded(area.id)}
+                            className="w-full px-4 py-2 flex items-center justify-between hover:bg-gray-50"
+                          >
+                            <div className="flex items-center">
+                              {isExpanded ? (
+                                <ChevronDownIcon className="h-4 w-4 text-gray-400 mr-2" />
+                              ) : (
+                                <ChevronRightIcon className="h-4 w-4 text-gray-400 mr-2" />
+                              )}
+                              <span className="text-sm font-medium text-gray-900">{area.name}</span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                ({getCertificateFullName(area.certificate)})
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-400">
+                              {areaItems.length} items
+                            </span>
+                          </button>
+                          
+                          {isExpanded && (
+                            <div className="px-4 pb-2 space-y-1">
+                              {areaItems.map(item => {
+                                const selectedItem = selectedItemsMap.get(item.id)
+                                const isGroundSelected = selectedItem?.includeGround || false
+                                const isFlightSelected = selectedItem?.includeFlight || false
+                                const isSelected = selectedItemsMap.has(item.id)
+                                
+                                return (
+                                  <div key={item.id} className="p-2 hover:bg-gray-50 rounded">
+                                    <div className="flex items-start">
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium text-gray-900">{item.name}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>
+                                        <div className="mt-2 flex items-center gap-4">
+                                          {(item.type === 'GROUND' || item.type === 'BOTH') && (
+                                            <label className="flex items-center cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={item.type === 'GROUND' ? isSelected : isGroundSelected}
+                                                onChange={() => {
+                                                  if (item.type === 'GROUND') {
+                                                    toggleItemSelection(item)
+                                                  } else {
+                                                    // For BOTH items, toggle ground selection
+                                                    if (!isSelected) {
+                                                      // Add item with only ground selected
+                                                      const newItem: ItemWithSelection = {
+                                                        ...item,
+                                                        includeGround: true,
+                                                        includeFlight: false,
+                                                      }
+                                                      toggleItemSelection(newItem)
+                                                    } else {
+                                                      // Toggle ground while keeping item
+                                                      toggleItemGroundFlight(item.id, 'ground')
+                                                    }
+                                                  }
+                                                }}
+                                                className="h-4 w-4 text-sky focus:ring-sky border-gray-300 rounded"
+                                              />
+                                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                Ground
+                                              </span>
+                                            </label>
+                                          )}
+                                          {(item.type === 'FLIGHT' || item.type === 'BOTH') && (
+                                            <label className="flex items-center cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={item.type === 'FLIGHT' ? isSelected : isFlightSelected}
+                                                onChange={() => {
+                                                  if (item.type === 'FLIGHT') {
+                                                    toggleItemSelection(item)
+                                                  } else {
+                                                    // For BOTH items, toggle flight selection
+                                                    if (!isSelected) {
+                                                      // Add item with only flight selected
+                                                      const newItem: ItemWithSelection = {
+                                                        ...item,
+                                                        includeGround: false,
+                                                        includeFlight: true,
+                                                      }
+                                                      toggleItemSelection(newItem)
+                                                    } else {
+                                                      // Toggle flight while keeping item
+                                                      toggleItemGroundFlight(item.id, 'flight')
+                                                    }
+                                                  }
+                                                }}
+                                                className="h-4 w-4 text-sky focus:ring-sky border-gray-300 rounded"
+                                              />
+                                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                Flight
+                                              </span>
+                                            </label>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Items */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-gray-700">
+                  Selected Items ({selectedItemsMap.size})
+                </p>
+                
+                {selectedItemsMap.size === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No items selected for this lesson
+                  </p>
+                ) : (
+                  Array.from(selectedItemsMap.values()).map(item => {
+                    const area = areas.find(a => a.id === item.areaId)
+                    
+                    return (
+                      <div key={item.id} className="border border-gray-200 rounded-md p-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="text-sm font-medium text-gray-900">{item.name}</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {area?.name} • {item.description}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => toggleItemSelection(item)}
+                            className="ml-2 text-gray-400 hover:text-gray-500"
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                        
+                        {/* Display which portions are included */}
+                        {item.type === 'BOTH' && (
+                          <div className="mt-2 flex items-center space-x-2">
+                            <span className="text-xs text-gray-500">Includes:</span>
+                            {item.includeGround && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                Ground
+                              </span>
+                            )}
+                            {item.includeFlight && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                Flight
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Execution Tab Content (or read-only view) */}
+      {(activeTab === 'execution' || isReadOnly) && (
+        <div className="space-y-6">
+          {/* Read-only lesson info for completed/cancelled lessons */}
+          {isReadOnly && (
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Lesson Information
+              </h3>
+              
+              {lesson.title && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700">Title</p>
+                  <p className="text-sm text-gray-900 mt-1">{lesson.title}</p>
+                </div>
+              )}
+              
+              {lesson.motivation && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700">Motivation</p>
+                  <p className="text-sm text-gray-600 mt-1">{lesson.motivation}</p>
+                </div>
+              )}
+              
+              {lesson.objectives && lesson.objectives.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700">Learning Objectives</p>
+                  <ul className="list-disc list-inside text-sm text-gray-600 space-y-1 mt-1">
+                    {lesson.objectives.map((obj, i) => (
+                      <li key={i}>{obj}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {lesson.planDescription && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700">Lesson Plan</p>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap mt-1">{lesson.planDescription}</p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Execution Details */}
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
-              {lesson.title || 'Lesson Information'}
+              Execution Details
             </h3>
             
-            {lesson.motivation && (
-              <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-1">Motivation</p>
-                <p className="text-sm text-gray-600">{lesson.motivation}</p>
-              </div>
-            )}
-            
-            {lesson.objectives && lesson.objectives.length > 0 && (
-              <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-1">Learning Objectives</p>
-                <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                  {lesson.objectives.map((obj, i) => (
-                    <li key={i}>{obj}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {lesson.planDescription && (
-              <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-1">Lesson Plan</p>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap">{lesson.planDescription}</p>
-              </div>
-            )}
-            
-            {lesson.preStudyHomework && (
-              <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-1">Pre-Study Homework</p>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap">{lesson.preStudyHomework}</p>
-              </div>
-            )}
-            
-            {lesson.referenceMaterials && lesson.referenceMaterials.length > 0 && (
-              <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-1">Reference Materials</p>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  {lesson.referenceMaterials.map((material, i) => (
-                    <li key={i}>
-                      <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-sky hover:text-sky-600">
-                        {material.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="actualDate" className="block text-sm font-medium text-gray-700">
+                  Actual Date
+                </label>
+                <input
+                  type="date"
+                  id="actualDate"
+                  value={actualDate}
+                  onChange={(e) => setActualDate(e.target.value)}
+                  disabled={isReadOnly}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm disabled:bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="actualTime" className="block text-sm font-medium text-gray-700">
+                  Actual Time
+                </label>
+                <input
+                  type="time"
+                  id="actualTime"
+                  value={actualTime}
+                  onChange={(e) => setActualTime(e.target.value)}
+                  disabled={isReadOnly}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm disabled:bg-gray-50"
+                />
+              </div>
+
               <div>
                 <label htmlFor="plannedRoute" className="block text-sm font-medium text-gray-700">
                   Planned Route
@@ -550,7 +1234,8 @@ export const LessonDetail: React.FC = () => {
                   id="actualRoute"
                   value={actualRoute}
                   onChange={(e) => setActualRoute(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                  disabled={isReadOnly}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm disabled:bg-gray-50"
                   placeholder="e.g., KPAO - KHAF - KPAO"
                 />
               </div>
@@ -564,7 +1249,8 @@ export const LessonDetail: React.FC = () => {
                   id="aircraft"
                   value={aircraft}
                   onChange={(e) => setAircraft(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                  disabled={isReadOnly}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm disabled:bg-gray-50"
                   placeholder="e.g., N12345"
                 />
               </div>
@@ -578,18 +1264,12 @@ export const LessonDetail: React.FC = () => {
                   id="weatherNotes"
                   value={weatherNotes}
                   onChange={(e) => setWeatherNotes(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                  disabled={isReadOnly}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm disabled:bg-gray-50"
                   placeholder="e.g., Clear skies, light winds"
                 />
               </div>
             </div>
-
-            {lesson.preNotes && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700">Pre-lesson Notes</label>
-                <p className="mt-1 text-sm text-gray-600 italic">{lesson.preNotes}</p>
-              </div>
-            )}
 
             <div className="mt-4">
               <label htmlFor="postNotes" className="block text-sm font-medium text-gray-700">
@@ -600,188 +1280,129 @@ export const LessonDetail: React.FC = () => {
                 rows={3}
                 value={postNotes}
                 onChange={(e) => setPostNotes(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                disabled={isReadOnly}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm disabled:bg-gray-50"
                 placeholder="Summary of the lesson, areas of focus for next time..."
               />
             </div>
-
-            <div className="mt-6">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="w-full sm:w-auto px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky hover:bg-sky-600 disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
           </div>
-        </div>
 
-        {/* Items Covered */}
-        <div className="space-y-6">
+          {/* Items Scoring */}
           <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Items to Cover</h3>
-              <button
-                onClick={() => setShowAddItems(!showAddItems)}
-                className="text-sm text-sky hover:text-sky-600"
-              >
-                <PlusIcon className="h-4 w-4 inline mr-1" />
-                Add Items
-              </button>
-            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Items Covered
+            </h3>
 
-            {showAddItems && (
-              <div className="mb-4 p-4 bg-gray-50 rounded-md">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Area
-                </label>
-                <select
-                  value={selectedArea}
-                  onChange={(e) => setSelectedArea(e.target.value)}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
-                >
-                  <option value="">Choose an area</option>
-                  {relevantAreas.map(area => (
-                    <option key={area.id} value={area.id}>
-                      {area.name} ({getCertificateFullName(area.certificate)})
-                    </option>
-                  ))}
-                </select>
-
-                {selectedArea && (
-                  <div className="mt-3 max-h-60 overflow-y-auto">
-                    {items
-                      .filter(item => item.areaId === selectedArea)
-                      .map(item => (
-                        <label key={item.id} className="flex items-start p-2 hover:bg-gray-100 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={selectedItems.has(item.id)}
-                            onChange={() => toggleItemSelection(item.id)}
-                            className="mt-0.5 h-4 w-4 text-sky focus:ring-sky border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">{item.name}</span>
-                        </label>
-                      ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Selected Items List */}
             <div className="space-y-3">
-              {Array.from(selectedItems).map(itemId => {
-                const item = items.find(i => i.id === itemId)
-                if (!item) return null
-
-                const score = itemScores.get(itemId)
-                const notes = itemNotes.get(itemId) || ''
-                const lessonItem = lesson.items.find(i => i.itemId === itemId)
-
-                return (
-                  <div key={itemId} className="border border-gray-200 rounded-md p-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium text-gray-900">{item.name}</h4>
-                        <p className="text-xs text-gray-500 mt-1">{item.description}</p>
-                      </div>
-                      <button
-                        onClick={() => toggleItemSelection(itemId)}
-                        className="ml-2 text-gray-400 hover:text-gray-500"
-                      >
-                        <XMarkIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    {/* Scoring */}
-                    <div className="mt-3 space-y-2">
-                      {(item.type === 'GROUND' || item.type === 'BOTH') && (
-                        <div>
-                          <label className="text-xs font-medium text-gray-700">Ground</label>
-                          <div className="mt-1 flex space-x-2">
-                            <button
-                              onClick={() => updateItemScore(itemId, 'ground', 'NOT_TAUGHT')}
-                              className={`px-2 py-1 text-xs rounded ${
-                                score?.ground === 'NOT_TAUGHT'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-gray-100 text-gray-600'
-                              }`}
-                            >
-                              Not Taught
-                            </button>
-                            <button
-                              onClick={() => updateItemScore(itemId, 'ground', 'NEEDS_REINFORCEMENT')}
-                              className={`px-2 py-1 text-xs rounded ${
-                                score?.ground === 'NEEDS_REINFORCEMENT'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-gray-100 text-gray-600'
-                              }`}
-                            >
-                              Needs Work
-                            </button>
-                            <button
-                              onClick={() => updateItemScore(itemId, 'ground', 'LEARNED')}
-                              className={`px-2 py-1 text-xs rounded ${
-                                score?.ground === 'LEARNED'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-600'
-                              }`}
-                            >
-                              Learned
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {(item.type === 'FLIGHT' || item.type === 'BOTH') && (
-                        <div>
-                          <label className="text-xs font-medium text-gray-700">Flight</label>
-                          <div className="mt-1 flex space-x-1">
-                            {[1, 2, 3, 4, 5].map(num => (
-                              <button
-                                key={num}
-                                onClick={() => updateItemScore(itemId, 'flight', num as FlightScore)}
-                                className={`px-2 py-1 text-xs rounded ${
-                                  score?.flight === num
-                                    ? 'bg-sky text-white'
-                                    : 'bg-gray-100 text-gray-600'
-                                }`}
-                              >
-                                {num}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="text-xs font-medium text-gray-700">Notes</label>
-                        <input
-                          type="text"
-                          value={notes}
-                          onChange={(e) => {
-                            itemNotes.set(itemId, e.target.value)
-                            setItemNotes(new Map(itemNotes))
-                          }}
-                          className="mt-1 block w-full text-xs rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky"
-                          placeholder="Add notes..."
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-
-              {selectedItems.size === 0 && (
+              {selectedItemsMap.size === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">
                   No items selected for this lesson
                 </p>
+              ) : (
+                Array.from(selectedItemsMap.values()).map(item => {
+                  const score = itemScores.get(item.id)
+                  const notes = itemNotes.get(item.id) || ''
+                  const area = areas.find(a => a.id === item.areaId)
+                  
+                  return (
+                    <div key={item.id} className="border border-gray-200 rounded-md p-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="text-sm font-medium text-gray-900">{item.name}</h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {area?.name} • {item.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Scoring */}
+                      <div className="mt-3 space-y-2">
+                        {(item.type === 'GROUND' || (item.type === 'BOTH' && item.includeGround)) && (
+                          <div>
+                            <label className="text-xs font-medium text-gray-700">Ground Score</label>
+                            <div className="mt-1 flex space-x-2">
+                              <button
+                                onClick={() => updateItemScore(item.id, 'ground', 'NOT_TAUGHT')}
+                                disabled={isReadOnly}
+                                className={`px-2 py-1 text-xs rounded ${
+                                  score?.ground === 'NOT_TAUGHT'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-gray-100 text-gray-600'
+                                } ${isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              >
+                                Not Taught
+                              </button>
+                              <button
+                                onClick={() => updateItemScore(item.id, 'ground', 'NEEDS_REINFORCEMENT')}
+                                disabled={isReadOnly}
+                                className={`px-2 py-1 text-xs rounded ${
+                                  score?.ground === 'NEEDS_REINFORCEMENT'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-gray-100 text-gray-600'
+                                } ${isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              >
+                                Needs Work
+                              </button>
+                              <button
+                                onClick={() => updateItemScore(item.id, 'ground', 'LEARNED')}
+                                disabled={isReadOnly}
+                                className={`px-2 py-1 text-xs rounded ${
+                                  score?.ground === 'LEARNED'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-600'
+                                } ${isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              >
+                                Learned
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {(item.type === 'FLIGHT' || (item.type === 'BOTH' && item.includeFlight)) && (
+                          <div>
+                            <label className="text-xs font-medium text-gray-700">Flight Score</label>
+                            <div className="mt-1 flex space-x-1">
+                              {[1, 2, 3, 4, 5].map(num => (
+                                <button
+                                  key={num}
+                                  onClick={() => updateItemScore(item.id, 'flight', num as FlightScore)}
+                                  disabled={isReadOnly}
+                                  className={`px-2 py-1 text-xs rounded ${
+                                    score?.flight === num
+                                      ? 'bg-sky text-white'
+                                      : 'bg-gray-100 text-gray-600'
+                                  } ${isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                  {num}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="text-xs font-medium text-gray-700">Notes</label>
+                          <input
+                            type="text"
+                            value={notes}
+                            onChange={(e) => {
+                              itemNotes.set(item.id, e.target.value)
+                              setItemNotes(new Map(itemNotes))
+                            }}
+                            disabled={isReadOnly}
+                            className="mt-1 block w-full text-xs rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky disabled:bg-gray-50"
+                            placeholder="Add notes..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
               )}
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

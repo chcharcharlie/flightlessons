@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
-import { TrainingProgram, StudyArea, StudyItem, Progress, GroundScore, FlightScore, Lesson } from '@/types'
-import { ChartBarIcon, BookOpenIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, CalendarDaysIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
+import { TrainingProgram, StudyArea, StudyItem, Progress, GroundScore, FlightScore, Lesson, LessonPlan } from '@/types'
+import { ChartBarIcon, BookOpenIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, CalendarDaysIcon, CheckCircleIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 
 export const StudentProgramProgress: React.FC = () => {
   const { programId } = useParams<{ programId: string }>()
@@ -17,6 +17,9 @@ export const StudentProgramProgress: React.FC = () => {
   const [progress, setProgress] = useState<Progress[]>([])
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
+  const [showSyllabus, setShowSyllabus] = useState(false)
+  const [expandedLessonPlans, setExpandedLessonPlans] = useState<Set<string>>(new Set())
+  const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -83,19 +86,34 @@ export const StudentProgramProgress: React.FC = () => {
         } as Progress))
         setProgress(progressData)
         
-        // Load lessons for this student
+        // Load lessons for this program
         const lessonsQuery = query(
           collection(db, 'lessons'),
+          where('programId', '==', programId),
           where('studentUid', '==', user.uid),
-          where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
-          orderBy('scheduledDate', 'desc')
+          where('cfiWorkspaceId', '==', user.cfiWorkspaceId)
         )
         const lessonsSnapshot = await getDocs(lessonsQuery)
         const lessonsData = lessonsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         } as Lesson))
+        
         setLessons(lessonsData)
+        
+        // Load lesson plans for this certificate
+        const plansQuery = query(
+          collection(db, 'lessonPlans'),
+          where('certificate', '==', programData.certificate),
+          where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+          orderBy('orderNumber', 'asc')
+        )
+        const plansSnapshot = await getDocs(plansQuery)
+        const plansData = plansSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as LessonPlan))
+        setLessonPlans(plansData)
       } catch (error) {
         // Silently handle error
       } finally {
@@ -206,7 +224,20 @@ export const StudentProgramProgress: React.FC = () => {
     setExpandedAreas(newExpanded)
   }
   
-  const formatLessonDate = (timestamp: Timestamp) => {
+  const toggleLessonPlan = (planId: string) => {
+    const newExpanded = new Set(expandedLessonPlans)
+    if (newExpanded.has(planId)) {
+      newExpanded.delete(planId)
+    } else {
+      newExpanded.add(planId)
+    }
+    setExpandedLessonPlans(newExpanded)
+  }
+  
+  const formatLessonDate = (timestamp: Timestamp | null) => {
+    if (!timestamp) {
+      return 'Unscheduled'
+    }
     const date = timestamp.toDate()
     return date.toLocaleString('en-US', {
       weekday: 'short',
@@ -278,12 +309,19 @@ export const StudentProgramProgress: React.FC = () => {
   const overallProgress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0
   
   // Group lessons by status
-  const upcomingLessons = lessons.filter(l => 
-    l.status === 'SCHEDULED' && l.scheduledDate.toDate() >= new Date()
-  ).sort((a, b) => a.scheduledDate.toMillis() - b.scheduledDate.toMillis())
+  const upcomingLessons = lessons.filter(l => l.status === 'SCHEDULED')
+    .sort((a, b) => {
+      if (!a.scheduledDate) return 1
+      if (!b.scheduledDate) return -1
+      return a.scheduledDate.toMillis() - b.scheduledDate.toMillis()
+    })
   
   const completedLessons = lessons.filter(l => l.status === 'COMPLETED')
-    .sort((a, b) => b.scheduledDate.toMillis() - a.scheduledDate.toMillis())
+    .sort((a, b) => {
+      if (!a.scheduledDate) return 1
+      if (!b.scheduledDate) return -1
+      return b.scheduledDate.toMillis() - a.scheduledDate.toMillis()
+    })
 
   return (
     <div className="px-4 sm:px-0">
@@ -339,9 +377,10 @@ export const StudentProgramProgress: React.FC = () => {
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column: Study Progress */}
-        <div className="space-y-6">
-          <h3 className="text-lg font-medium text-gray-900">Study Progress by Area</h3>
-          {areas.map(area => {
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Study Progress by Area</h3>
+          <div className="space-y-3">
+            {areas.map(area => {
             const areaItems = items.filter(item => item.areaId === area.id)
             const areaCompleted = areaItems.filter(item => {
               const itemProgress = getItemProgress(item.id)
@@ -473,6 +512,7 @@ export const StudentProgramProgress: React.FC = () => {
               </div>
             )
           })}
+          </div>
         </div>
 
         {/* Right Column: Lessons */}
@@ -585,6 +625,125 @@ export const StudentProgramProgress: React.FC = () => {
               </p>
             </div>
           )}
+
+          {/* Syllabus */}
+          <div className="bg-white shadow rounded-lg">
+            <div className="p-4 border-b border-gray-200">
+              <button
+                onClick={() => setShowSyllabus(!showSyllabus)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <h4 className="text-base font-medium text-gray-900 flex items-center">
+                  <DocumentTextIcon className="h-5 w-5 text-sky mr-2" />
+                  Syllabus
+                </h4>
+                {showSyllabus ? (
+                  <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
+            </div>
+            
+            {showSyllabus && lessonPlans.length > 0 && (
+              <div className="divide-y divide-gray-200">
+                {lessonPlans.map(plan => {
+                  const isExpanded = expandedLessonPlans.has(plan.id)
+                  const planItems = items.filter(item => plan.itemIds.includes(item.id))
+                  
+                  return (
+                    <div key={plan.id} className="p-4">
+                      <button
+                        onClick={() => toggleLessonPlan(plan.id)}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-center">
+                          {isExpanded ? (
+                            <ChevronDownIcon className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                          ) : (
+                            <ChevronRightIcon className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                          )}
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              Lesson {plan.orderNumber}: {plan.title}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {planItems.length} study items • Est. {plan.estimatedDuration.ground}min ground, {plan.estimatedDuration.flight}hr flight
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                      
+                      {isExpanded && (
+                        <div className="mt-4 ml-6 space-y-3">
+                          {plan.motivation && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-700">Motivation</p>
+                              <p className="text-sm text-gray-600 mt-1">{plan.motivation}</p>
+                            </div>
+                          )}
+                          
+                          {plan.objectives && plan.objectives.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-700">Objectives</p>
+                              <ul className="list-disc list-inside text-sm text-gray-600 mt-1">
+                                {plan.objectives.map((obj, i) => (
+                                  <li key={i}>{obj}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {plan.planDescription && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-700">Plan Description</p>
+                              <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{plan.planDescription}</p>
+                            </div>
+                          )}
+                          
+                          {plan.preStudyHomework && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-700">Pre-Study Homework</p>
+                              <p className="text-sm text-gray-600 mt-1">{plan.preStudyHomework}</p>
+                            </div>
+                          )}
+                          
+                          {planItems.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-700">Study Items</p>
+                              <ul className="mt-1 space-y-1">
+                                {planItems.map(item => (
+                                  <li key={item.id} className="text-sm text-gray-600 flex items-center">
+                                    <span className="mr-2">•</span>
+                                    <span>{item.name}</span>
+                                    <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                                      item.type === 'GROUND'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : item.type === 'FLIGHT'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-purple-100 text-purple-800'
+                                    }`}>
+                                      {item.type === 'BOTH' ? 'G&F' : item.type}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            
+            {showSyllabus && lessonPlans.length === 0 && (
+              <div className="p-4 text-center text-sm text-gray-500">
+                No lesson plans created for this certificate yet
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

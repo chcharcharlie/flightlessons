@@ -80,13 +80,19 @@ export const StudentLessons: React.FC = () => {
     }
   }
 
-  const upcomingLessons = lessons.filter(l => 
-    l.status === 'SCHEDULED' && l.scheduledDate.toDate() >= new Date()
-  )
+  const upcomingLessons = lessons.filter(l => l.status === 'SCHEDULED')
+    .sort((a, b) => {
+      if (!a.scheduledDate) return 1
+      if (!b.scheduledDate) return -1
+      return a.scheduledDate.toMillis() - b.scheduledDate.toMillis()
+    })
 
-  const pastLessons = lessons.filter(l => 
-    l.status !== 'SCHEDULED' || l.scheduledDate.toDate() < new Date()
-  )
+  const pastLessons = lessons.filter(l => l.status !== 'SCHEDULED')
+    .sort((a, b) => {
+      if (!a.scheduledDate) return 1
+      if (!b.scheduledDate) return -1
+      return b.scheduledDate.toMillis() - a.scheduledDate.toMillis()
+    })
 
   if (loading) {
     return (

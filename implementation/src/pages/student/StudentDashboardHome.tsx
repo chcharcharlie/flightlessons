@@ -83,9 +83,8 @@ export const StudentDashboardHome: React.FC = () => {
             ...doc.data()
           } as Lesson))
           
-          // Filter only upcoming lessons
-          const upcoming = lessons.filter(l => l.scheduledDate.toDate() >= new Date())
-          setUpcomingLessons(upcoming)
+          // Show all scheduled lessons (not completed or cancelled)
+          setUpcomingLessons(lessons)
         } catch (lessonError) {
           // If index is not ready, try without orderBy
           try {
@@ -101,11 +100,13 @@ export const StudentDashboardHome: React.FC = () => {
               ...doc.data()
             } as Lesson))
             
-            // Filter only upcoming lessons and sort manually
-            const upcoming = lessons
-              .filter(l => l.scheduledDate.toDate() >= new Date())
-              .sort((a, b) => a.scheduledDate.toMillis() - b.scheduledDate.toMillis())
-            setUpcomingLessons(upcoming)
+            // Show all scheduled lessons, sorted by date
+            const sorted = lessons.sort((a, b) => {
+              if (!a.scheduledDate) return 1
+              if (!b.scheduledDate) return -1
+              return a.scheduledDate.toMillis() - b.scheduledDate.toMillis()
+            })
+            setUpcomingLessons(sorted)
           } catch (fallbackError) {
             // If still failing, just set empty array
             setUpcomingLessons([])
@@ -134,8 +135,18 @@ export const StudentDashboardHome: React.FC = () => {
     }
   }
   
-  const formatLessonDateTime = (timestamp: Timestamp) => {
+  const formatLessonDateTime = (timestamp: Timestamp | null) => {
+    if (!timestamp) {
+      return 'Unscheduled'
+    }
+    
     const date = timestamp.toDate()
+    
+    // Check for unscheduled lessons
+    if (date.getFullYear() >= 2099) {
+      return 'Unscheduled'
+    }
+    
     const now = new Date()
     const tomorrow = new Date(now)
     tomorrow.setDate(tomorrow.getDate() + 1)
@@ -291,10 +302,10 @@ export const StudentDashboardHome: React.FC = () => {
         )}
       </div>
 
-      {/* Upcoming Lessons */}
+      {/* Active Lessons */}
       {upcomingLessons.length > 0 && (
         <div className="mt-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Upcoming Lessons</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Active Lessons</h3>
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <ul className="divide-y divide-gray-200">
               {upcomingLessons.slice(0, 3).map(lesson => (
@@ -320,7 +331,7 @@ export const StudentDashboardHome: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      {lesson.scheduledDate.toDate() < new Date(Date.now() + 24 * 60 * 60 * 1000) && (
+                      {lesson.scheduledDate && lesson.scheduledDate.toDate() < new Date(Date.now() + 24 * 60 * 60 * 1000) && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                           <ClockIcon className="h-3 w-3 mr-1" />
                           Soon
