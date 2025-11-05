@@ -30,6 +30,7 @@ import {
 interface EditingLessonPlan extends LessonPlan {
   isEditing?: boolean
   selectedItems?: Set<string>
+  selectedItemTypes?: Map<string, Set<'GROUND' | 'FLIGHT'>>
   expandedAreas?: Set<string>
 }
 
@@ -106,13 +107,33 @@ export const LessonPlans: React.FC = () => {
           )
           
           const plansSnapshot = await getDocs(plansQuery)
-          const plans = plansSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            isEditing: false,
-            selectedItems: new Set((doc.data() as LessonPlan).itemIds),
-            expandedAreas: new Set(),
-          } as EditingLessonPlan))
+          const plans = plansSnapshot.docs.map(doc => {
+            const planData = doc.data() as LessonPlan
+            const selectedItemTypes = new Map<string, Set<'GROUND' | 'FLIGHT'>>()
+            
+            // Initialize selectedItemTypes based on existing items (assuming both for BOTH type items)
+            planData.itemIds.forEach(itemId => {
+              const item = allItems.find(i => i.id === itemId)
+              if (item) {
+                if (item.type === 'GROUND') {
+                  selectedItemTypes.set(itemId, new Set(['GROUND']))
+                } else if (item.type === 'FLIGHT') {
+                  selectedItemTypes.set(itemId, new Set(['FLIGHT']))
+                } else if (item.type === 'BOTH') {
+                  selectedItemTypes.set(itemId, new Set(['GROUND', 'FLIGHT']))
+                }
+              }
+            })
+            
+            return {
+              id: doc.id,
+              ...planData,
+              isEditing: false,
+              selectedItems: new Set(planData.itemIds),
+              selectedItemTypes,
+              expandedAreas: new Set(),
+            } as EditingLessonPlan
+          })
           
           plansMap.set(cert, plans)
         }
@@ -416,21 +437,53 @@ export const LessonPlans: React.FC = () => {
 
   const handleEditPlan = (planId: string) => {
     const plans = lessonPlans.get(selectedCertificate) || []
-    const updatedPlans = plans.map(p => ({
-      ...p,
-      isEditing: p.id === planId,
-      expandedAreas: p.id === planId ? new Set<string>() : p.expandedAreas
-    }))
+    const updatedPlans = plans.map(p => {
+      if (p.id === planId && !p.isEditing) {
+        // Initialize selectedItemTypes when entering edit mode
+        const selectedItemTypes = new Map<string, Set<'GROUND' | 'FLIGHT'>>()
+        p.itemIds.forEach(itemId => {
+          const item = studyItems.find(i => i.id === itemId)
+          if (item) {
+            if (item.type === 'GROUND') {
+              selectedItemTypes.set(itemId, new Set(['GROUND']))
+            } else if (item.type === 'FLIGHT') {
+              selectedItemTypes.set(itemId, new Set(['FLIGHT']))
+            } else if (item.type === 'BOTH') {
+              selectedItemTypes.set(itemId, new Set(['GROUND', 'FLIGHT']))
+            }
+          }
+        })
+        return {
+          ...p,
+          isEditing: true,
+          selectedItemTypes,
+          expandedAreas: new Set<string>()
+        }
+      } else {
+        return {
+          ...p,
+          isEditing: false
+        }
+      }
+    })
     setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
   }
 
   const handleSavePlan = async (plan: EditingLessonPlan) => {
     try {
+      // Convert selectedItemTypes back to itemIds for storage
+      const itemIds: string[] = []
+      plan.selectedItemTypes?.forEach((types, itemId) => {
+        if (types.size > 0) {
+          itemIds.push(itemId)
+        }
+      })
+      
       const updateData: any = {
         title: plan.title,
         motivation: plan.motivation,
         objectives: plan.objectives,
-        itemIds: Array.from(plan.selectedItems || []),
+        itemIds: itemIds,
         planDescription: plan.planDescription,
         preStudyHomework: plan.preStudyHomework,
         estimatedDuration: plan.estimatedDuration,
@@ -443,7 +496,7 @@ export const LessonPlans: React.FC = () => {
       const plans = lessonPlans.get(selectedCertificate) || []
       const updatedPlans = plans.map(p => 
         p.id === plan.id 
-          ? { ...p, ...updateData, isEditing: false, selectedItems: new Set(updateData.itemIds) }
+          ? { ...p, ...updateData, isEditing: false, selectedItems: new Set(updateData.itemIds), selectedItemTypes: undefined }
           : p
       )
       setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
@@ -470,20 +523,55 @@ export const LessonPlans: React.FC = () => {
     setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
   }
 
-  const togglePlanItem = (planId: string, itemId: string) => {
+  const togglePlanItem = (planId: string, itemId: string, type?: 'GROUND' | 'FLIGHT') => {
     const plans = lessonPlans.get(selectedCertificate) || []
     const plan = plans.find(p => p.id === planId)
-    if (!plan || !plan.selectedItems) return
+    if (!plan) return
     
-    const newSelected = new Set(plan.selectedItems)
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId)
+    const item = studyItems.find(i => i.id === itemId)
+    if (!item) return
+    
+    const newSelectedItems = new Set(plan.selectedItems || [])
+    const newSelectedTypes = new Map(plan.selectedItemTypes || new Map())
+    
+    if (item.type === 'BOTH' && type) {
+      // Handle BOTH items with specific type selection
+      const currentTypes = newSelectedTypes.get(itemId) || new Set<'GROUND' | 'FLIGHT'>()
+      const newTypes = new Set(currentTypes)
+      
+      if (newTypes.has(type)) {
+        newTypes.delete(type)
+      } else {
+        newTypes.add(type)
+      }
+      
+      if (newTypes.size === 0) {
+        newSelectedItems.delete(itemId)
+        newSelectedTypes.delete(itemId)
+      } else {
+        newSelectedItems.add(itemId)
+        newSelectedTypes.set(itemId, newTypes)
+      }
     } else {
-      newSelected.add(itemId)
+      // Handle single-type items
+      if (newSelectedItems.has(itemId)) {
+        newSelectedItems.delete(itemId)
+        newSelectedTypes.delete(itemId)
+      } else {
+        newSelectedItems.add(itemId)
+        const types = new Set<'GROUND' | 'FLIGHT'>()
+        if (item.type === 'GROUND') types.add('GROUND')
+        else if (item.type === 'FLIGHT') types.add('FLIGHT')
+        else if (item.type === 'BOTH') {
+          types.add('GROUND')
+          types.add('FLIGHT')
+        }
+        newSelectedTypes.set(itemId, types)
+      }
     }
     
     const updatedPlans = plans.map(p => 
-      p.id === planId ? { ...p, selectedItems: newSelected } : p
+      p.id === planId ? { ...p, selectedItems: newSelectedItems, selectedItemTypes: newSelectedTypes } : p
     )
     setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
   }
@@ -559,16 +647,7 @@ export const LessonPlans: React.FC = () => {
         <div>
           <div className="bg-white shadow rounded-lg">
             <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Study Items</h3>
-                <button
-                  onClick={() => navigate(`/cfi/curriculum/${selectedCertificate.toLowerCase()}/new`)}
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-sky hover:bg-sky-600"
-                >
-                  <PlusIcon className="h-4 w-4 mr-1" />
-                  Add Plan
-                </button>
-              </div>
+              <h3 className="text-lg font-medium text-gray-900">Study Items</h3>
               
               {/* Coverage Progress Bar */}
               <div className="mt-4">
@@ -758,15 +837,18 @@ export const LessonPlans: React.FC = () => {
                                 <div className="flex-1">
                                   <p className="text-sm font-medium text-gray-900">{item.name}</p>
                                   <p className="text-xs text-gray-500 mt-1">{item.description}</p>
-                                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1 ${
-                                    item.type === 'GROUND'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : item.type === 'FLIGHT'
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-purple-100 text-purple-800'
-                                  }`}>
-                                    {item.type}
-                                  </span>
+                                  <div className="flex gap-1 mt-1">
+                                    {(item.type === 'GROUND' || item.type === 'BOTH') && (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                        Ground
+                                      </span>
+                                    )}
+                                    {(item.type === 'FLIGHT' || item.type === 'BOTH') && (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        Flight
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               )}
                               <div className="flex items-center space-x-2 ml-4">
@@ -864,10 +946,21 @@ export const LessonPlans: React.FC = () => {
         <div>
           <div className="bg-white shadow rounded-lg">
             <div className="p-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Syllabus</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {plans.length} lesson plans in sequence
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Syllabus</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {plans.length} lesson plans in sequence
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate(`/cfi/curriculum/${selectedCertificate.toLowerCase()}/new`)}
+                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-sky hover:bg-sky-600"
+                >
+                  <PlusIcon className="h-4 w-4 mr-1" />
+                  Add Plan
+                </button>
+              </div>
             </div>
 
             <div className="divide-y divide-gray-200">
@@ -1058,27 +1151,42 @@ export const LessonPlans: React.FC = () => {
                                         )}
                                       </button>
                                       {isAreaExpanded && (
-                                        <div className="px-3 py-2 space-y-1 border-t border-gray-200">
-                                          {areaItems.map(item => (
-                                            <label key={item.id} className="flex items-center">
-                                              <input
-                                                type="checkbox"
-                                                checked={plan.selectedItems?.has(item.id) || false}
-                                                onChange={() => togglePlanItem(plan.id, item.id)}
-                                                className="h-3.5 w-3.5 text-sky border-gray-300 rounded"
-                                              />
-                                              <span className="ml-2 text-sm text-gray-600">{item.name}</span>
-                                              <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                                                item.type === 'GROUND'
-                                                  ? 'bg-blue-100 text-blue-800'
-                                                  : item.type === 'FLIGHT'
-                                                  ? 'bg-green-100 text-green-800'
-                                                  : 'bg-purple-100 text-purple-800'
-                                              }`}>
-                                                {item.type === 'BOTH' ? 'G&F' : item.type}
-                                              </span>
-                                            </label>
-                                          ))}
+                                        <div className="px-3 py-2 space-y-2 border-t border-gray-200">
+                                          {areaItems.map(item => {
+                                            const itemTypes = plan.selectedItemTypes?.get(item.id) || new Set()
+                                            const isGroundSelected = itemTypes.has('GROUND')
+                                            const isFlightSelected = itemTypes.has('FLIGHT')
+                                            
+                                            return (
+                                              <div key={item.id} className="space-y-1">
+                                                <div className="text-sm text-gray-600">{item.name}</div>
+                                                <div className="flex gap-3 ml-4">
+                                                  {(item.type === 'GROUND' || item.type === 'BOTH') && (
+                                                    <label className="flex items-center cursor-pointer">
+                                                      <input
+                                                        type="checkbox"
+                                                        checked={isGroundSelected}
+                                                        onChange={() => togglePlanItem(plan.id, item.id, item.type === 'BOTH' ? 'GROUND' : undefined)}
+                                                        className="h-3.5 w-3.5 text-sky border-gray-300 rounded"
+                                                      />
+                                                      <span className="ml-1.5 text-xs text-gray-700">Ground</span>
+                                                    </label>
+                                                  )}
+                                                  {(item.type === 'FLIGHT' || item.type === 'BOTH') && (
+                                                    <label className="flex items-center cursor-pointer">
+                                                      <input
+                                                        type="checkbox"
+                                                        checked={isFlightSelected}
+                                                        onChange={() => togglePlanItem(plan.id, item.id, item.type === 'BOTH' ? 'FLIGHT' : undefined)}
+                                                        className="h-3.5 w-3.5 text-sky border-gray-300 rounded"
+                                                      />
+                                                      <span className="ml-1.5 text-xs text-gray-700">Flight</span>
+                                                    </label>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )
+                                          })}
                                         </div>
                                       )}
                                     </div>
@@ -1129,15 +1237,18 @@ export const LessonPlans: React.FC = () => {
                                     <li key={item.id} className="text-sm text-gray-600 flex items-center">
                                       <span className="mr-2">•</span>
                                       <span>{item.name}</span>
-                                      <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                                        item.type === 'GROUND'
-                                          ? 'bg-blue-100 text-blue-800'
-                                          : item.type === 'FLIGHT'
-                                          ? 'bg-green-100 text-green-800'
-                                          : 'bg-purple-100 text-purple-800'
-                                      }`}>
-                                        {item.type === 'BOTH' ? 'G&F' : item.type}
-                                      </span>
+                                      <div className="flex gap-1 ml-2">
+                                        {(item.type === 'GROUND' || item.type === 'BOTH') && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                            Ground
+                                          </span>
+                                        )}
+                                        {(item.type === 'FLIGHT' || item.type === 'BOTH') && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                            Flight
+                                          </span>
+                                        )}
+                                      </div>
                                     </li>
                                   ))}
                                 </ul>

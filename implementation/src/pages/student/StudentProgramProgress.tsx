@@ -716,15 +716,18 @@ export const StudentProgramProgress: React.FC = () => {
                                   <li key={item.id} className="text-sm text-gray-600 flex items-center">
                                     <span className="mr-2">•</span>
                                     <span>{item.name}</span>
-                                    <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                                      item.type === 'GROUND'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : item.type === 'FLIGHT'
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-purple-100 text-purple-800'
-                                    }`}>
-                                      {item.type === 'BOTH' ? 'G&F' : item.type}
-                                    </span>
+                                    <div className="flex gap-1 ml-2">
+                                      {(item.type === 'GROUND' || item.type === 'BOTH') && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                          Ground
+                                        </span>
+                                      )}
+                                      {(item.type === 'FLIGHT' || item.type === 'BOTH') && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                          Flight
+                                        </span>
+                                      )}
+                                    </div>
                                   </li>
                                 ))}
                               </ul>
