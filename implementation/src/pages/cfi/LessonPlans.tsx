@@ -1129,7 +1129,7 @@ export const LessonPlans: React.FC = () => {
                               <label className="block text-xs font-medium text-gray-700 mb-2">
                                 Study Items
                               </label>
-                              <div className="space-y-2 max-h-60 overflow-y-auto">
+                              <div className="space-y-2">
                                 {areas.map(area => {
                                   const areaItems = getItemsForArea(area.id)
                                   if (areaItems.length === 0) return null
