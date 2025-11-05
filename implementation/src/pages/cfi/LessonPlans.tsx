@@ -1548,7 +1548,6 @@ export const LessonPlans: React.FC = () => {
           </div>
         </div>
       </div>
-      </div>
       <DragOverlay>
         {activeId ? (
           <div className="bg-white shadow-lg rounded p-2 opacity-90">
