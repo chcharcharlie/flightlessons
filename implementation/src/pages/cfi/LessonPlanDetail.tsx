@@ -79,6 +79,7 @@ export const LessonPlanDetail: React.FC = () => {
           id: doc.id,
           ...doc.data()
         } as StudyArea))
+          .sort((a, b) => a.order - b.order)
         setAreas(areasData)
         
         // Start with all areas expanded
@@ -90,6 +91,7 @@ export const LessonPlanDetail: React.FC = () => {
           id: doc.id,
           ...doc.data()
         } as StudyItem))
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
         
         // Filter items to only those belonging to areas for this certificate
         const areaIds = new Set(areasData.map(area => area.id))

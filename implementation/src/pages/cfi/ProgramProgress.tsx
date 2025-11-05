@@ -79,6 +79,7 @@ export const ProgramProgress: React.FC = () => {
           id: doc.id,
           ...doc.data()
         } as StudyArea))
+          .sort((a, b) => a.order - b.order)
         setAreas(areasData)
         
         // Load all study items for these areas
@@ -87,6 +88,7 @@ export const ProgramProgress: React.FC = () => {
           id: doc.id,
           ...doc.data()
         } as StudyItem))
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
         
         // Filter items for this certificate's areas
         const areaIds = areasData.map(a => a.id)
