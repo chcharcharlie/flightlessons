@@ -274,70 +274,75 @@ export const LessonPlans: React.FC = () => {
         newAreaId = overItem.areaId
         const areaItems = getItemsForArea(newAreaId)
         targetIndex = areaItems.findIndex(i => i.id === overItem.id)
+        if (targetIndex === -1) targetIndex = 0
       }
       
-      // Update items
-      const updatedItems = [...studyItems]
-      const itemIndex = updatedItems.findIndex(i => i.id === activeItem.id)
+      // Group items by area
+      const itemsByArea = new Map<string, StudyItem[]>()
+      studyItems.forEach(item => {
+        const areaItems = itemsByArea.get(item.areaId) || []
+        areaItems.push(item)
+        itemsByArea.set(item.areaId, areaItems)
+      })
       
-      if (itemIndex !== -1) {
-        // Update the item's area if it changed
-        updatedItems[itemIndex] = { ...updatedItems[itemIndex], areaId: newAreaId }
-        
-        // Reorder items within areas
-        const itemsByArea = new Map<string, StudyItem[]>()
-        updatedItems.forEach(item => {
-          const areaItems = itemsByArea.get(item.areaId) || []
-          areaItems.push(item)
-          itemsByArea.set(item.areaId, areaItems)
+      // Remove item from its current area
+      const oldAreaItems = itemsByArea.get(activeItem.areaId) || []
+      const oldIndex = oldAreaItems.findIndex(i => i.id === activeItem.id)
+      if (oldIndex !== -1) {
+        oldAreaItems.splice(oldIndex, 1)
+      }
+      
+      // Add item to new area at target position
+      const newAreaItems = itemsByArea.get(newAreaId) || []
+      const itemToMove = { ...activeItem, areaId: newAreaId }
+      
+      // If moving within same area, adjust target index if needed
+      if (activeItem.areaId === newAreaId && oldIndex < targetIndex) {
+        targetIndex = Math.max(0, targetIndex - 1)
+      }
+      
+      newAreaItems.splice(targetIndex, 0, itemToMove)
+      itemsByArea.set(newAreaId, newAreaItems)
+      
+      // Update order for all items and flatten
+      const finalItems: StudyItem[] = []
+      itemsByArea.forEach((items, areaId) => {
+        items.forEach((item, index) => {
+          finalItems.push({ ...item, order: index })
         })
+      })
+      
+      setStudyItems(finalItems)
+      
+      // Update in Firebase
+      try {
+        const batch = writeBatch(db)
+        const workspaceRef = doc(db, 'workspaces', workspaceId)
         
-        // Update order for all items
-        const finalItems: StudyItem[] = []
-        itemsByArea.forEach((items, areaId) => {
-          const sortedItems = items.map((item, index) => ({ ...item, order: index }))
-          finalItems.push(...sortedItems)
-        })
-        
-        setStudyItems(finalItems)
-        
-        // Update in Firebase
-        try {
-          const batch = writeBatch(db)
-          const workspaceRef = doc(db, 'workspaces', workspaceId)
-          
-          // Update the moved item's area and order
-          const movedItem = finalItems.find(i => i.id === activeItem.id)
-          if (movedItem) {
-            const itemRef = doc(workspaceRef, 'studyItems', movedItem.id)
+        // Update order for all items in affected areas
+        const affectedAreaIds = new Set([activeItem.areaId, newAreaId])
+        affectedAreaIds.forEach(areaId => {
+          const areaItems = finalItems.filter(i => i.areaId === areaId)
+          areaItems.forEach((item) => {
+            const itemRef = doc(workspaceRef, 'studyItems', item.id)
             batch.update(itemRef, { 
-              areaId: movedItem.areaId,
-              order: movedItem.order || 0
-            })
-          }
-          
-          // Update order for all items in affected areas
-          const affectedAreaIds = new Set([activeItem.areaId, newAreaId])
-          affectedAreaIds.forEach(areaId => {
-            const areaItems = finalItems.filter(i => i.areaId === areaId)
-            areaItems.forEach((item, index) => {
-              const itemRef = doc(workspaceRef, 'studyItems', item.id)
-              batch.update(itemRef, { order: index })
+              areaId: item.areaId,
+              order: item.order || 0
             })
           })
-          
-          await batch.commit()
-          
-          // Update area item counts
-          const areas = studyAreas.get(selectedCertificate) || []
-          const updatedAreas = areas.map(area => ({
-            ...area,
-            itemCount: finalItems.filter(i => i.areaId === area.id).length
-          }))
-          setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
-        } catch (error) {
-          console.error('Error updating item order:', error)
-        }
+        })
+        
+        await batch.commit()
+        
+        // Update area item counts
+        const areas = studyAreas.get(selectedCertificate) || []
+        const updatedAreas = areas.map(area => ({
+          ...area,
+          itemCount: finalItems.filter(i => i.areaId === area.id).length
+        }))
+        setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
+      } catch (error) {
+        console.error('Error updating item order:', error)
       }
     }
   }
