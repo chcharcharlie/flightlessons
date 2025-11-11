@@ -118,7 +118,6 @@ export const LessonPlans: React.FC = () => {
           ...doc.data()
         } as StudyItem))
           .sort((a, b) => (a.order || 0) - (b.order || 0))
-        console.log('Loaded study items:', allItems.map(i => ({ id: i.id, name: i.name, order: i.order, areaId: i.areaId })))
         setStudyItems(allItems)
         
         // Organize areas by certificate
@@ -226,22 +225,46 @@ export const LessonPlans: React.FC = () => {
     const activeId = active.id as string
     const overId = over.id as string
     
-    console.log('Drag end:', { activeId, overId })
-    
-    // Determine if we're moving an area or an item
+    // Determine if we're moving an area, item, or lesson plan
     const activeArea = (studyAreas.get(selectedCertificate) || []).find(a => a.id === activeId)
     const overArea = (studyAreas.get(selectedCertificate) || []).find(a => a.id === overId)
     const activeItem = studyItems.find(i => i.id === activeId)
     const overItem = studyItems.find(i => i.id === overId)
+    const activePlan = (lessonPlans.get(selectedCertificate) || []).find(p => p.id === activeId)
+    const overPlan = (lessonPlans.get(selectedCertificate) || []).find(p => p.id === overId)
     
-    console.log('Drag types:', { 
-      activeArea: !!activeArea, 
-      overArea: !!overArea, 
-      activeItem: !!activeItem, 
-      overItem: !!overItem 
-    })
-    
-    if (activeArea && overArea) {
+    if (activePlan && overPlan) {
+      // Reordering lesson plans
+      const plans = lessonPlans.get(selectedCertificate) || []
+      const oldIndex = plans.findIndex(p => p.id === activeId)
+      const newIndex = plans.findIndex(p => p.id === overId)
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newPlans = arrayMove(plans, oldIndex, newIndex)
+        
+        // Update orderNumber for all plans
+        const updatedPlans = newPlans.map((plan, index) => ({
+          ...plan,
+          orderNumber: index + 1
+        }))
+        
+        setLessonPlans(new Map(lessonPlans).set(selectedCertificate, updatedPlans))
+        
+        // Update in Firebase
+        try {
+          const batch = writeBatch(db)
+          
+          updatedPlans.forEach((plan) => {
+            const planRef = doc(db, 'lessonPlans', plan.id)
+            batch.update(planRef, { orderNumber: plan.orderNumber })
+          })
+          
+          await batch.commit()
+        } catch (error) {
+          console.error('Error updating lesson plan order:', error)
+        }
+      }
+    } else if (activeArea && overArea) {
       // Reordering areas
       const areas = studyAreas.get(selectedCertificate) || []
       const oldIndex = areas.findIndex(a => a.id === activeId)
@@ -306,18 +329,10 @@ export const LessonPlans: React.FC = () => {
         const areaItems = itemsByArea.get(newAreaId) || []
         const oldIndex = areaItems.findIndex(i => i.id === activeItem.id)
         
-        console.log('Moving within same area:', {
-          areaId: newAreaId,
-          oldIndex,
-          targetIndex,
-          areaItemsCount: areaItems.length
-        })
-        
         if (oldIndex !== -1 && oldIndex !== targetIndex) {
           // Use arrayMove to reorder
           const reorderedItems = arrayMove(areaItems, oldIndex, targetIndex)
           itemsByArea.set(newAreaId, reorderedItems)
-          console.log('Reordered items:', reorderedItems.map(i => ({ id: i.id, name: i.name, order: i.order })))
         }
       } else {
         // Moving between areas
@@ -344,12 +359,6 @@ export const LessonPlans: React.FC = () => {
           finalItems.push({ ...item, areaId, order: index })
         })
       })
-      
-      console.log('Final items after reorder:', finalItems.filter(i => i.areaId === newAreaId).map(i => ({ 
-        id: i.id, 
-        name: i.name, 
-        order: i.order 
-      })))
       
       setStudyItems(finalItems)
       
@@ -893,6 +902,32 @@ export const LessonPlans: React.FC = () => {
     )
   }
 
+  // Sortable Plan Component
+  const SortablePlan = ({ plan, children }: { plan: EditingLessonPlan; children: React.ReactNode }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: plan.id })
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    }
+
+    return (
+      <DragHandleContext.Provider value={{ listeners, attributes }}>
+        <div ref={setNodeRef} style={style} className={isDragging ? 'z-50' : ''}>
+          {children}
+        </div>
+      </DragHandleContext.Provider>
+    )
+  }
+
   if (loading) {
     return (
       <div className="px-4 sm:px-0">
@@ -1007,7 +1042,22 @@ export const LessonPlans: React.FC = () => {
                         ) : (
                           <div className="flex-1">
                             <h4 className="text-sm font-medium text-gray-900">{area.name}</h4>
-                            <p className="text-xs text-gray-500">{areaItems.length} items</p>
+                            <div className="flex items-center space-x-2">
+                              <p className="text-xs text-gray-500">{areaItems.length} items</p>
+                              {(() => {
+                                const coveredItems = areaItems.filter(item => 
+                                  plans.some(plan => plan.itemIds.includes(item.id))
+                                ).length
+                                if (coveredItems > 0) {
+                                  return (
+                                    <span className="text-xs text-green-600">
+                                      • {coveredItems}/{areaItems.length} covered
+                                    </span>
+                                  )
+                                }
+                                return null
+                              })()}
+                            </div>
                           </div>
                         )}
                       </button>
@@ -1154,7 +1204,7 @@ export const LessonPlans: React.FC = () => {
                                 <div className="flex-1">
                                   <p className="text-sm font-medium text-gray-900">{item.name}</p>
                                   <p className="text-xs text-gray-500 mt-1">{item.description}</p>
-                                  <div className="flex gap-1 mt-1">
+                                  <div className="flex flex-wrap gap-1 mt-1">
                                     {(item.type === 'GROUND' || item.type === 'BOTH') && (
                                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                         Ground
@@ -1165,6 +1215,17 @@ export const LessonPlans: React.FC = () => {
                                         Flight
                                       </span>
                                     )}
+                                    {plans
+                                      .filter(plan => plan.itemIds.includes(item.id))
+                                      .map(plan => (
+                                        <span 
+                                          key={plan.id}
+                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
+                                        >
+                                          Lesson {plan.orderNumber}
+                                        </span>
+                                      ))
+                                    }
                                   </div>
                                 </div>
                               )}
@@ -1285,47 +1346,55 @@ export const LessonPlans: React.FC = () => {
               </div>
             </div>
 
-            <div className="divide-y divide-gray-200">
-              {plans.map((plan) => {
-                const isExpanded = expandedPlans.has(plan.id)
+            <SortableContext
+              items={plans.map(p => p.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="divide-y divide-gray-200">
+                {plans.map((plan) => {
+                  const isExpanded = expandedPlans.has(plan.id)
                 const isEditing = plan.isEditing || false
                 const planItems = studyItems.filter(item => plan.itemIds.includes(item.id))
 
                 return (
-                  <div key={plan.id} className="p-4">
-                    <div className="flex items-start justify-between">
-                      <button
-                        onClick={() => togglePlan(plan.id)}
-                        className="flex-1 flex items-start text-left"
-                      >
-                        {isExpanded ? (
-                          <ChevronDownIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
-                        ) : (
-                          <ChevronRightIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
-                        )}
-                        <div className="flex-1">
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={plan.title}
-                              onChange={(e) => updatePlanField(plan.id, 'title', e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-full px-2 py-1 text-sm font-medium border border-gray-300 rounded"
-                            />
-                          ) : (
-                            <>
-                              <p className="text-sm font-medium text-gray-900">
-                                Lesson {plan.orderNumber}: {plan.title}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {planItems.length} study items • Est. {plan.estimatedDuration.ground}min ground, {plan.estimatedDuration.flight}hr flight
-                              </p>
-                            </>
-                          )}
+                  <SortablePlan key={plan.id} plan={plan}>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start flex-1">
+                          {!isEditing && <DragHandle className="mt-1 mr-2" />}
+                          <button
+                            onClick={() => togglePlan(plan.id)}
+                            className="flex-1 flex items-start text-left"
+                          >
+                            {isExpanded ? (
+                              <ChevronDownIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+                            ) : (
+                              <ChevronRightIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+                            )}
+                            <div className="flex-1">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={plan.title}
+                                  onChange={(e) => updatePlanField(plan.id, 'title', e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-full px-2 py-1 text-sm font-medium border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    Lesson {plan.orderNumber}: {plan.title}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {planItems.length} study items • Est. {plan.estimatedDuration.ground}min ground, {plan.estimatedDuration.flight}hr flight
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                          </button>
                         </div>
-                      </button>
-                      <div className="flex items-center space-x-2 ml-4">
-                        {isEditing ? (
+                        <div className="flex items-center space-x-2 ml-4">
+                          {isEditing ? (
                           <>
                             <button
                               onClick={() => handleSavePlan(plan)}
@@ -1465,7 +1534,23 @@ export const LessonPlans: React.FC = () => {
                                         onClick={() => togglePlanArea(plan.id, area.id)}
                                         className="w-full px-3 py-2 text-left flex items-center justify-between hover:bg-gray-50"
                                       >
-                                        <span className="text-sm font-medium text-gray-700">{area.name}</span>
+                                        <div className="flex items-center space-x-2">
+                                          <span className="text-sm font-medium text-gray-700">{area.name}</span>
+                                          {(() => {
+                                            const selectedCount = areaItems.filter(item => {
+                                              const types = plan.selectedItemTypes?.get(item.id)
+                                              return types && types.size > 0
+                                            }).length
+                                            if (selectedCount > 0) {
+                                              return (
+                                                <span className="text-xs text-gray-500">
+                                                  ({selectedCount}/{areaItems.length} selected)
+                                                </span>
+                                              )
+                                            }
+                                            return null
+                                          })()}
+                                        </div>
                                         {isAreaExpanded ? (
                                           <ChevronDownIcon className="h-4 w-4 text-gray-400" />
                                         ) : (
@@ -1580,11 +1665,14 @@ export const LessonPlans: React.FC = () => {
                         )}
                       </div>
                     )}
-                  </div>
+                    </div>
+                  </SortablePlan>
                 )
               })}
+              </div>
+            </SortableContext>
 
-              {plans.length === 0 && (
+            {plans.length === 0 && (
                 <div className="p-8 text-center">
                   <ClipboardDocumentListIcon className="mx-auto h-12 w-12 text-gray-300" />
                   <p className="mt-2 text-sm text-gray-500">No lesson plans yet</p>
@@ -1601,12 +1689,12 @@ export const LessonPlans: React.FC = () => {
           </div>
         </div>
       </div>
-      </div>
       <DragOverlay>
         {activeId ? (
           <div className="bg-white shadow-lg rounded p-2 opacity-90">
             {areas.find(a => a.id === activeId)?.name || 
-             studyItems.find(i => i.id === activeId)?.name}
+             studyItems.find(i => i.id === activeId)?.name ||
+             plans.find(p => p.id === activeId)?.title}
           </div>
         ) : null}
       </DragOverlay>
