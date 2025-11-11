@@ -538,6 +538,8 @@ export const LessonPlans: React.FC = () => {
       type: item.type,
       description: item.description,
       evaluationCriteria: item.evaluationCriteria,
+      acsCodeMappings: item.acsCodeMappings || [],
+      referenceMaterials: item.referenceMaterials || []
     })
   }
 
@@ -551,6 +553,7 @@ export const LessonPlans: React.FC = () => {
         type: editingItemData.type,
         description: editingItemData.description?.trim() || '',
         evaluationCriteria: editingItemData.evaluationCriteria?.trim() || '',
+        acsCodeMappings: editingItemData.acsCodeMappings || []
       })
       
       // Update local state
@@ -562,6 +565,7 @@ export const LessonPlans: React.FC = () => {
               type: editingItemData.type!,
               description: editingItemData.description?.trim() || '',
               evaluationCriteria: editingItemData.evaluationCriteria?.trim() || '',
+              acsCodeMappings: editingItemData.acsCodeMappings || []
             } 
           : item
       ))
@@ -1146,6 +1150,31 @@ export const LessonPlans: React.FC = () => {
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
                             rows={2}
                           />
+                          <textarea
+                            placeholder="Evaluation Criteria (How will proficiency be measured?)"
+                            value={newItemData.evaluationCriteria}
+                            onChange={(e) => setNewItemData({ ...newItemData, evaluationCriteria: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                            rows={2}
+                          />
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              ACS Code Mappings
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Enter ACS codes separated by commas (e.g., PA.I.A, PA.I.B)"
+                              value={newItemData.acsCodeMappings?.join(', ')}
+                              onChange={(e) => {
+                                const codes = e.target.value
+                                  .split(',')
+                                  .map(code => code.trim())
+                                  .filter(code => code.length > 0)
+                                setNewItemData({ ...newItemData, acsCodeMappings: codes })
+                              }}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                            />
+                          </div>
                           <div className="flex justify-end space-x-2">
                             <button
                               onClick={() => {
@@ -1209,11 +1238,41 @@ export const LessonPlans: React.FC = () => {
                                     className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
                                     rows={2}
                                   />
+                                  <textarea
+                                    placeholder="Evaluation Criteria"
+                                    value={editingItemData.evaluationCriteria || ''}
+                                    onChange={(e) => setEditingItemData({ ...editingItemData, evaluationCriteria: e.target.value })}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    rows={2}
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="ACS codes (comma separated)"
+                                    value={editingItemData.acsCodeMappings?.join(', ') || ''}
+                                    onChange={(e) => {
+                                      const codes = e.target.value
+                                        .split(',')
+                                        .map(code => code.trim())
+                                        .filter(code => code.length > 0)
+                                      setEditingItemData({ ...editingItemData, acsCodeMappings: codes })
+                                    }}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                  />
                                 </div>
                               ) : (
                                 <div className="flex-1">
                                   <p className="text-sm font-medium text-gray-900">{item.name}</p>
                                   <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                                  {item.evaluationCriteria && (
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      <span className="font-medium">Evaluation:</span> {item.evaluationCriteria}
+                                    </p>
+                                  )}
+                                  {item.acsCodeMappings && item.acsCodeMappings.length > 0 && (
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      <span className="font-medium">ACS:</span> {item.acsCodeMappings.join(', ')}
+                                    </p>
+                                  )}
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {(item.type === 'GROUND' || item.type === 'BOTH') && (
                                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
