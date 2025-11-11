@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   collection,
   query,
@@ -61,12 +61,15 @@ interface EditingLessonPlan extends LessonPlan {
 export const LessonPlans: React.FC = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   
   const [lessonPlans, setLessonPlans] = useState<Map<Certificate, EditingLessonPlan[]>>(new Map())
   const [studyAreas, setStudyAreas] = useState<Map<Certificate, StudyArea[]>>(new Map())
   const [studyItems, setStudyItems] = useState<StudyItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedCertificate, setSelectedCertificate] = useState<Certificate>('PRIVATE')
+  const [selectedCertificate, setSelectedCertificate] = useState<Certificate>(
+    (location.state as any)?.selectedCertificate || 'PRIVATE'
+  )
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
   const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set())
   const [editingArea, setEditingArea] = useState<string | null>(null)
@@ -99,6 +102,13 @@ export const LessonPlans: React.FC = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
+
+  // Clear location state after using it
+  useEffect(() => {
+    if (location.state) {
+      window.history.replaceState({}, document.title)
+    }
+  }, [location])
 
   useEffect(() => {
     if (!workspaceId) {

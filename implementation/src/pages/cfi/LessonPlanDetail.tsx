@@ -114,7 +114,7 @@ export const LessonPlanDetail: React.FC = () => {
           const actualPlanId = isDuplicating ? planId.replace('duplicate-', '') : planId
           const planDoc = await getDoc(doc(db, 'lessonPlans', actualPlanId))
           if (!planDoc.exists()) {
-            navigate('/cfi/curriculum')
+            navigate('/cfi/curriculum', { state: { selectedCertificate: certificate?.toUpperCase() as Certificate } })
             return
           }
 
@@ -189,7 +189,7 @@ export const LessonPlanDetail: React.FC = () => {
         await updateDoc(doc(db, 'lessonPlans', planId), planData)
       }
 
-      navigate('/cfi/curriculum')
+      navigate('/cfi/curriculum', { state: { selectedCertificate: certificate?.toUpperCase() as Certificate } })
     } catch (error) {
       // Silently handle error
     } finally {
@@ -334,6 +334,7 @@ export const LessonPlanDetail: React.FC = () => {
       <div className="mb-6">
         <Link
           to="/cfi/curriculum"
+          state={{ selectedCertificate: certificate?.toUpperCase() as Certificate }}
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-1" />
