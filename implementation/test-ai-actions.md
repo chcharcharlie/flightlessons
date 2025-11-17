@@ -1,6 +1,8 @@
-# AI Assistant Testing Guide
+# AI Assistant Testing Guide - Updated with Tool Use
 
-## Test Cases to Verify JSON Hiding
+⚡ **UPDATE**: The AI assistant now uses Anthropic's native tool use feature. This means Claude directly executes curriculum operations and formats the results naturally. No more JSON parsing!
+
+## Test Cases for New Tool-Based Implementation
 
 ### 1. List Study Areas
 **User Input**: "what study areas do we have right now"
@@ -40,11 +42,12 @@
 
 ## What Was Fixed
 
-1. **JSON Hiding**: The AI now removes JSON blocks before showing responses to users
-2. **Context Detection**: Uses sessionStorage to detect which certificate tab is active
-3. **Automatic Execution**: JSON actions are parsed and executed server-side
-4. **Better Error Handling**: Shows user-friendly messages if workspace access fails
-5. **Enhanced Prompting**: Much clearer instructions to the AI about never showing JSON
+1. **Complete Redesign**: Switched from JSON parsing to Anthropic's native tool use
+2. **Proper MCP Pattern**: AI now acts as a true tool-using assistant
+3. **Natural Responses**: Claude receives results and formats them conversationally  
+4. **Context Detection**: Uses sessionStorage to detect which certificate tab is active
+5. **Better Error Handling**: Shows user-friendly messages if workspace access fails
+6. **Comprehensive Tools**: Full CRUD operations for all curriculum types
 
 ## If Issues Persist
 
