@@ -618,7 +618,7 @@ Be helpful and conversational. After using a tool, explain the results in a frie
 
       // Call Anthropic with tools
       const response = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5',
         max_tokens: 4000,
         temperature: 0.7,
         system: systemPrompt,
@@ -644,7 +644,7 @@ Be helpful and conversational. After using a tool, explain the results in a frie
 
           // Get Claude's response after tool use
           const toolResponse = await anthropic.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-5',
             max_tokens: 1000,
             system: systemPrompt,
             messages: [
