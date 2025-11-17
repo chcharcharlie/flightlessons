@@ -63,6 +63,8 @@ export interface ReferenceMaterial {
   type: 'link' | 'file'
   name: string
   url: string
+  note?: string
+  fileId?: string // For tracking uploaded files
 }
 
 export interface LessonPlan {

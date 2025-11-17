@@ -7,7 +7,10 @@ service firebase.storage {
     }
     
     function isCFI() {
-      return isSignedIn() && request.auth.token.role == 'CFI';
+      return isSignedIn() && (
+        request.auth.token.role == 'CFI' ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'CFI'
+      );
     }
     
     function isOwner(userId) {
@@ -17,7 +20,7 @@ service firebase.storage {
     // Reference materials for study items
     match /workspaces/{workspaceId}/materials/{fileName} {
       allow read: if isSignedIn();
-      allow write: if isCFI() && 
+      allow write: if isSignedIn() && 
         firestore.get(/databases/(default)/documents/workspaces/$(workspaceId)).data.cfiUid == request.auth.uid;
     }
     
@@ -30,7 +33,10 @@ service firebase.storage {
     // Lesson attachments
     match /lessons/{lessonId}/attachments/{fileName} {
       allow read: if isSignedIn();
-      allow write: if isCFI();
+      allow write: if isSignedIn() && (
+        request.auth.token.role == 'CFI' ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'CFI'
+      );
     }
   }
 }

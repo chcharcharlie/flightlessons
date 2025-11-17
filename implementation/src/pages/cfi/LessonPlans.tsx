@@ -24,9 +24,10 @@ import {
   ChevronRightIcon,
   CheckIcon,
   XMarkIcon,
-  CalendarDaysIcon,
   ClipboardDocumentListIcon,
   Bars3Icon,
+  LinkIcon,
+  DocumentIcon,
 } from '@heroicons/react/24/outline'
 import {
   DndContext,
@@ -39,8 +40,6 @@ import {
   DragOverEvent,
   DragStartEvent,
   DragOverlay,
-  Active,
-  Over,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -68,7 +67,9 @@ export const LessonPlans: React.FC = () => {
   const [studyItems, setStudyItems] = useState<StudyItem[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate>(
-    (location.state as any)?.selectedCertificate || 'PRIVATE'
+    (location.state as any)?.selectedCertificate || 
+    (sessionStorage.getItem('selectedCertificate') as Certificate) ||
+    'PRIVATE'
   )
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
   const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set())
@@ -92,6 +93,114 @@ export const LessonPlans: React.FC = () => {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overId, setOverId] = useState<string | null>(null)
   
+  const loadStudyData = async () => {
+    if (!workspaceId) {
+      setLoading(false)
+      return
+    }
+
+    try {
+      // Load study areas and items
+      const workspaceRef = doc(db, 'workspaces', workspaceId)
+      const areasSnapshot = await getDocs(collection(workspaceRef, 'studyAreas'))
+      
+      // Create a map of certificates to areas
+      const areasMap = new Map<Certificate, StudyArea[]>()
+      const allAreas: StudyArea[] = []
+      
+      areasSnapshot.docs.forEach(doc => {
+        const data = doc.data()
+        const area: StudyArea = {
+          id: doc.id,
+          name: data.name,
+          certificate: data.certificate,
+          order: data.orderNumber || 0,
+          cfiWorkspaceId: workspaceId
+        }
+        
+        allAreas.push(area)
+        
+        const certAreas = areasMap.get(area.certificate) || []
+        certAreas.push(area)
+        areasMap.set(area.certificate, certAreas.sort((a, b) => a.order - b.order))
+      })
+      
+      setStudyAreas(areasMap)
+      
+      // Load all study items
+      const itemsSnapshot = await getDocs(collection(workspaceRef, 'studyItems'))
+      const allItems: StudyItem[] = []
+      
+      itemsSnapshot.docs.forEach(doc => {
+        const data = doc.data()
+        allItems.push({
+          id: doc.id,
+          name: data.name,
+          type: data.type,
+          description: data.description || '',
+          evaluationCriteria: data.evaluationCriteria || '',
+          acsCodeMappings: data.acsCodeMappings || [],
+          referenceMaterials: data.referenceMaterials || [],
+          areaId: data.studyAreaId,
+          order: data.orderNumber || 0,
+          cfiWorkspaceId: workspaceId
+        })
+      })
+      
+      setStudyItems(allItems)
+      
+      // Load lesson plans
+      const certificates: Certificate[] = ['PRIVATE', 'INSTRUMENT', 'COMMERCIAL']
+      const plansMap = new Map<Certificate, EditingLessonPlan[]>()
+      
+      for (const cert of certificates) {
+        const plansQuery = query(
+          collection(db, 'lessonPlans'),
+          where('certificate', '==', cert),
+          where('cfiWorkspaceId', '==', workspaceId),
+          orderBy('orderNumber', 'asc')
+        )
+        
+        const plansSnapshot = await getDocs(plansQuery)
+        const plans = plansSnapshot.docs.map(doc => {
+          const planData = doc.data() as LessonPlan
+          const selectedItemTypes = new Map<string, Set<'GROUND' | 'FLIGHT'>>()
+          
+          // Initialize selectedItemTypes based on existing items (assuming both for BOTH type items)
+          planData.itemIds.forEach(itemId => {
+            const item = allItems.find(i => i.id === itemId)
+            if (item) {
+              if (item.type === 'GROUND') {
+                selectedItemTypes.set(itemId, new Set(['GROUND']))
+              } else if (item.type === 'FLIGHT') {
+                selectedItemTypes.set(itemId, new Set(['FLIGHT']))
+              } else if (item.type === 'BOTH') {
+                selectedItemTypes.set(itemId, new Set(['GROUND', 'FLIGHT']))
+              }
+            }
+          })
+          
+          return {
+            id: doc.id,
+            ...planData,
+            isEditing: false,
+            selectedItems: new Set(planData.itemIds),
+            selectedItemTypes,
+            expandedAreas: new Set(),
+          } as EditingLessonPlan
+        })
+        
+        plansMap.set(cert, plans)
+      }
+      
+      setLessonPlans(plansMap)
+    } catch (error) {
+      console.error('Error loading data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+  
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -111,91 +220,33 @@ export const LessonPlans: React.FC = () => {
   }, [location])
 
   useEffect(() => {
-    if (!workspaceId) {
-      setLoading(false)
-      return
-    }
-
-    const loadData = async () => {
-      try {
-        // Load study areas and items
-        const workspaceRef = doc(db, 'workspaces', workspaceId)
-        const areasSnapshot = await getDocs(collection(workspaceRef, 'studyAreas'))
-        const itemsSnapshot = await getDocs(collection(workspaceRef, 'studyItems'))
-        
-        const allItems = itemsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as StudyItem))
-          .sort((a, b) => (a.order || 0) - (b.order || 0))
-        setStudyItems(allItems)
-        
-        // Organize areas by certificate
-        const areasMap = new Map<Certificate, StudyArea[]>()
-        const certificates: Certificate[] = ['PRIVATE', 'INSTRUMENT', 'COMMERCIAL']
-        
-        for (const cert of certificates) {
-          const certAreas = areasSnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as StudyArea))
-            .filter(area => area.certificate === cert)
-            .sort((a, b) => a.order - b.order)
-          areasMap.set(cert, certAreas)
-        }
-        setStudyAreas(areasMap)
-        
-        // Load lesson plans
-        const plansMap = new Map<Certificate, EditingLessonPlan[]>()
-        
-        for (const cert of certificates) {
-          const plansQuery = query(
-            collection(db, 'lessonPlans'),
-            where('certificate', '==', cert),
-            where('cfiWorkspaceId', '==', workspaceId),
-            orderBy('orderNumber', 'asc')
-          )
-          
-          const plansSnapshot = await getDocs(plansQuery)
-          const plans = plansSnapshot.docs.map(doc => {
-            const planData = doc.data() as LessonPlan
-            const selectedItemTypes = new Map<string, Set<'GROUND' | 'FLIGHT'>>()
-            
-            // Initialize selectedItemTypes based on existing items (assuming both for BOTH type items)
-            planData.itemIds.forEach(itemId => {
-              const item = allItems.find(i => i.id === itemId)
-              if (item) {
-                if (item.type === 'GROUND') {
-                  selectedItemTypes.set(itemId, new Set(['GROUND']))
-                } else if (item.type === 'FLIGHT') {
-                  selectedItemTypes.set(itemId, new Set(['FLIGHT']))
-                } else if (item.type === 'BOTH') {
-                  selectedItemTypes.set(itemId, new Set(['GROUND', 'FLIGHT']))
-                }
-              }
-            })
-            
-            return {
-              id: doc.id,
-              ...planData,
-              isEditing: false,
-              selectedItems: new Set(planData.itemIds),
-              selectedItemTypes,
-              expandedAreas: new Set(),
-            } as EditingLessonPlan
-          })
-          
-          plansMap.set(cert, plans)
-        }
-        
-        setLessonPlans(plansMap)
-      } catch (error) {
-        console.error('Error loading data:', error)
-      } finally {
-        setLoading(false)
+    loadStudyData()
+  }, [workspaceId])
+  
+  useEffect(() => {
+    sessionStorage.setItem('selectedCertificate', selectedCertificate)
+  }, [selectedCertificate])
+  
+  // Listen for refresh events from AI chat
+  useEffect(() => {
+    const handleRefresh = (event: CustomEvent) => {
+      const certificate = event.detail?.certificate
+      if (!certificate || certificate === selectedCertificate) {
+        loadStudyData() // Call the loadStudyData function
       }
     }
-
-    loadData()
-  }, [workspaceId])
+    
+    // Import and subscribe to events
+    import('@/lib/events').then(({ curriculumEvents }) => {
+      curriculumEvents.addEventListener('curriculum-refresh', handleRefresh as any)
+    })
+    
+    return () => {
+      import('@/lib/events').then(({ curriculumEvents }) => {
+        curriculumEvents.removeEventListener('curriculum-refresh', handleRefresh as any)
+      })
+    }
+  }, [selectedCertificate, workspaceId])
 
   const getCertificateFullName = (cert: Certificate) => {
     switch (cert) {
@@ -735,6 +786,7 @@ export const LessonPlans: React.FC = () => {
         objectives: plan.objectives,
         itemIds: itemIds,
         planDescription: plan.planDescription,
+        referenceMaterials: plan.referenceMaterials || [],
         preStudyHomework: plan.preStudyHomework,
         estimatedDuration: plan.estimatedDuration,
         updatedAt: Timestamp.now()
@@ -977,23 +1029,44 @@ export const LessonPlans: React.FC = () => {
 
       {/* Certificate Tabs */}
       <div className="mt-6 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          {(['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'] as Certificate[]).map((cert) => (
-            <button
-              key={cert}
-              onClick={() => setSelectedCertificate(cert)}
-              className={`
-                py-2 px-1 border-b-2 font-medium text-sm
-                ${selectedCertificate === cert
-                  ? 'border-sky text-sky'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+        <div className="flex justify-between items-end">
+          <nav className="-mb-px flex space-x-8">
+            {(['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'] as Certificate[]).map((cert) => (
+              <button
+                key={cert}
+                onClick={() => setSelectedCertificate(cert)}
+                className={`
+                  py-2 px-1 border-b-2 font-medium text-sm
+                  ${selectedCertificate === cert
+                    ? 'border-sky text-sky'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }
+                `}
+              >
+                {getCertificateFullName(cert)}
+              </button>
+            ))}
+          </nav>
+          <button
+            onClick={async () => {
+              if (confirm(`Are you sure you want to delete ALL curriculum items for ${getCertificateFullName(selectedCertificate)}? This action cannot be undone.`)) {
+                try {
+                  const { bulkDeleteCurriculum } = await import('@/lib/bulk-operations')
+                  const result = await bulkDeleteCurriculum(workspaceId, selectedCertificate, 'all')
+                  alert(result.message)
+                  // Reload the data
+                  loadStudyData()
+                } catch (error: any) {
+                  alert(`Error deleting curriculum: ${error.message}`)
                 }
-              `}
-            >
-              {getCertificateFullName(cert)}
-            </button>
-          ))}
-        </nav>
+              }
+            }}
+            className="mb-2 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+          >
+            <TrashIcon className="h-4 w-4 inline mr-1" />
+            Delete All
+          </button>
+        </div>
       </div>
 
       {/* Two Column Layout */}
@@ -1670,6 +1743,49 @@ export const LessonPlans: React.FC = () => {
                                 })}
                               </div>
                             </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Reference Materials
+                              </label>
+                              <div className="space-y-1">
+                                {(plan.referenceMaterials || []).map((material, index) => (
+                                  <div key={index} className="p-1.5 bg-gray-50 rounded text-xs">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center space-x-1 flex-1">
+                                        {material.type === 'link' ? (
+                                          <LinkIcon className="h-3 w-3 text-gray-400" />
+                                        ) : (
+                                          <DocumentIcon className="h-3 w-3 text-gray-400" />
+                                        )}
+                                        <span className="text-gray-700">{material.name}</span>
+                                      </div>
+                                      <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updatedMaterials = [...(plan.referenceMaterials || [])]
+                                        updatedMaterials.splice(index, 1)
+                                        updatePlanField(plan.id, 'referenceMaterials', updatedMaterials)
+                                      }}
+                                      className="text-red-500 hover:text-red-700"
+                                    >
+                                      <TrashIcon className="h-3 w-3" />
+                                    </button>
+                                    </div>
+                                    {material.note && (
+                                      <p className="text-xs text-gray-500 mt-1 ml-4">{material.note}</p>
+                                    )}
+                                  </div>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/cfi/curriculum/${selectedCertificate.toLowerCase()}/${plan.id}`)}
+                                  className="text-xs text-sky hover:text-sky-600"
+                                >
+                                  Edit reference materials in full view →
+                                </button>
+                              </div>
+                            </div>
                           </>
                         ) : (
                           <>
@@ -1724,6 +1840,38 @@ export const LessonPlans: React.FC = () => {
                                             Flight
                                           </span>
                                         )}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {plan.referenceMaterials && plan.referenceMaterials.length > 0 && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-700">Reference Materials</p>
+                                <ul className="mt-1 space-y-1">
+                                  {plan.referenceMaterials.map((material, index) => (
+                                    <li key={index} className="text-sm text-gray-600">
+                                      <div className="flex items-start">
+                                        {material.type === 'link' ? (
+                                          <LinkIcon className="h-3 w-3 text-gray-400 mr-2 mt-0.5" />
+                                        ) : (
+                                          <DocumentIcon className="h-3 w-3 text-gray-400 mr-2 mt-0.5" />
+                                        )}
+                                        <div>
+                                          <a 
+                                            href={material.url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-sky hover:text-sky-600 hover:underline"
+                                          >
+                                            {material.name}
+                                          </a>
+                                          {material.note && (
+                                            <p className="text-xs text-gray-500 mt-0.5">{material.note}</p>
+                                          )}
+                                        </div>
                                       </div>
                                     </li>
                                   ))}

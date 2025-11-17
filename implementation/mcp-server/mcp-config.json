@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "flightlessons-curriculum": {
+      "command": "node",
+      "args": ["/Users/charlie/repos/FlightLessons/implementation/mcp-server/dist/index.js"],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/your/service-account.json"
+      }
+    }
+  }
+}

@@ -9,7 +9,6 @@ import {
   updateDoc,
   query,
   where,
-  orderBy,
   Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -29,7 +28,11 @@ import {
   DocumentIcon,
   ChevronRightIcon,
   ChevronDownIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline'
+import { ReferenceMaterialModal } from '@/components/ReferenceMaterialModal'
+import { storage } from '@/lib/firebase'
+import { ref, listAll, getDownloadURL } from 'firebase/storage'
 
 export const LessonPlanDetail: React.FC = () => {
   const { certificate, planId } = useParams<{ certificate: string; planId: string }>()
@@ -50,6 +53,9 @@ export const LessonPlanDetail: React.FC = () => {
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
   const [planDescription, setPlanDescription] = useState('')
   const [referenceMaterials, setReferenceMaterials] = useState<ReferenceMaterial[]>([])
+  const [showReferenceModal, setShowReferenceModal] = useState(false)
+  const [editingMaterialIndex, setEditingMaterialIndex] = useState<number | null>(null)
+  const [existingFiles, setExistingFiles] = useState<{ id: string; name: string; url: string }[]>([])
   const [preStudyHomework, setPreStudyHomework] = useState('')
   const [groundDuration, setGroundDuration] = useState(60)
   const [flightDuration, setFlightDuration] = useState(1.5)
@@ -57,6 +63,40 @@ export const LessonPlanDetail: React.FC = () => {
   const workspaceId = user?.cfiWorkspaceId || ''
   const isNewPlan = planId === 'new'
   const isDuplicating = planId?.startsWith('duplicate-')
+
+  // Fetch existing files when modal is opened
+  useEffect(() => {
+    if (showReferenceModal && workspaceId) {
+      const fetchExistingFiles = async () => {
+        try {
+          const materialsRef = ref(storage, `workspaces/${workspaceId}/materials`)
+          const filesList = await listAll(materialsRef)
+          
+          const filesData = await Promise.all(
+            filesList.items.map(async (item) => {
+              const url = await getDownloadURL(item)
+              const fullName = item.name
+              const originalName = fullName.includes('_') 
+                ? fullName.substring(fullName.indexOf('_') + 1)
+                : fullName
+              
+              return {
+                id: fullName,
+                name: originalName,
+                url
+              }
+            })
+          )
+          
+          setExistingFiles(filesData)
+        } catch (error) {
+          console.error('Error fetching existing files:', error)
+        }
+      }
+      
+      fetchExistingFiles()
+    }
+  }, [showReferenceModal, workspaceId])
 
   useEffect(() => {
     if (!workspaceId || !certificate) {
@@ -111,7 +151,7 @@ export const LessonPlanDetail: React.FC = () => {
 
         // Load existing plan if editing or duplicating
         if (!isNewPlan) {
-          const actualPlanId = isDuplicating ? planId.replace('duplicate-', '') : planId
+          const actualPlanId = isDuplicating ? planId!.replace('duplicate-', '') : planId!
           const planDoc = await getDoc(doc(db, 'lessonPlans', actualPlanId))
           if (!planDoc.exists()) {
             navigate('/cfi/curriculum', { state: { selectedCertificate: certificate?.toUpperCase() as Certificate } })
@@ -186,7 +226,7 @@ export const LessonPlanDetail: React.FC = () => {
           createdAt: Timestamp.now(),
         })
       } else {
-        await updateDoc(doc(db, 'lessonPlans', planId), planData)
+        await updateDoc(doc(db, 'lessonPlans', planId!), planData)
       }
 
       navigate('/cfi/curriculum', { state: { selectedCertificate: certificate?.toUpperCase() as Certificate } })
@@ -213,24 +253,8 @@ export const LessonPlanDetail: React.FC = () => {
     }
   }
 
-  const addReferenceMaterial = () => {
-    setReferenceMaterials([
-      ...referenceMaterials,
-      { type: 'link', name: '', url: '' }
-    ])
-  }
 
-  const updateReferenceMaterial = (index: number, field: keyof ReferenceMaterial, value: string) => {
-    const updated = [...referenceMaterials]
-    updated[index] = { ...updated[index], [field]: value }
-    setReferenceMaterials(updated)
-  }
-
-  const removeReferenceMaterial = (index: number) => {
-    setReferenceMaterials(referenceMaterials.filter((_, i) => i !== index))
-  }
-
-  const toggleItemSelection = (itemId: string, type: 'GROUND' | 'FLIGHT', item: StudyItem) => {
+  const toggleItemSelection = (itemId: string, type: 'GROUND' | 'FLIGHT') => {
     const newSelected = new Map(selectedItems)
     const currentTypes = newSelected.get(itemId) || new Set<'GROUND' | 'FLIGHT'>()
     const newTypes = new Set(currentTypes)
@@ -509,7 +533,7 @@ export const LessonPlanDetail: React.FC = () => {
                           </span>
                           <button
                             type="button"
-                            onClick={() => toggleItemSelection(item.id, 'GROUND', item)}
+                            onClick={() => toggleItemSelection(item.id, 'GROUND')}
                             className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600"
                             title="Remove from lesson"
                           >
@@ -529,7 +553,7 @@ export const LessonPlanDetail: React.FC = () => {
                           </span>
                           <button
                             type="button"
-                            onClick={() => toggleItemSelection(item.id, 'FLIGHT', item)}
+                            onClick={() => toggleItemSelection(item.id, 'FLIGHT')}
                             className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600"
                             title="Remove from lesson"
                           >
@@ -617,7 +641,7 @@ export const LessonPlanDetail: React.FC = () => {
                                 <input
                                   type="checkbox"
                                   checked={isItemSelected(item.id, 'GROUND')}
-                                  onChange={() => toggleItemSelection(item.id, 'GROUND', item)}
+                                  onChange={() => toggleItemSelection(item.id, 'GROUND')}
                                   className="h-4 w-4 text-sky focus:ring-sky border-gray-300 rounded"
                                 />
                                 <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">
@@ -631,7 +655,7 @@ export const LessonPlanDetail: React.FC = () => {
                                 <input
                                   type="checkbox"
                                   checked={isItemSelected(item.id, 'FLIGHT')}
-                                  onChange={() => toggleItemSelection(item.id, 'FLIGHT', item)}
+                                  onChange={() => toggleItemSelection(item.id, 'FLIGHT')}
                                   className="h-4 w-4 text-sky focus:ring-sky border-gray-300 rounded"
                                 />
                                 <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">
@@ -689,7 +713,10 @@ export const LessonPlanDetail: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900">Reference Materials</h3>
             <button
               type="button"
-              onClick={addReferenceMaterial}
+              onClick={() => {
+                setEditingMaterialIndex(null)
+                setShowReferenceModal(true)
+              }}
               className="text-sm text-sky hover:text-sky-600"
             >
               <PlusIcon className="h-4 w-4 inline mr-1" />
@@ -697,45 +724,56 @@ export const LessonPlanDetail: React.FC = () => {
             </button>
           </div>
           
-          <div className="space-y-3">
-            {referenceMaterials.map((material, index) => (
-              <div key={index} className="flex items-start space-x-2">
-                <select
-                  value={material.type}
-                  onChange={(e) => updateReferenceMaterial(index, 'type', e.target.value)}
-                  className="rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
-                >
-                  <option value="link">Link</option>
-                  <option value="file">File</option>
-                </select>
-                <input
-                  type="text"
-                  value={material.name}
-                  onChange={(e) => updateReferenceMaterial(index, 'name', e.target.value)}
-                  placeholder="Material name"
-                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
-                />
-                <input
-                  type="url"
-                  value={material.url}
-                  onChange={(e) => updateReferenceMaterial(index, 'url', e.target.value)}
-                  placeholder="https://..."
-                  className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeReferenceMaterial(index)}
-                  className="text-gray-400 hover:text-red-600"
-                >
-                  <XMarkIcon className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            
-            {referenceMaterials.length === 0 && (
-              <p className="text-sm text-gray-500">No reference materials added</p>
-            )}
-          </div>
+          {referenceMaterials.length > 0 ? (
+            <div className="space-y-2">
+              {referenceMaterials.map((material, index) => (
+                <div key={index} className="flex items-start space-x-2 p-2 bg-gray-50 rounded group">
+                  {material.type === 'link' ? (
+                    <LinkIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                  ) : (
+                    <DocumentIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                  )}
+                  <div className="flex-1">
+                    <a 
+                      href={material.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-sky hover:text-sky-600"
+                    >
+                      {material.name}
+                    </a>
+                    {material.note && (
+                      <p className="text-xs text-gray-500 mt-1">{material.note}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingMaterialIndex(index)
+                        setShowReferenceModal(true)
+                      }}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <span className="text-xs">Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = referenceMaterials.filter((_, i) => i !== index)
+                        setReferenceMaterials(updated)
+                      }}
+                      className="text-gray-400 hover:text-red-600"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No reference materials added</p>
+          )}
         </div>
 
         {/* Pre-Study Homework */}
@@ -771,6 +809,30 @@ export const LessonPlanDetail: React.FC = () => {
           </button>
         </div>
       </form>
+
+      {showReferenceModal && (
+        <ReferenceMaterialModal
+          isOpen={showReferenceModal}
+          onClose={() => {
+            setShowReferenceModal(false)
+            setEditingMaterialIndex(null)
+          }}
+          onSave={(material) => {
+            if (editingMaterialIndex !== null) {
+              const updated = [...referenceMaterials]
+              updated[editingMaterialIndex] = material
+              setReferenceMaterials(updated)
+            } else {
+              setReferenceMaterials([...referenceMaterials, material])
+            }
+            setShowReferenceModal(false)
+            setEditingMaterialIndex(null)
+          }}
+          initialMaterial={editingMaterialIndex !== null ? referenceMaterials[editingMaterialIndex] : undefined}
+          workspaceId={workspaceId}
+          existingFiles={existingFiles}
+        />
+      )}
     </div>
   )
 }

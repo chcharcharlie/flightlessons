@@ -1,43 +1,22 @@
 import * as admin from 'firebase-admin';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { beforeUserCreated } from 'firebase-functions/v2/identity';
+// import { beforeUserCreated } from 'firebase-functions/v2/identity';
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
+// Export AI chat function
+export { aiChat } from './ai-chat';
+
+// Export bulk operations
+export { bulkDeleteCurriculum } from './bulk-operations';
+
 const db = admin.firestore();
 const auth = admin.auth();
 
-// User creation trigger - create user document and workspace
-export const onUserCreated = beforeUserCreated(async (event) => {
-  const user = event.data;
-  if (!user) return;
-  
-  const { uid, email, displayName } = user;
-  
-  try {
-    // Create user document
-    const userRef = db.collection('users').doc(uid);
-    await userRef.set({
-      uid,
-      email: email || '',
-      displayName: displayName || email?.split('@')[0] || 'User',
-      role: 'STUDENT', // Default role, will be updated during registration
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      settings: {
-        notifications: {
-          email: true,
-          lessonReminders: true,
-        },
-      },
-    });
-    
-    // User document created successfully
-  } catch (error) {
-    throw error;
-  }
-});
+// User creation is now handled in the frontend during registration
+// This was causing deployment issues with blocking functions
 
 // Set user role (called during registration)
 export const setUserRole = onCall(async (request) => {

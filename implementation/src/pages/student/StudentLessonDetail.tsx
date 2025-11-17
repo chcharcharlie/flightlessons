@@ -13,7 +13,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   Lesson,
   User,
-  StudyArea,
   StudyItem,
   Progress,
 } from '@/types'
@@ -21,7 +20,8 @@ import {
   ArrowLeftIcon,
   CalendarDaysIcon,
   CheckCircleIcon,
-  ClockIcon,
+  LinkIcon,
+  DocumentIcon,
 } from '@heroicons/react/24/outline'
 
 export const StudentLessonDetail: React.FC = () => {
@@ -270,16 +270,31 @@ export const StudentLessonDetail: React.FC = () => {
         
         {lesson.referenceMaterials && lesson.referenceMaterials.length > 0 && (
           <div className="mb-4">
-            <p className="text-sm font-medium text-gray-700 mb-1">Reference Materials</p>
-            <ul className="text-sm text-gray-600 space-y-1">
+            <p className="text-sm font-medium text-gray-700 mb-2">Reference Materials</p>
+            <div className="space-y-2">
               {lesson.referenceMaterials.map((material, i) => (
-                <li key={i}>
-                  <a href={material.url} target="_blank" rel="noopener noreferrer" className="text-sky hover:text-sky-600">
-                    {material.name}
-                  </a>
-                </li>
+                <div key={i} className="flex items-start space-x-2 p-2 bg-gray-50 rounded">
+                  {material.type === 'link' ? (
+                    <LinkIcon className="h-4 w-4 text-gray-400 mt-0.5" />
+                  ) : (
+                    <DocumentIcon className="h-4 w-4 text-gray-400 mt-0.5" />
+                  )}
+                  <div className="flex-1">
+                    <a 
+                      href={material.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-sm text-sky hover:text-sky-600"
+                    >
+                      {material.name}
+                    </a>
+                    {material.note && (
+                      <p className="text-xs text-gray-500 mt-1">{material.note}</p>
+                    )}
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
         

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -16,6 +16,8 @@ import { Lessons } from './Lessons'
 import { LessonDetail } from './LessonDetail'
 import { LessonPlans } from './LessonPlans'
 import { LessonPlanDetail } from './LessonPlanDetail'
+import { FloatingChatButton } from '@/components/ai/FloatingChatButton'
+import { ChatWindow } from '@/components/ai/ChatWindow'
 
 const navigation = [
   { name: 'Dashboard', href: '/cfi', icon: HomeIcon },
@@ -28,6 +30,8 @@ const navigation = [
 export const CFIDashboard: React.FC = () => {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [chatContext, setChatContext] = useState<string>('')
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -92,6 +96,15 @@ export const CFIDashboard: React.FC = () => {
           <Route path="lessons/:lessonId" element={<LessonDetail />} />
         </Routes>
       </main>
+
+      {/* AI Assistant */}
+      <FloatingChatButton 
+        onClick={() => setIsChatOpen(true)}
+      />
+      <ChatWindow 
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+      />
     </div>
   )
 }

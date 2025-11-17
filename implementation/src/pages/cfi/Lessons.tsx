@@ -9,20 +9,22 @@ import {
   doc,
   getDoc,
   addDoc,
-  updateDoc,
   Timestamp,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { db, storage } from '@/lib/firebase'
+import { ref, listAll, getDownloadURL } from 'firebase/storage'
 import { useAuth } from '@/contexts/AuthContext'
-import { Lesson, Student, User, TrainingProgram, LessonPlan, StudyItem, StudyArea } from '@/types'
+import { Lesson, Student, User, TrainingProgram, LessonPlan, StudyItem, StudyArea, ReferenceMaterial } from '@/types'
+import { ReferenceMaterialModal } from '@/components/ReferenceMaterialModal'
 import {
   CalendarDaysIcon,
   PlusIcon,
-  ClockIcon,
   CheckCircleIcon,
-  XCircleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  LinkIcon,
+  DocumentIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline'
 
 export const Lessons: React.FC = () => {
@@ -51,6 +53,10 @@ export const Lessons: React.FC = () => {
   const [selectedItemTypes, setSelectedItemTypes] = useState<Map<string, Set<'GROUND' | 'FLIGHT'>>>(new Map())
   const [studyAreas, setStudyAreas] = useState<StudyArea[]>([])
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
+  const [referenceMaterials, setReferenceMaterials] = useState<ReferenceMaterial[]>([])
+  const [showReferenceModal, setShowReferenceModal] = useState(false)
+  const [editingMaterialIndex, setEditingMaterialIndex] = useState<number | null>(null)
+  const [existingFiles, setExistingFiles] = useState<{ id: string; name: string; url: string }[]>([])
 
   const workspaceId = user?.cfiWorkspaceId || ''
 
@@ -234,6 +240,8 @@ export const Lessons: React.FC = () => {
         setObjectives(plan.objectives ? plan.objectives.join('\n') : '')
         setPlanDescription(plan.planDescription || '')
         setPreStudyHomework(plan.preStudyHomework || '')
+        // Pre-populate reference materials from the lesson plan
+        setReferenceMaterials(plan.referenceMaterials || [])
         // Pre-select items from the lesson plan
         setSelectedItems(new Set(plan.itemIds))
         // Set default types for BOTH items (both ground and flight)
@@ -253,6 +261,7 @@ export const Lessons: React.FC = () => {
       setObjectives('')
       setPlanDescription('')
       setPreStudyHomework('')
+      setReferenceMaterials([])
       setSelectedItems(new Set())
       setSelectedItemTypes(new Map())
     }
@@ -282,6 +291,41 @@ export const Lessons: React.FC = () => {
     setFilteredAreas(programAreas)
   }, [selectedProgram, selectedStudent, students, studyAreas])
 
+  // Fetch existing files when modal is opened
+  useEffect(() => {
+    if (showReferenceModal && workspaceId) {
+      const fetchExistingFiles = async () => {
+        try {
+          const materialsRef = ref(storage, `workspaces/${workspaceId}/materials`)
+          const filesList = await listAll(materialsRef)
+          
+          const filesData = await Promise.all(
+            filesList.items.map(async (item) => {
+              const url = await getDownloadURL(item)
+              // Extract original file name from the stored name (remove timestamp prefix)
+              const fullName = item.name
+              const originalName = fullName.includes('_') 
+                ? fullName.substring(fullName.indexOf('_') + 1)
+                : fullName
+              
+              return {
+                id: fullName,
+                name: originalName,
+                url
+              }
+            })
+          )
+          
+          setExistingFiles(filesData)
+        } catch (error) {
+          console.error('Error fetching existing files:', error)
+        }
+      }
+      
+      fetchExistingFiles()
+    }
+  }, [showReferenceModal, workspaceId])
+
   const handleCreateLesson = async () => {
     console.log('handleCreateLesson called', { selectedStudent, selectedProgram })
     if (!selectedStudent || !selectedProgram) {
@@ -290,7 +334,7 @@ export const Lessons: React.FC = () => {
     }
 
     try {
-      let lessonData: any = {
+      const lessonData: Record<string, any> = {
         cfiWorkspaceId: workspaceId,
         studentUid: selectedStudent,
         programId: selectedProgram,
@@ -332,9 +376,9 @@ export const Lessons: React.FC = () => {
           if (planDescription || selectedLessonPlan.planDescription) {
             lessonData.planDescription = planDescription || selectedLessonPlan.planDescription
           }
-          if (selectedLessonPlan.referenceMaterials) {
-            lessonData.referenceMaterials = selectedLessonPlan.referenceMaterials
-          }
+          // Merge reference materials - add any custom ones to the lesson plan ones
+          const planMaterials = selectedLessonPlan.referenceMaterials || []
+          lessonData.referenceMaterials = [...planMaterials, ...referenceMaterials]
           if (preStudyHomework || selectedLessonPlan.preStudyHomework) {
             lessonData.preStudyHomework = preStudyHomework || selectedLessonPlan.preStudyHomework
           }
@@ -347,6 +391,7 @@ export const Lessons: React.FC = () => {
         }
         if (planDescription) lessonData.planDescription = planDescription
         if (preStudyHomework) lessonData.preStudyHomework = preStudyHomework
+        if (referenceMaterials.length > 0) lessonData.referenceMaterials = referenceMaterials
       }
 
       const docRef = await addDoc(collection(db, 'lessons'), lessonData)
@@ -822,6 +867,66 @@ export const Lessons: React.FC = () => {
             </div>
             )}
 
+            {/* Reference Materials Section */}
+            <div className="sm:col-span-2">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reference Materials (optional)
+                </label>
+                
+                {referenceMaterials.map((material, index) => (
+                  <div key={index} className="mb-2 p-3 bg-gray-50 rounded-md group">
+                    <div className="flex items-start space-x-2">
+                      {material.type === 'link' ? (
+                        <LinkIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      ) : (
+                        <DocumentIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{material.name}</p>
+                        {material.note && (
+                          <p className="text-xs text-gray-500 mt-1">{material.note}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingMaterialIndex(index)
+                            setShowReferenceModal(true)
+                          }}
+                          className="text-xs text-gray-400 hover:text-gray-600"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReferenceMaterials(materials => materials.filter((_, i) => i !== index))
+                          }}
+                          className="text-gray-400 hover:text-red-600"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingMaterialIndex(null)
+                    setShowReferenceModal(true)
+                  }}
+                  className="mt-2 inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <PlusIcon className="h-4 w-4 mr-1" />
+                  Add Reference Material
+                </button>
+              </div>
+            </div>
+
             <div className="sm:col-span-2">
               <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
                 Pre-lesson Notes (optional)
@@ -858,6 +963,7 @@ export const Lessons: React.FC = () => {
                 setSelectedItemTypes(new Map())
                 setExpandedAreas(new Set())
                 setFilteredAreas([])
+                setReferenceMaterials([])
               }}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
@@ -1034,6 +1140,31 @@ export const Lessons: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {/* Reference Material Modal */}
+      <ReferenceMaterialModal
+        isOpen={showReferenceModal}
+        onClose={() => {
+          setShowReferenceModal(false)
+          setEditingMaterialIndex(null)
+        }}
+        onSave={(material) => {
+          if (editingMaterialIndex !== null) {
+            // Edit existing
+            const updated = [...referenceMaterials]
+            updated[editingMaterialIndex] = material
+            setReferenceMaterials(updated)
+          } else {
+            // Add new
+            setReferenceMaterials([...referenceMaterials, material])
+          }
+          setShowReferenceModal(false)
+          setEditingMaterialIndex(null)
+        }}
+        initialMaterial={editingMaterialIndex !== null ? referenceMaterials[editingMaterialIndex] : undefined}
+        workspaceId={workspaceId}
+        existingFiles={existingFiles}
+      />
     </div>
   )
 }

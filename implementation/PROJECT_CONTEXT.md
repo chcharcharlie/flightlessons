@@ -54,12 +54,28 @@ This is a flight instruction management system built for CFIs (Certified Flight 
    - Students view their scheduled lessons
    - Detailed lesson view for both CFI and student
 
+6. **Reference Materials System**
+   - Modal-based interface for adding/editing reference materials
+   - Support for web links and file uploads
+   - Notes field for specifying relevant pages/sections
+   - Auto-population from lesson plan templates
+   - Consistent display across all views with icons
+
+### 🚧 In Progress Features
+
+1. **AI Assistant for Curriculum Management**
+   - Floating chat interface for CFIs
+   - Anthropic Claude integration via Cloud Functions
+   - MCP server for curriculum CRUD operations
+   - Document upload and processing capabilities
+   - Auto-generation of study areas, items, and lesson plans
+
 ### 🚧 Pending Features
 
 1. **ACS Mapping** - To be integrated into study items section
 2. **Progress Analytics** - Detailed reporting and charts
-3. **File Uploads** - Reference materials and documents
-4. **Notifications** - Email/in-app notifications for lessons
+3. **Notifications** - Email/in-app notifications for lessons
+4. **Advanced File Management** - Bulk uploads, file organization
 
 ## Important Implementation Details
 

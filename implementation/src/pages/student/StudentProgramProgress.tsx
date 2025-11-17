@@ -4,7 +4,7 @@ import { doc, getDoc, collection, query, where, getDocs, orderBy, Timestamp } fr
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { TrainingProgram, StudyArea, StudyItem, Progress, GroundScore, FlightScore, Lesson, LessonPlan } from '@/types'
-import { ChartBarIcon, BookOpenIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, CalendarDaysIcon, CheckCircleIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+import { ChartBarIcon, BookOpenIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, CalendarDaysIcon, CheckCircleIcon, DocumentTextIcon, LinkIcon, DocumentIcon } from '@heroicons/react/24/outline'
 
 export const StudentProgramProgress: React.FC = () => {
   const { programId } = useParams<{ programId: string }>()
@@ -545,15 +545,17 @@ export const StudentProgramProgress: React.FC = () => {
                           <p className="text-sm text-gray-500">
                             {formatLessonDate(lesson.scheduledDate)}
                           </p>
-                          {lesson.plannedRoute && (
+                          {lesson.items.length > 0 && (
                             <p className="text-xs text-gray-400 mt-1">
-                              Route: {lesson.plannedRoute}
+                              {lesson.items.length} items planned
                             </p>
                           )}
                         </div>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getLessonStatusColor(lesson.status)}`}>
-                          {lesson.status}
-                        </span>
+                        {lesson.scheduledDate && lesson.scheduledDate.toDate() < new Date() && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Past scheduled time
+                          </span>
+                        )}
                       </div>
                     </div>
                   </li>
@@ -561,9 +563,12 @@ export const StudentProgramProgress: React.FC = () => {
               </ul>
               {upcomingLessons.length > 5 && (
                 <div className="p-4 bg-gray-50">
-                  <p className="text-sm text-gray-500">
-                    {upcomingLessons.length - 5} more upcoming lessons
-                  </p>
+                  <button
+                    onClick={() => navigate('/student/lessons')}
+                    className="text-sm text-sky hover:text-sky-600"
+                  >
+                    View all {upcomingLessons.length} upcoming lessons →
+                  </button>
                 </div>
               )}
             </div>
@@ -609,16 +614,19 @@ export const StudentProgramProgress: React.FC = () => {
               </ul>
               {completedLessons.length > 5 && (
                 <div className="p-4 bg-gray-50">
-                  <p className="text-sm text-gray-500">
-                    {completedLessons.length - 5} more completed lessons
-                  </p>
+                  <button
+                    onClick={() => navigate('/student/lessons')}
+                    className="text-sm text-sky hover:text-sky-600"
+                  >
+                    View all {completedLessons.length} completed lessons →
+                  </button>
                 </div>
               )}
             </div>
           )}
 
           {/* No Lessons */}
-          {lessons.length === 0 && (
+          {upcomingLessons.length === 0 && completedLessons.length === 0 && (
             <div className="bg-white shadow rounded-lg p-6 text-center">
               <CalendarDaysIcon className="mx-auto h-12 w-12 text-gray-300" />
               <p className="mt-2 text-sm text-gray-500">No lessons scheduled yet</p>
@@ -729,6 +737,38 @@ export const StudentProgramProgress: React.FC = () => {
                                           Flight
                                         </span>
                                       )}
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {plan.referenceMaterials && plan.referenceMaterials.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-gray-700">Reference Materials</p>
+                              <ul className="mt-1 space-y-1">
+                                {plan.referenceMaterials.map((material, index) => (
+                                  <li key={index} className="text-sm text-gray-600">
+                                    <div className="flex items-start">
+                                      {material.type === 'link' ? (
+                                        <LinkIcon className="h-3 w-3 text-gray-400 mr-2 mt-0.5" />
+                                      ) : (
+                                        <DocumentIcon className="h-3 w-3 text-gray-400 mr-2 mt-0.5" />
+                                      )}
+                                      <div>
+                                        <a 
+                                          href={material.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-sky hover:text-sky-600 hover:underline"
+                                        >
+                                          {material.name}
+                                        </a>
+                                        {material.note && (
+                                          <p className="text-xs text-gray-500 mt-0.5">{material.note}</p>
+                                        )}
+                                      </div>
                                     </div>
                                   </li>
                                 ))}

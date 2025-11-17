@@ -11,8 +11,10 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
-import { db, functions } from '@/lib/firebase'
+import { db, functions, storage } from '@/lib/firebase'
+import { ref, listAll, getDownloadURL } from 'firebase/storage'
 import { useAuth } from '@/contexts/AuthContext'
+import { ReferenceMaterialModal } from '@/components/ReferenceMaterialModal'
 import {
   Lesson,
   User,
@@ -23,6 +25,7 @@ import {
   GroundScore,
   FlightScore,
   Progress,
+  ReferenceMaterial,
 } from '@/types'
 import {
   ArrowLeftIcon,
@@ -32,6 +35,9 @@ import {
   PlusIcon,
   ChevronRightIcon,
   ChevronDownIcon,
+  LinkIcon,
+  DocumentIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline'
 
 interface ItemWithSelection extends StudyItem {
@@ -65,6 +71,11 @@ export const LessonDetail: React.FC = () => {
   const [preStudyHomework, setPreStudyHomework] = useState('')
   const [plannedRoute, setPlannedRoute] = useState('')
   const [preNotes, setPreNotes] = useState('')
+  const [referenceMaterials, setReferenceMaterials] = useState<ReferenceMaterial[]>([])
+  const [showReferenceModal, setShowReferenceModal] = useState(false)
+  const [editingMaterialIndex, setEditingMaterialIndex] = useState<number | null>(null)
+  const [existingFiles, setExistingFiles] = useState<{ id: string; name: string; url: string }[]>([])
+  const [autoSaving, setAutoSaving] = useState(false)
   
   // Study items state for planning
   const [selectedItemsMap, setSelectedItemsMap] = useState<Map<string, ItemWithSelection>>(new Map())
@@ -198,6 +209,41 @@ export const LessonDetail: React.FC = () => {
       actualDate, actualTime, actualRoute, aircraft, weatherNotes, postNotes, selectedItemsMap, itemScores, itemNotes, items,
       initialActualDate, initialActualTime, initialItemScores])
 
+  // Fetch existing files when modal is opened
+  useEffect(() => {
+    if (showReferenceModal && user?.cfiWorkspaceId) {
+      const fetchExistingFiles = async () => {
+        try {
+          const materialsRef = ref(storage, `workspaces/${user.cfiWorkspaceId}/materials`)
+          const filesList = await listAll(materialsRef)
+          
+          const filesData = await Promise.all(
+            filesList.items.map(async (item) => {
+              const url = await getDownloadURL(item)
+              // Extract original file name from the stored name (remove timestamp prefix)
+              const fullName = item.name
+              const originalName = fullName.includes('_') 
+                ? fullName.substring(fullName.indexOf('_') + 1)
+                : fullName
+              
+              return {
+                id: fullName,
+                name: originalName,
+                url
+              }
+            })
+          )
+          
+          setExistingFiles(filesData)
+        } catch (error) {
+          console.error('Error fetching existing files:', error)
+        }
+      }
+      
+      fetchExistingFiles()
+    }
+  }, [showReferenceModal, user?.cfiWorkspaceId])
+
   useEffect(() => {
     if (!lessonId || !user?.cfiWorkspaceId) {
       setLoading(false)
@@ -231,33 +277,76 @@ export const LessonDetail: React.FC = () => {
         setPreStudyHomework(lessonData.preStudyHomework || '')
         setPlannedRoute(lessonData.plannedRoute || '')
         setPreNotes(lessonData.preNotes || '')
+        setReferenceMaterials(lessonData.referenceMaterials || [])
         
         // Initialize execution fields
         let autoPopulatedDate = ''
         let autoPopulatedTime = ''
         
         if (lessonData.actualDate) {
-          const actualDateObj = lessonData.actualDate.toDate()
-          const dateValue = actualDateObj.toISOString().split('T')[0]
-          const timeValue = actualDateObj.toTimeString().slice(0, 5)
-          setActualDate(dateValue)
-          setActualTime(timeValue)
-          // Set initial values to compare against
-          setInitialActualDate(dateValue)
-          setInitialActualTime(timeValue)
+          try {
+            // Check if it's a Firestore Timestamp
+            let actualDateObj: Date
+            if (typeof lessonData.actualDate.toDate === 'function') {
+              actualDateObj = lessonData.actualDate.toDate()
+            } else if (lessonData.actualDate instanceof Date) {
+              actualDateObj = lessonData.actualDate
+            } else if (typeof lessonData.actualDate === 'string') {
+              actualDateObj = new Date(lessonData.actualDate)
+            } else if (lessonData.actualDate.seconds !== undefined) {
+              // Handle raw Firestore timestamp format {seconds, nanoseconds}
+              actualDateObj = new Date(lessonData.actualDate.seconds * 1000)
+            } else {
+              // If it's something else, try to convert it
+              actualDateObj = new Date(lessonData.actualDate as any)
+            }
+            
+            const dateValue = actualDateObj.toISOString().split('T')[0]
+            const timeValue = actualDateObj.toTimeString().slice(0, 5)
+            setActualDate(dateValue)
+            setActualTime(timeValue)
+            // Set initial values to compare against
+            setInitialActualDate(dateValue)
+            setInitialActualTime(timeValue)
+          } catch (error) {
+            console.error('Error parsing actualDate:', error, lessonData.actualDate)
+            setActualDate('')
+            setActualTime('')
+            setInitialActualDate('')
+            setInitialActualTime('')
+          }
         } else if (lessonData.scheduledDate && lessonData.scheduledDate !== null) {
-          // Auto-populate from scheduled date if no actual date set
-          const scheduledDateObj = lessonData.scheduledDate.toDate()
-          // Only auto-populate if it's not an unscheduled lesson
-          if (scheduledDateObj.getFullYear() < 2099) {
-            autoPopulatedDate = scheduledDateObj.toISOString().split('T')[0]
-            autoPopulatedTime = scheduledDateObj.toTimeString().slice(0, 5)
-            setActualDate(autoPopulatedDate)
-            setActualTime(autoPopulatedTime)
-            // Set initial values to auto-populated values
-            setInitialActualDate(autoPopulatedDate)
-            setInitialActualTime(autoPopulatedTime)
-          } else {
+          try {
+            // Auto-populate from scheduled date if no actual date set
+            let scheduledDateObj: Date
+            if (typeof lessonData.scheduledDate.toDate === 'function') {
+              scheduledDateObj = lessonData.scheduledDate.toDate()
+            } else if (lessonData.scheduledDate instanceof Date) {
+              scheduledDateObj = lessonData.scheduledDate
+            } else if (lessonData.scheduledDate.seconds !== undefined) {
+              // Handle raw Firestore timestamp format {seconds, nanoseconds}
+              scheduledDateObj = new Date(lessonData.scheduledDate.seconds * 1000)
+            } else {
+              scheduledDateObj = new Date(lessonData.scheduledDate as any)
+            }
+            
+            // Only auto-populate if it's not an unscheduled lesson
+            if (scheduledDateObj.getFullYear() < 2099) {
+              autoPopulatedDate = scheduledDateObj.toISOString().split('T')[0]
+              autoPopulatedTime = scheduledDateObj.toTimeString().slice(0, 5)
+              setActualDate(autoPopulatedDate)
+              setActualTime(autoPopulatedTime)
+              // Set initial values to auto-populated values
+              setInitialActualDate(autoPopulatedDate)
+              setInitialActualTime(autoPopulatedTime)
+            } else {
+              setActualDate('')
+              setActualTime('')
+              setInitialActualDate('')
+              setInitialActualTime('')
+            }
+          } catch (error) {
+            console.error('Error parsing scheduledDate:', error, lessonData.scheduledDate)
             setActualDate('')
             setActualTime('')
             setInitialActualDate('')
@@ -473,8 +562,8 @@ export const LessonDetail: React.FC = () => {
       })
 
       // Update lesson with all fields
-      const updates: any = {
-        items: lessonItems,
+      const updates: Record<string, any> = {
+        items: lessonItems || [],
       }
 
       // Always update execution fields (use null instead of undefined for Firestore)
@@ -490,14 +579,36 @@ export const LessonDetail: React.FC = () => {
       if (lesson.status === 'SCHEDULED') {
         if (title) updates.title = title
         if (motivation) updates.motivation = motivation
-        if (objectives) updates.objectives = objectives.split('\n').filter(o => o.trim())
+        // Always set objectives as an array (can be empty)
+        updates.objectives = objectives ? objectives.split('\n').filter(o => o.trim()) : []
         if (planDescription) updates.planDescription = planDescription
         if (preStudyHomework) updates.preStudyHomework = preStudyHomework
         if (plannedRoute) updates.plannedRoute = plannedRoute
         if (preNotes) updates.preNotes = preNotes
+        // Reference materials are now auto-saved, so we don't include them here
       }
 
-      await updateDoc(doc(db, 'lessons', lesson.id), updates)
+      // Debug: Log updates to see what might be undefined
+      console.log('Saving updates:', updates)
+      
+      // Deep clean function to remove undefined values from nested objects
+      const deepClean = (obj: any): any => {
+        if (Array.isArray(obj)) {
+          return obj.map(item => deepClean(item))
+        } else if (obj !== null && typeof obj === 'object') {
+          return Object.entries(obj).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+              acc[key] = deepClean(value)
+            }
+            return acc
+          }, {} as Record<string, any>)
+        }
+        return obj
+      }
+      
+      const cleanedUpdates = deepClean(updates)
+      
+      await updateDoc(doc(db, 'lessons', lesson.id), cleanedUpdates)
 
       // Note: Progress is now recorded when completing the lesson, not when saving
 
@@ -531,7 +642,15 @@ export const LessonDetail: React.FC = () => {
         updates.completedDate = Timestamp.now()
       }
 
-      await updateDoc(doc(db, 'lessons', lesson.id), updates)
+      // Clean up any undefined values before updating
+      const cleanedStatusUpdates = Object.entries(updates).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value
+        }
+        return acc
+      }, {} as Record<string, any>)
+      
+      await updateDoc(doc(db, 'lessons', lesson.id), cleanedStatusUpdates)
       
       // If completing lesson, record progress
       if (newStatus === 'COMPLETED') {
@@ -937,6 +1056,102 @@ export const LessonDetail: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Reference Materials Section */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Reference Materials
+                  {autoSaving && (
+                    <span className="ml-2 text-sm text-gray-500">
+                      Saving...
+                    </span>
+                  )}
+                </h3>
+                <button
+                  onClick={() => {
+                    setEditingMaterialIndex(null)
+                    setShowReferenceModal(true)
+                  }}
+                  className="text-sm text-sky hover:text-sky-600"
+                >
+                  <PlusIcon className="h-4 w-4 inline mr-1" />
+                  Add Material
+                </button>
+              </div>
+              
+              {referenceMaterials.length > 0 ? (
+                <div className="space-y-2">
+                  {referenceMaterials.map((material, index) => (
+                    <div key={index} className="flex items-start space-x-2 p-2 bg-gray-50 rounded group">
+                      {material.type === 'link' ? (
+                        <LinkIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      ) : (
+                        <DocumentIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      )}
+                      <div className="flex-1">
+                        <a 
+                          href={material.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-sky hover:text-sky-600"
+                        >
+                          {material.name}
+                        </a>
+                        {material.note && (
+                          <p className="text-xs text-gray-500 mt-1">{material.note}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            setEditingMaterialIndex(index)
+                            setShowReferenceModal(true)
+                          }}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <span className="text-xs">Edit</span>
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const updated = referenceMaterials.filter((_, i) => i !== index)
+                            setReferenceMaterials(updated)
+                            
+                            // Auto-save after deletion
+                            if (lesson?.status === 'SCHEDULED') {
+                              setAutoSaving(true)
+                              try {
+                                await updateDoc(doc(db, 'lessons', lesson.id), {
+                                  referenceMaterials: updated
+                                })
+                                
+                                // Update local lesson state
+                                setLesson({
+                                  ...lesson,
+                                  referenceMaterials: updated
+                                })
+                                
+                                // Show success feedback
+                                setTimeout(() => setAutoSaving(false), 1000)
+                              } catch (error) {
+                                console.error('Error auto-saving after deletion:', error)
+                                setAutoSaving(false)
+                                alert('Failed to delete reference material')
+                              }
+                            }
+                          }}
+                          className="text-gray-400 hover:text-red-600"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No reference materials added</p>
+              )}
+            </div>
           </div>
 
           {/* Right Column - Study Items Selection */}
@@ -1285,6 +1500,39 @@ export const LessonDetail: React.FC = () => {
                 placeholder="Summary of the lesson, areas of focus for next time..."
               />
             </div>
+
+            {/* Reference Materials - Read-only display */}
+            {lesson.referenceMaterials && lesson.referenceMaterials.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  Reference Materials
+                </h4>
+                <div className="space-y-2">
+                  {lesson.referenceMaterials.map((material, index) => (
+                    <div key={index} className="flex items-start space-x-2 p-2 bg-gray-50 rounded">
+                      {material.type === 'link' ? (
+                        <LinkIcon className="h-4 w-4 text-gray-400 mt-0.5" />
+                      ) : (
+                        <DocumentIcon className="h-4 w-4 text-gray-400 mt-0.5" />
+                      )}
+                      <div className="flex-1">
+                        <a 
+                          href={material.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-sky hover:text-sky-600"
+                        >
+                          {material.name}
+                        </a>
+                        {material.note && (
+                          <p className="text-xs text-gray-500 mt-1">{material.note}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Items Scoring */}
@@ -1402,6 +1650,55 @@ export const LessonDetail: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Reference Material Modal */}
+      {showReferenceModal && (
+        <ReferenceMaterialModal
+          isOpen={showReferenceModal}
+          onClose={() => {
+            setShowReferenceModal(false)
+            setEditingMaterialIndex(null)
+          }}
+          onSave={async (material) => {
+            let updatedMaterials: ReferenceMaterial[]
+            if (editingMaterialIndex !== null) {
+              updatedMaterials = [...referenceMaterials]
+              updatedMaterials[editingMaterialIndex] = material
+            } else {
+              updatedMaterials = [...referenceMaterials, material]
+            }
+            setReferenceMaterials(updatedMaterials)
+            setShowReferenceModal(false)
+            setEditingMaterialIndex(null)
+            
+            // Auto-save reference materials
+            if (lesson?.status === 'SCHEDULED') {
+              setAutoSaving(true)
+              try {
+                await updateDoc(doc(db, 'lessons', lesson.id), {
+                  referenceMaterials: updatedMaterials
+                })
+                
+                // Update local lesson state
+                setLesson({
+                  ...lesson,
+                  referenceMaterials: updatedMaterials
+                })
+                
+                // Show success feedback
+                setTimeout(() => setAutoSaving(false), 1000)
+              } catch (error) {
+                console.error('Error auto-saving reference materials:', error)
+                setAutoSaving(false)
+                alert('Failed to save reference material')
+              }
+            }
+          }}
+          initialMaterial={editingMaterialIndex !== null ? referenceMaterials[editingMaterialIndex] : undefined}
+          workspaceId={user?.cfiWorkspaceId || ''}
+          existingFiles={existingFiles}
+        />
       )}
     </div>
   )
