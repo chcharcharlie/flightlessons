@@ -29,46 +29,71 @@ export const migrateStudyAreas = onCall(
       let migratedCount = 0;
       let alreadyMigratedCount = 0;
 
-      // Get all study areas
-      const allAreas = await db.collection('studyAreas').get();
+      // Get study areas from the workspace subcollection
+      const workspaceRef = db.collection('workspaces').doc(workspaceId);
+      const allAreas = await workspaceRef.collection('studyAreas').get();
       
-      console.log(`Found ${allAreas.size} total study areas`);
+      console.log(`Found ${allAreas.size} study areas in workspace ${workspaceId}`);
 
-      // Check each area
+      // Add cfiWorkspaceId to each area that doesn't have it
       for (const doc of allAreas.docs) {
         const data = doc.data();
+        console.log(`Study area: ${data.name}, certificate: ${data.certificate}, has cfiWorkspaceId: ${!!data.cfiWorkspaceId}`);
         
         if (!data.cfiWorkspaceId) {
-          // Add the workspace ID to areas that don't have it
-          console.log(`Migrating study area: ${data.name} (${data.certificate})`);
+          // Add the workspace ID
+          console.log(`Adding cfiWorkspaceId to study area: ${data.name}`);
           batch.update(doc.ref, { cfiWorkspaceId: workspaceId });
           migratedCount++;
-        } else if (data.cfiWorkspaceId === workspaceId) {
+        } else {
           alreadyMigratedCount++;
         }
       }
 
-      // Also migrate study items
-      const allItems = await db.collection('studyItems').get();
+      // Also migrate study items from workspace subcollection
+      const allItems = await workspaceRef.collection('studyItems').get();
       let migratedItems = 0;
+
+      console.log(`Found ${allItems.size} study items in workspace`);
 
       for (const doc of allItems.docs) {
         const data = doc.data();
         
         if (!data.cfiWorkspaceId) {
+          console.log(`Adding cfiWorkspaceId to study item: ${data.name}`);
           batch.update(doc.ref, { cfiWorkspaceId: workspaceId });
           migratedItems++;
         }
       }
 
-      // Also migrate lesson plans
-      const allPlans = await db.collection('lessonPlans').get();
+      // Check for lesson plans in both locations
       let migratedPlans = 0;
-
-      for (const doc of allPlans.docs) {
+      
+      // First check workspace subcollection
+      const workspacePlans = await workspaceRef.collection('lessonPlans').get();
+      console.log(`Found ${workspacePlans.size} lesson plans in workspace subcollection`);
+      
+      for (const doc of workspacePlans.docs) {
         const data = doc.data();
         
         if (!data.cfiWorkspaceId) {
+          console.log(`Adding cfiWorkspaceId to lesson plan: ${data.title}`);
+          batch.update(doc.ref, { cfiWorkspaceId: workspaceId });
+          migratedPlans++;
+        }
+      }
+      
+      // Also check top-level collection (newer structure)
+      const topLevelPlans = await db.collection('lessonPlans')
+        .where('certificate', 'in', ['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'])
+        .get();
+      console.log(`Found ${topLevelPlans.size} lesson plans in top-level collection`);
+      
+      for (const doc of topLevelPlans.docs) {
+        const data = doc.data();
+        
+        if (!data.cfiWorkspaceId) {
+          console.log(`Adding cfiWorkspaceId to lesson plan: ${data.title}`);
           batch.update(doc.ref, { cfiWorkspaceId: workspaceId });
           migratedPlans++;
         }
@@ -91,7 +116,7 @@ export const migrateStudyAreas = onCall(
             },
             lessonPlans: {
               migrated: migratedPlans,
-              total: allPlans.size
+              total: workspacePlans.size + topLevelPlans.size
             }
           }
         };

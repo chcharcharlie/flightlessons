@@ -19,6 +19,9 @@ export { debugStudyAreas } from './debug-study-areas';
 // Migration function
 export { migrateStudyAreas } from './migrate-study-areas';
 
+// Data check function
+export { checkAllData } from './check-all-data';
+
 const db = admin.firestore();
 const auth = admin.auth();
 

@@ -255,37 +255,19 @@ async function executeTool(
   try {
     switch (toolName) {
       case 'list_study_areas': {
-        console.log(`Querying study areas with workspaceId: ${workspaceId}, certificate: ${args.certificate}`);
+        console.log(`Querying study areas for workspace: ${workspaceId}, certificate: ${args.certificate}`);
         
-        // Query with 'order' field (not 'orderNumber')
-        let areas = await db
+        // Query from workspace subcollection (where they actually are!)
+        const workspaceRef = db.collection('workspaces').doc(workspaceId);
+        const areas = await workspaceRef
           .collection('studyAreas')
-          .where('cfiWorkspaceId', '==', workspaceId)
           .where('certificate', '==', args.certificate)
           .orderBy('order')
           .get();
 
-        console.log(`Found ${areas.size} study areas`);
-
-        // If empty, try without ordering in case field is missing
-        if (areas.empty) {
-          console.log('No areas found with order field, trying without ordering...');
-          areas = await db
-            .collection('studyAreas')
-            .where('cfiWorkspaceId', '==', workspaceId)
-            .where('certificate', '==', args.certificate)
-            .get();
-          console.log(`Found ${areas.size} study areas without order`);
-        }
+        console.log(`Found ${areas.size} study areas in workspace subcollection`);
 
         if (areas.empty) {
-          // Debug: Check if there are any study areas at all for this workspace
-          const allAreas = await db
-            .collection('studyAreas')
-            .where('cfiWorkspaceId', '==', workspaceId)
-            .get();
-          console.log(`Total study areas in workspace: ${allAreas.size}`);
-          
           return `No study areas found for ${args.certificate} certificate.`;
         }
 
@@ -301,15 +283,16 @@ async function executeTool(
       }
 
       case 'create_study_area': {
+        const workspaceRef = db.collection('workspaces').doc(workspaceId);
         const newArea = {
           cfiWorkspaceId: workspaceId,
           certificate: args.certificate,
           name: args.name,
-          order: args.orderNumber || 0, // Use 'order' field to match frontend
+          order: args.orderNumber || 0,
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
-        const areaRef = await db.collection('studyAreas').add(newArea);
+        const areaRef = await workspaceRef.collection('studyAreas').add(newArea);
         return `✅ Created study area "${args.name}" (ID: ${areaRef.id})`;
       }
 
@@ -318,12 +301,11 @@ async function executeTool(
         let deletedCount = 0;
         let deletedNames: string[] = [];
 
-        const query = db
+        const workspaceRef = db.collection('workspaces').doc(workspaceId);
+        const areas = await workspaceRef
           .collection('studyAreas')
-          .where('cfiWorkspaceId', '==', workspaceId)
-          .where('certificate', '==', args.certificate);
-
-        const areas = await query.get();
+          .where('certificate', '==', args.certificate)
+          .get();
 
         for (const doc of areas.docs) {
           const data = doc.data();
@@ -332,7 +314,7 @@ async function executeTool(
 
           if (shouldDelete) {
             // Delete associated study items first
-            const items = await db
+            const items = await workspaceRef
               .collection('studyItems')
               .where('studyAreaId', '==', doc.id)
               .get();
@@ -354,9 +336,8 @@ async function executeTool(
       }
 
       case 'list_study_items': {
-        let query = db
-          .collection('studyItems')
-          .where('cfiWorkspaceId', '==', workspaceId);
+        const workspaceRef = db.collection('workspaces').doc(workspaceId);
+        let query = workspaceRef.collection('studyItems') as any;
 
         if (args.areaId) {
           query = query.where('studyAreaId', '==', args.areaId);
@@ -369,14 +350,13 @@ async function executeTool(
         }
 
         // Get area names for context
-        const areas = await db
+        const areas = await workspaceRef
           .collection('studyAreas')
-          .where('cfiWorkspaceId', '==', workspaceId)
           .get();
 
-        const areaMap = new Map(areas.docs.map(doc => [doc.id, doc.data().name]));
+        const areaMap = new Map(areas.docs.map((doc: any) => [doc.id, doc.data().name]));
 
-        const itemList = items.docs.map(doc => {
+        const itemList = items.docs.map((doc: any) => {
           const data = doc.data();
           const areaName = areaMap.get(data.studyAreaId) || 'Unknown Area';
           return `- ${data.name} (${data.type}) - ${areaName}`;
@@ -386,6 +366,7 @@ async function executeTool(
       }
 
       case 'create_study_item': {
+        const workspaceRef = db.collection('workspaces').doc(workspaceId);
         const newItem = {
           cfiWorkspaceId: workspaceId,
           studyAreaId: args.areaId,
@@ -399,7 +380,7 @@ async function executeTool(
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
-        const itemRef = await db.collection('studyItems').add(newItem);
+        const itemRef = await workspaceRef.collection('studyItems').add(newItem);
         return `✅ Created study item "${args.name}" (ID: ${itemRef.id})`;
       }
 
@@ -407,9 +388,8 @@ async function executeTool(
         const batch = db.batch();
         let deletedCount = 0;
 
-        let query = db
-          .collection('studyItems')
-          .where('cfiWorkspaceId', '==', workspaceId);
+        const workspaceRef = db.collection('workspaces').doc(workspaceId);
+        let query = workspaceRef.collection('studyItems') as any;
 
         if (args.areaId) {
           query = query.where('studyAreaId', '==', args.areaId);

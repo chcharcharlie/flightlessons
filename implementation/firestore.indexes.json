@@ -70,32 +70,14 @@
     },
     {
       "collectionGroup": "studyAreas",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        {
-          "fieldPath": "cfiWorkspaceId",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "certificate",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "order",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "studyAreas",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "cfiWorkspaceId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "certificate",
           "order": "ASCENDING"
         }
       ]

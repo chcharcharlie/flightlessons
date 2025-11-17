@@ -1027,6 +1027,44 @@ export const LessonPlans: React.FC = () => {
         </div>
       </div>
 
+      {/* Temporary Migration Button */}
+      {selectedCertificate === 'INSTRUMENT' && (
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-gray-600 mb-2">
+            If your study areas aren't showing up, click below to fix the issue:
+          </p>
+          <button
+            onClick={async () => {
+              try {
+                const { httpsCallable } = await import('firebase/functions')
+                const { functions } = await import('@/lib/firebase')
+                
+                // First check what data exists
+                console.log('Checking database structure...')
+                const checkData = httpsCallable(functions, 'checkAllData')
+                const checkResult = await checkData()
+                console.log('Database check result:', checkResult.data)
+                
+                // Then run migration
+                console.log('Running migration...')
+                const migrate = httpsCallable(functions, 'migrateStudyAreas')
+                const result = await migrate()
+                console.log('Migration result:', result.data)
+                
+                alert('Check console for detailed results. Page will refresh in 3 seconds.')
+                setTimeout(() => window.location.reload(), 3000)
+              } catch (error) {
+                console.error('Operation failed:', error)
+                alert('Operation failed. Check console for details.')
+              }
+            }}
+            className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+          >
+            Fix Missing Study Areas
+          </button>
+        </div>
+      )}
+
       {/* Certificate Tabs */}
       <div className="mt-6 border-b border-gray-200">
         <div className="flex justify-between items-end">
