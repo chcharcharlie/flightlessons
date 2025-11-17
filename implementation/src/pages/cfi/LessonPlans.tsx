@@ -1039,23 +1039,22 @@ export const LessonPlans: React.FC = () => {
                 const { httpsCallable } = await import('firebase/functions')
                 const { functions } = await import('@/lib/firebase')
                 
-                // First check what data exists
-                console.log('Checking database structure...')
-                const checkData = httpsCallable(functions, 'checkAllData')
-                const checkResult = await checkData()
-                console.log('Database check result:', checkResult.data)
-                
-                // Then run migration
-                console.log('Running migration...')
+                console.log('Running migration to fix study areas...')
                 const migrate = httpsCallable(functions, 'migrateStudyAreas')
                 const result = await migrate()
                 console.log('Migration result:', result.data)
                 
-                alert('Check console for detailed results. Page will refresh in 3 seconds.')
-                setTimeout(() => window.location.reload(), 3000)
+                const data = result.data as any
+                if (data.success) {
+                  alert(`Migration complete! ${data.message}\n\nThe page will now refresh.`)
+                } else {
+                  alert('Migration completed. Check console for details.')
+                }
+                
+                setTimeout(() => window.location.reload(), 1500)
               } catch (error) {
-                console.error('Operation failed:', error)
-                alert('Operation failed. Check console for details.')
+                console.error('Migration failed:', error)
+                alert('Migration failed. Check console for details.')
               }
             }}
             className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"

@@ -610,14 +610,16 @@ ${context ? `Current context: ${context}\n` : ''}
 You have access to tools for managing the flight training curriculum. When users ask about their curriculum or want to make changes, use the appropriate tools.
 
 Important guidelines:
-- When asked to list or view content, use the appropriate list tool
+- When asked to list or view content, use the appropriate list tool(s)
+- When asked for multiple types of items (e.g., "study areas AND study items"), use MULTIPLE tools in a single response
 - When asked to create content, use the create tool
 - When asked to delete content, use the delete tool with appropriate filters
 - For deleting items with specific text, use the filter parameter
 - For deleting all items, use the deleteAll parameter
 - Always use the certificate from the context (PRIVATE, INSTRUMENT, or COMMERCIAL)
+- NEVER make up or hallucinate study items - only report what the tools return
 
-Be helpful and conversational. After using a tool, explain the results in a friendly way.`;
+Be helpful and conversational. After using tools, explain the actual results in a friendly way.`;
 
       // Call Anthropic with tools
       const response = await anthropic.messages.create({
@@ -632,46 +634,59 @@ Be helpful and conversational. After using a tool, explain the results in a frie
       // Process the response
       let responseText = '';
       let requiresRefresh = false;
+      const toolUses = [];
+      const toolResults = [];
 
+      // First, check if there are any tool uses in the response
       for (const block of response.content) {
         if (block.type === 'text') {
           responseText += block.text;
         } else if (block.type === 'tool_use') {
-          // Execute the tool
-          const toolResult = await executeTool(block.name, block.input, workspaceId);
+          toolUses.push(block);
+        }
+      }
+
+      // If there are tool uses, execute them and get results
+      if (toolUses.length > 0) {
+        // Execute all tools and collect results
+        for (const toolUse of toolUses) {
+          const toolResult = await executeTool(toolUse.name, toolUse.input, workspaceId);
           
           // Tools that modify data require refresh
-          if (block.name.includes('create') || block.name.includes('delete')) {
+          if (toolUse.name.includes('create') || toolUse.name.includes('delete')) {
             requiresRefresh = true;
           }
 
-          // Get Claude's response after tool use
-          const toolResponse = await anthropic.messages.create({
-            model: 'claude-sonnet-4-5',
-            max_tokens: 1000,
-            system: systemPrompt,
-            messages: [
-              ...messages,
-              {
-                role: 'assistant',
-                content: response.content
-              },
-              {
-                role: 'user',
-                content: [{
-                  type: 'tool_result',
-                  tool_use_id: block.id,
-                  content: toolResult
-                }]
-              }
-            ],
+          toolResults.push({
+            type: 'tool_result' as const,
+            tool_use_id: toolUse.id,
+            content: toolResult
           });
+        }
 
-          // Extract the final response
-          for (const respBlock of toolResponse.content) {
-            if (respBlock.type === 'text') {
-              responseText = respBlock.text; // Use the tool response as the final response
+        // Get Claude's response after ALL tool uses
+        const toolResponse = await anthropic.messages.create({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 2000,
+          system: systemPrompt,
+          messages: [
+            ...messages,
+            {
+              role: 'assistant',
+              content: response.content
+            },
+            {
+              role: 'user',
+              content: toolResults
             }
+          ],
+        });
+
+        // Extract the final response
+        responseText = '';
+        for (const respBlock of toolResponse.content) {
+          if (respBlock.type === 'text') {
+            responseText += respBlock.text;
           }
         }
       }
