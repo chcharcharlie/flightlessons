@@ -16,6 +16,9 @@ export { bulkDeleteCurriculum } from './bulk-operations';
 // Debug function
 export { debugStudyAreas } from './debug-study-areas';
 
+// Migration function
+export { migrateStudyAreas } from './migrate-study-areas';
+
 const db = admin.firestore();
 const auth = admin.auth();
 
