@@ -255,21 +255,44 @@ async function executeTool(
   try {
     switch (toolName) {
       case 'list_study_areas': {
-        const areas = await db
+        console.log(`Querying study areas with workspaceId: ${workspaceId}, certificate: ${args.certificate}`);
+        
+        // Query with 'order' field (not 'orderNumber')
+        let areas = await db
           .collection('studyAreas')
           .where('cfiWorkspaceId', '==', workspaceId)
           .where('certificate', '==', args.certificate)
-          .orderBy('orderNumber')
+          .orderBy('order')
           .get();
 
+        console.log(`Found ${areas.size} study areas`);
+
+        // If empty, try without ordering in case field is missing
         if (areas.empty) {
+          console.log('No areas found with order field, trying without ordering...');
+          areas = await db
+            .collection('studyAreas')
+            .where('cfiWorkspaceId', '==', workspaceId)
+            .where('certificate', '==', args.certificate)
+            .get();
+          console.log(`Found ${areas.size} study areas without order`);
+        }
+
+        if (areas.empty) {
+          // Debug: Check if there are any study areas at all for this workspace
+          const allAreas = await db
+            .collection('studyAreas')
+            .where('cfiWorkspaceId', '==', workspaceId)
+            .get();
+          console.log(`Total study areas in workspace: ${allAreas.size}`);
+          
           return `No study areas found for ${args.certificate} certificate.`;
         }
 
         const areaList = areas.docs.map(doc => ({
           id: doc.id,
           name: doc.data().name,
-          orderNumber: doc.data().orderNumber
+          order: doc.data().order || 0
         }));
 
         return `Found ${areaList.length} study areas for ${args.certificate}:\n${
@@ -282,7 +305,7 @@ async function executeTool(
           cfiWorkspaceId: workspaceId,
           certificate: args.certificate,
           name: args.name,
-          orderNumber: args.orderNumber || 0,
+          order: args.orderNumber || 0, // Use 'order' field to match frontend
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
@@ -370,7 +393,7 @@ async function executeTool(
           type: args.type,
           description: args.description || '',
           evaluationCriteria: args.evaluationCriteria || '',
-          orderNumber: args.orderNumber || 0,
+          order: args.orderNumber || 0,
           acsCodeMappings: [],
           referenceMaterials: [],
           createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -418,7 +441,7 @@ async function executeTool(
           .collection('lessonPlans')
           .where('cfiWorkspaceId', '==', workspaceId)
           .where('certificate', '==', args.certificate)
-          .orderBy('orderNumber')
+          .orderBy('order')
           .get();
 
         if (plans.empty) {
@@ -428,11 +451,11 @@ async function executeTool(
         const planList = plans.docs.map(doc => ({
           id: doc.id,
           title: doc.data().title,
-          orderNumber: doc.data().orderNumber
+          order: doc.data().order || 0
         }));
 
         return `Found ${planList.length} lesson plans for ${args.certificate}:\n${
-          planList.map(p => `- ${p.title} (Order: ${p.orderNumber})`).join('\n')
+          planList.map(p => `- ${p.title} (Order: ${p.order})`).join('\n')
         }`;
       }
 
@@ -448,7 +471,7 @@ async function executeTool(
           referenceMaterials: [],
           preStudyHomework: args.preStudyHomework || '',
           estimatedDuration: args.estimatedDuration || { ground: 60, flight: 0 },
-          orderNumber: args.orderNumber || 0,
+          order: args.orderNumber || 0,
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         };
 

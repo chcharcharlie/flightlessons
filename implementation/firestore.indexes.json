@@ -81,7 +81,21 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "orderNumber",
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "studyAreas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cfiWorkspaceId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "certificate",
           "order": "ASCENDING"
         }
       ]
@@ -99,7 +113,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "orderNumber",
+          "fieldPath": "order",
           "order": "ASCENDING"
         }
       ]
@@ -117,7 +131,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "orderNumber",
+          "fieldPath": "order",
           "order": "ASCENDING"
         }
       ]

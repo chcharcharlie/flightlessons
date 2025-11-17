@@ -13,6 +13,9 @@ export { aiChatWithTools } from './ai-chat-with-tools';
 // Export bulk operations
 export { bulkDeleteCurriculum } from './bulk-operations';
 
+// Debug function
+export { debugStudyAreas } from './debug-study-areas';
+
 const db = admin.firestore();
 const auth = admin.auth();
 
