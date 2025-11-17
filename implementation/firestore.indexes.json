@@ -73,11 +73,33 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "cfiWorkspaceId",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "certificate",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "order",
+          "fieldPath": "orderNumber",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "studyItems",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cfiWorkspaceId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "studyAreaId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "orderNumber",
           "order": "ASCENDING"
         }
       ]
