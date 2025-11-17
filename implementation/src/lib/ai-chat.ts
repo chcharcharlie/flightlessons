@@ -27,7 +27,7 @@ export async function sendChatMessage(
     const aiChat = httpsCallable<
       { message: string; conversationHistory: AIChatMessage[]; context?: string },
       AIChatResponse
-    >(functions, 'aiChat')
+    >(functions, 'aiChatWithTools')
     
     const result = await aiChat({
       message,

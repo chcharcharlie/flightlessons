@@ -8,6 +8,7 @@ admin.initializeApp();
 
 // Export AI chat function
 export { aiChat } from './ai-chat';
+export { aiChatWithTools } from './ai-chat-with-tools';
 
 // Export bulk operations
 export { bulkDeleteCurriculum } from './bulk-operations';
