@@ -4,6 +4,59 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const db = admin.firestore();
 
+// Helper function to write progress updates
+async function writeProgress(
+  sessionId: string | undefined,
+  update: {
+    type: 'conversation_turn' | 'tool_execution' | 'tool_result' | 'completion';
+    conversationTurn?: number;
+    toolName?: string;
+    toolParameters?: any;
+    toolResult?: string;
+    toolCallId?: string;
+    message?: string;
+    error?: string;
+  },
+  userId?: string
+) {
+  if (!sessionId) {
+;
+    return;
+  }
+
+
+  const progressRef = db.collection('aiProgress').doc(sessionId);
+  const progressUpdate = {
+    id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    timestamp: new Date().toISOString(), // Use ISO string instead of serverTimestamp in array
+    ...update
+  };
+
+  try {
+    // Try to update existing document
+    await progressRef.update({
+      updates: admin.firestore.FieldValue.arrayUnion(progressUpdate),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (error: any) {
+    if (error.code === 5) { // NOT_FOUND error
+      try {
+        await progressRef.set({
+          id: sessionId,
+          userId: userId || '',
+          startedAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          updates: [progressUpdate]
+        });
+      } catch (createError: any) {
+        console.error('[Progress] Failed to create progress document:', createError.message);
+      }
+    } else {
+      console.error('[Progress] Failed to update progress:', error.message);
+    }
+  }
+}
+
 // Define tools that Claude can use
 const curriculumTools: Anthropic.Tool[] = [
   {
@@ -250,13 +303,11 @@ async function executeTool(
   args: any,
   workspaceId: string
 ): Promise<string> {
-  console.log(`Executing tool: ${toolName}`, args);
 
   try {
     switch (toolName) {
       case 'list_study_areas': {
-        console.log(`Querying study areas for workspace: ${workspaceId}, certificate: ${args.certificate}`);
-        
+
         // Query from workspace subcollection (where they actually are!)
         const workspaceRef = db.collection('workspaces').doc(workspaceId);
         const areas = await workspaceRef
@@ -265,7 +316,6 @@ async function executeTool(
           .orderBy('order')
           .get();
 
-        console.log(`Found ${areas.size} study areas in workspace subcollection`);
 
         if (areas.empty) {
           return `No study areas found for ${args.certificate} certificate.`;
@@ -277,9 +327,8 @@ async function executeTool(
           order: doc.data().order || 0
         }));
 
-        return `Found ${areaList.length} study areas for ${args.certificate}:\n${
-          areaList.map(a => `- ${a.name} (ID: ${a.id})`).join('\n')
-        }`;
+        return `Found ${areaList.length} study areas for ${args.certificate}:\n${areaList.map(a => `- ${a.name} (ID: ${a.id})`).join('\n')
+          }`;
       }
 
       case 'create_study_area': {
@@ -309,7 +358,7 @@ async function executeTool(
 
         for (const doc of areas.docs) {
           const data = doc.data();
-          const shouldDelete = args.deleteAll || 
+          const shouldDelete = args.deleteAll ||
             (args.filter && data.name.toLowerCase().includes(args.filter.toLowerCase()));
 
           if (shouldDelete) {
@@ -320,7 +369,7 @@ async function executeTool(
               .get();
 
             items.docs.forEach(itemDoc => batch.delete(itemDoc.ref));
-            
+
             batch.delete(doc.ref);
             deletedNames.push(data.name);
             deletedCount++;
@@ -399,7 +448,7 @@ async function executeTool(
 
         for (const doc of items.docs) {
           const data = doc.data();
-          const shouldDelete = args.deleteAll || 
+          const shouldDelete = args.deleteAll ||
             (args.filter && data.name.toLowerCase().includes(args.filter.toLowerCase()));
 
           if (shouldDelete) {
@@ -434,9 +483,8 @@ async function executeTool(
           order: doc.data().order || 0
         }));
 
-        return `Found ${planList.length} lesson plans for ${args.certificate}:\n${
-          planList.map(p => `- ${p.title} (Order: ${p.order})`).join('\n')
-        }`;
+        return `Found ${planList.length} lesson plans for ${args.certificate}:\n${planList.map(p => `- ${p.title} (Order: ${p.order})`).join('\n')
+          }`;
       }
 
       case 'create_lesson_plan': {
@@ -473,7 +521,7 @@ async function executeTool(
 
         for (const doc of plans.docs) {
           const data = doc.data();
-          const shouldDelete = args.deleteAll || 
+          const shouldDelete = args.deleteAll ||
             (args.filter && data.title.toLowerCase().includes(args.filter.toLowerCase()));
 
           if (shouldDelete) {
@@ -501,7 +549,7 @@ async function executeTool(
           .where('cfiWorkspaceId', '==', workspaceId)
           .where('certificate', '==', args.certificate)
           .get();
-        
+
         plans.docs.forEach(doc => {
           batch.delete(doc.ref);
           totalDeleted++;
@@ -520,7 +568,7 @@ async function executeTool(
             .collection('studyItems')
             .where('studyAreaId', '==', areaDoc.id)
             .get();
-          
+
           items.docs.forEach(itemDoc => {
             batch.delete(itemDoc.ref);
             totalDeleted++;
@@ -548,7 +596,7 @@ async function executeTool(
 }
 
 export const aiChatWithTools = onCall(
-  { 
+  {
     timeoutSeconds: 540,
     memory: '1GiB'
   },
@@ -557,7 +605,8 @@ export const aiChatWithTools = onCall(
       throw new HttpsError('unauthenticated', 'User must be authenticated');
     }
 
-    const { message, context, conversationHistory } = request.data;
+    const { message, context, conversationHistory, progressSessionId } = request.data;
+
 
     if (!message) {
       throw new HttpsError('invalid-argument', 'Message is required');
@@ -575,6 +624,34 @@ export const aiChatWithTools = onCall(
     }
 
     try {
+      // Initialize progress session if provided
+      if (progressSessionId) {
+
+        // Check if document already exists (frontend might have created it)
+        const progressRef = db.collection('aiProgress').doc(progressSessionId);
+        const progressDoc = await progressRef.get();
+
+        if (!progressDoc.exists) {
+          await progressRef.set({
+            id: progressSessionId,
+            userId: request.auth.uid,
+            startedAt: admin.firestore.FieldValue.serverTimestamp(),
+            updates: []
+          });
+        } else {
+          await progressRef.update({
+            userId: request.auth.uid
+          });
+        }
+
+        // Write initial progress update
+        await writeProgress(progressSessionId, {
+          type: 'conversation_turn',
+          conversationTurn: 0,
+          message: 'Starting AI assistant...'
+        }, request.auth.uid);
+      }
+
       const apiKey = process.env.ANTHROPIC_API_KEY || '';
       if (!apiKey) {
         throw new HttpsError('failed-precondition', 'API key not configured');
@@ -584,7 +661,7 @@ export const aiChatWithTools = onCall(
 
       // Build conversation history
       const messages: Anthropic.MessageParam[] = [];
-      
+
       if (conversationHistory && Array.isArray(conversationHistory)) {
         conversationHistory.forEach((msg: any) => {
           if (msg.role === 'user' || msg.role === 'assistant') {
@@ -611,51 +688,129 @@ You have access to tools for managing the flight training curriculum. When users
 
 Important guidelines:
 - When asked to list or view content, use the appropriate list tool(s)
-- When asked for multiple types of items (e.g., "study areas AND study items"), use MULTIPLE tools in a single response
 - When asked to create content, use the create tool
 - When asked to delete content, use the delete tool with appropriate filters
-- For deleting items with specific text, use the filter parameter
-- For deleting all items, use the deleteAll parameter
 - Always use the certificate from the context (PRIVATE, INSTRUMENT, or COMMERCIAL)
-- NEVER make up or hallucinate study items - only report what the tools return
 
-Be helpful and conversational. After using tools, explain the actual results in a friendly way.`;
+CRITICAL RULE: When creating study items, you MUST use ALL tools in ONE response:
 
-      // Call Anthropic with tools
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4000,
-        temperature: 0.7,
-        system: systemPrompt,
-        messages: messages,
-        tools: curriculumTools,
-      });
+If user says "create study items for [area name]":
+1. Use list_study_areas 
+2. WITHOUT STOPPING, immediately use create_study_item 5-10 times
+3. Do NOT wait for user response between tools
+4. Do NOT announce what you're going to do - just do it!
 
-      // Process the response
-      let responseText = '';
+WRONG approach (do NOT do this):
+- List areas
+- Say "Now I'll create items..." 
+- Stop and wait
+
+CORRECT approach (DO this):
+- list_study_areas
+- create_study_item 
+- create_study_item
+- create_study_item
+- create_study_item
+- create_study_item
+(all in ONE response without pausing)
+
+Remember: The system supports multiple tool calls in parallel. Use them!`;
+
+      // Initialize conversation loop
+      let conversationMessages = [...messages];
+      let finalResponse = '';
       let requiresRefresh = false;
-      const toolUses = [];
-      const toolResults = [];
+      let iteration = 0;
+      const maxIterations = 3;
+      const toolExecutions: Array<{
+        toolName: string;
+        parameters: any;
+        result: string;
+        conversationTurn: number;
+      }> = [];
 
-      // First, check if there are any tool uses in the response
-      for (const block of response.content) {
-        if (block.type === 'text') {
-          responseText += block.text;
-        } else if (block.type === 'tool_use') {
-          toolUses.push(block);
+      // Keep processing until no more tools are used
+      while (iteration < maxIterations) {
+        iteration++;
+
+        // Write progress for new conversation turn
+        await writeProgress(progressSessionId, {
+          type: 'conversation_turn',
+          conversationTurn: iteration,
+          message: `Starting conversation turn ${iteration}`
+        }, request.auth.uid);
+
+        // Call Anthropic
+        const response = await anthropic.messages.create({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 4000,
+          temperature: 0.7,
+          system: systemPrompt,
+          messages: conversationMessages,
+          tools: curriculumTools,
+        });
+
+        // Process the response
+        let responseText = '';
+        const toolUses = [];
+        const toolResults = [];
+
+        // Extract text and tools
+        for (const block of response.content) {
+          if (block.type === 'text') {
+            responseText += block.text;
+          } else if (block.type === 'tool_use') {
+            toolUses.push(block);
+          }
         }
-      }
 
-      // If there are tool uses, execute them and get results
-      if (toolUses.length > 0) {
-        // Execute all tools and collect results
+        // Add any text to final response
+        if (responseText) {
+          finalResponse += (finalResponse && responseText ? '\n\n' : '') + responseText;
+        }
+
+        // If no tools used, we're done
+        if (toolUses.length === 0) {
+          break;
+        }
+
+
+        // Execute all tools
         for (const toolUse of toolUses) {
+
+          // Write progress for tool execution start
+          await writeProgress(progressSessionId, {
+            type: 'tool_execution',
+            conversationTurn: iteration,
+            toolName: toolUse.name,
+            toolParameters: toolUse.input,
+            toolCallId: toolUse.id,
+            message: `Executing ${toolUse.name}`
+          }, request.auth.uid);
+
           const toolResult = await executeTool(toolUse.name, toolUse.input, workspaceId);
-          
-          // Tools that modify data require refresh
+
+          // Write progress for tool result
+          await writeProgress(progressSessionId, {
+            type: 'tool_result',
+            conversationTurn: iteration,
+            toolName: toolUse.name,
+            toolResult: toolResult,
+            toolCallId: toolUse.id,
+            message: `Completed ${toolUse.name}`
+          }, request.auth.uid);
+
           if (toolUse.name.includes('create') || toolUse.name.includes('delete')) {
             requiresRefresh = true;
           }
+
+          // Track tool execution
+          toolExecutions.push({
+            toolName: toolUse.name,
+            parameters: toolUse.input,
+            result: toolResult,
+            conversationTurn: iteration
+          });
 
           toolResults.push({
             type: 'tool_result' as const,
@@ -664,43 +819,56 @@ Be helpful and conversational. After using tools, explain the actual results in 
           });
         }
 
-        // Get Claude's response after ALL tool uses
-        const toolResponse = await anthropic.messages.create({
-          model: 'claude-sonnet-4-5',
-          max_tokens: 2000,
-          system: systemPrompt,
-          messages: [
-            ...messages,
-            {
-              role: 'assistant',
-              content: response.content
-            },
-            {
-              role: 'user',
-              content: toolResults
-            }
-          ],
+
+        // Add assistant's message with tools to conversation
+        conversationMessages.push({
+          role: 'assistant',
+          content: response.content
         });
 
-        // Extract the final response
-        responseText = '';
-        for (const respBlock of toolResponse.content) {
-          if (respBlock.type === 'text') {
-            responseText += respBlock.text;
-          }
+        // Add tool results as user message to continue conversation
+        conversationMessages.push({
+          role: 'user',
+          content: toolResults
+        });
+
+        // If this was just list_study_areas, encourage continuation
+        if (toolUses.length === 1 && toolUses[0].name === 'list_study_areas') {
         }
+      }
+
+      // Ensure we have a final response
+      if (!finalResponse) {
+        if (requiresRefresh) {
+          finalResponse = 'I\'ve completed the requested operations. Please check your curriculum.';
+        } else {
+          finalResponse = 'I\'ve processed your request.';
+        }
+      }
+
+      // Write completion progress
+      await writeProgress(progressSessionId, {
+        type: 'completion',
+        message: 'Request completed successfully'
+      }, request.auth.uid);
+
+      // Mark session as completed
+      if (progressSessionId) {
+        await db.collection('aiProgress').doc(progressSessionId).update({
+          completedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
       }
 
       return {
         success: true,
-        response: responseText,
-        usage: response.usage,
-        requiresRefresh
+        response: finalResponse,
+        requiresRefresh,
+        toolExecutions: toolExecutions.length > 0 ? toolExecutions : undefined
       };
 
     } catch (error: any) {
       console.error('AI chat error:', error);
-      
+
       if (error.status === 401) {
         throw new HttpsError('failed-precondition', 'AI service configuration error');
       } else if (error.status === 429) {
@@ -708,7 +876,7 @@ Be helpful and conversational. After using tools, explain the actual results in 
       } else if (error.status >= 500) {
         throw new HttpsError('unavailable', 'AI service temporarily unavailable');
       }
-      
+
       throw new HttpsError('internal', 'Failed to process AI request');
     }
   }

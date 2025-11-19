@@ -7,7 +7,16 @@ import {
   PaperClipIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline'
-import { useAuth } from '@/contexts/AuthContext'
+import { ToolExecutionDisplay } from './ToolExecutionDisplay'
+import { AIProgressDisplay } from './AIProgressDisplay'
+import { subscribeToAIProgress, initializeProgressSession, AIProgressUpdate } from '@/lib/ai-progress'
+
+interface ToolExecution {
+  toolName: string
+  parameters: any
+  result: string
+  conversationTurn: number
+}
 
 interface Message {
   id: string
@@ -16,6 +25,7 @@ interface Message {
   attachments?: { name: string; type: string; url: string }[]
   timestamp: Date
   isStreaming?: boolean
+  toolExecutions?: ToolExecution[]
 }
 
 interface ChatWindowProps {
@@ -25,7 +35,6 @@ interface ChatWindowProps {
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ isOpen, onClose, context: propContext }) => {
-  const { user } = useAuth()
   const location = useLocation()
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -52,8 +61,11 @@ Feel free to upload any documents you'd like me to help you with!`,
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<File[]>([])
+  const [progressUpdates, setProgressUpdates] = useState<AIProgressUpdate[]>([])
+  const [currentAiMessageId, setCurrentAiMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const progressUnsubscribeRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -81,34 +93,109 @@ Feel free to upload any documents you'd like me to help you with!`,
     setAttachedFiles([])
     setIsLoading(true)
 
-    // TODO: Send message to backend API
+    // Add placeholder AI message that we'll update
+    const aiMessageId = Date.now().toString() + '-assistant'
+    setCurrentAiMessageId(aiMessageId)
+    const placeholderMessage: Message = {
+      id: aiMessageId,
+      role: 'assistant',
+      content: '...',
+      timestamp: new Date(),
+      isStreaming: true,
+    }
+    setMessages(prev => [...prev, placeholderMessage])
+
+    // Generate a unique session ID for progress tracking
+    const sessionId = `progress_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    setProgressUpdates([])
+    
+    // Initialize progress session document and subscribe
+    
+    // Initialize the session document first to avoid race condition
+    await initializeProgressSession(sessionId)
+    
+    // Subscribe to progress updates
+    progressUnsubscribeRef.current = subscribeToAIProgress(
+      sessionId,
+      (update) => {
+        setProgressUpdates(prev => {
+          const newUpdates = [...prev, update]
+          return newUpdates
+        })
+      },
+      (error) => {
+        console.error('[ChatWindow] Progress subscription error:', error)
+      }
+    )
+
     try {
-      const response = await sendMessageToAPI(userMessage, attachedFiles)
+      const result = await sendMessageToAPI(userMessage, attachedFiles, () => {
+        // This is now handled by the real-time subscription
+      }, sessionId)
       
-      const assistantMessage: Message = {
-        id: Date.now().toString() + '-assistant',
-        role: 'assistant',
-        content: response,
-        timestamp: new Date(),
+      // Make sure we have a valid response
+      if (!result || !result.response || result.response === '') {
+        throw new Error('Received empty response from AI')
       }
       
-      setMessages(prev => [...prev, assistantMessage])
+      // Update the placeholder with actual response and tool executions
+      setMessages(prev => prev.map(msg => 
+        msg.id === aiMessageId 
+          ? { 
+              ...msg, 
+              content: result.response, 
+              isStreaming: false,
+              toolExecutions: result.toolExecutions 
+            }
+          : msg
+      ))
     } catch (error: any) {
       console.error('Error sending message:', error)
-      // Show error message
-      const errorMessage: Message = {
-        id: Date.now().toString() + '-error',
-        role: 'assistant',
-        content: `I apologize, but I encountered an error: ${error.message}. Please try again or contact support if the issue persists.`,
-        timestamp: new Date(),
+      
+      // Determine error message
+      let errorMessage = 'I apologize, but I encountered an error.'
+      
+      if (error.message?.includes('timeout')) {
+        errorMessage = 'The operation timed out. This can happen with large requests. The items may still be processing in the background - please check your curriculum in a moment.'
+      } else if (error.message?.includes('empty response')) {
+        errorMessage = 'I completed the operation but couldn\'t generate a response. Please check your curriculum to see if the items were created.'
+      } else {
+        errorMessage = `I encountered an error: ${error.message || 'Unknown error'}. Please try again.`
       }
-      setMessages(prev => [...prev, errorMessage])
+      
+      // Update placeholder with error
+      setMessages(prev => prev.map(msg => 
+        msg.id === aiMessageId 
+          ? { 
+              ...msg, 
+              content: errorMessage,
+              isStreaming: false 
+            }
+          : msg
+      ))
     } finally {
       setIsLoading(false)
+      
+      // Clean up progress subscription
+      if (progressUnsubscribeRef.current) {
+        progressUnsubscribeRef.current()
+        progressUnsubscribeRef.current = null
+      }
+      
+      // Clear progress state after a delay
+      setTimeout(() => {
+        setProgressUpdates([])
+        setCurrentAiMessageId(null)
+      }, 2000)
     }
   }
 
-  const sendMessageToAPI = async (message: Message, files: File[]): Promise<string> => {
+  const sendMessageToAPI = async (
+    message: Message, 
+    files: File[], 
+    onProgress?: (update: { type: string; message: string }) => void,
+    sessionId?: string
+  ): Promise<{ response: string; toolExecutions?: ToolExecution[] }> => {
     try {
       // Import the function dynamically to avoid circular dependencies
       const { sendChatMessage, processDocumentForContext } = await import('@/lib/ai-chat')
@@ -142,8 +229,11 @@ Feel free to upload any documents you'd like me to help you with!`,
       const response = await sendChatMessage(
         message.content,
         conversationHistory,
-        context
+        context,
+        onProgress,
+        sessionId
       )
+      
       
       // If the response indicates a refresh is needed, emit an event
       if (response.requiresRefresh) {
@@ -154,7 +244,16 @@ Feel free to upload any documents you'd like me to help you with!`,
         }, 500) // Small delay to ensure message is shown
       }
       
-      return response.response
+      // Make sure we have a response
+      if (!response || !response.response) {
+        console.error('Invalid response structure:', response)
+        throw new Error('Invalid response from AI service')
+      }
+      
+      return {
+        response: response.response,
+        toolExecutions: response.toolExecutions
+      }
     } catch (error: any) {
       console.error('Error calling AI API:', error)
       throw new Error(error.message || 'Failed to get AI response')
@@ -205,7 +304,17 @@ Feel free to upload any documents you'd like me to help you with!`,
                   : 'bg-gray-100 text-gray-900'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              {/* Show progress display for streaming messages */}
+              {message.isStreaming && message.id === currentAiMessageId && progressUpdates.length > 0 ? (
+                <AIProgressDisplay updates={progressUpdates} />
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">
+                  {message.content}
+                  {message.isStreaming && progressUpdates.length === 0 && (
+                    <span className="inline-block w-1 h-4 ml-1 bg-current animate-pulse" />
+                  )}
+                </p>
+              )}
               {message.attachments && message.attachments.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {message.attachments.map((attachment, index) => (
@@ -222,6 +331,12 @@ Feel free to upload any documents you'd like me to help you with!`,
                     </div>
                   ))}
                 </div>
+              )}
+              {message.toolExecutions && message.toolExecutions.length > 0 && message.role === 'assistant' && (
+                <ToolExecutionDisplay 
+                  executions={message.toolExecutions} 
+                  className="mt-2"
+                />
               )}
               <p
                 className={`text-xs mt-1 ${

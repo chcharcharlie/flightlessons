@@ -13,9 +13,6 @@ export { aiChatWithTools } from './ai-chat-with-tools';
 // Export bulk operations
 export { bulkDeleteCurriculum } from './bulk-operations';
 
-// Debug function
-export { debugStudyAreas } from './debug-study-areas';
-
 // Migration function
 export { migrateStudyAreas } from './migrate-study-areas';
 

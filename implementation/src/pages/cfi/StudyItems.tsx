@@ -295,6 +295,7 @@ export const StudyItems: React.FC = () => {
           onCreate={(data) => handleUpdateItem(editingItem.id, data)}
         />
       )}
+      
     </div>
   )
 }

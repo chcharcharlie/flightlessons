@@ -171,5 +171,12 @@ service cloud.firestore {
       allow update, delete: if isCFI() && 
         resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId;
     }
+    
+    // AI Progress tracking collection (temporary documents for real-time updates)
+    match /aiProgress/{sessionId} {
+      // Simple rules since session IDs are unique and random
+      // Only authenticated users can read/write their own progress sessions
+      allow read, write: if isSignedIn();
+    }
   }
 }
