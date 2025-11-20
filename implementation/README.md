@@ -90,3 +90,37 @@ implementation/
 - `npm run deploy` - Deploy to Firebase
 - `npm run lint` - Run ESLint
 - `npm run format` - Format code with Prettier
+
+## Troubleshooting
+
+### Common Issues
+
+1. **OPERATION_NOT_ALLOWED Error on Sign Up**
+   - Enable Email/Password authentication in Firebase Console
+   - Go to: Authentication > Sign-in method > Email/Password
+   - Toggle "Enable" to ON
+
+2. **Firebase Configuration Issues**
+   - Ensure your `.env` file has all required values
+   - All values must start with `VITE_` prefix for Vite to recognize them
+
+3. **Functions Not Working**
+   - Deploy functions manually: `npm run deploy:functions`
+   - For specific functions: `firebase deploy --only functions:functionName --account your-email@example.com`
+
+4. **Firestore Permission Denied**
+   - Deploy security rules: `npm run deploy:rules`
+   - Deploy indexes: `npm run deploy:indexes`
+   - Check Firebase Console > Firestore Database > Rules
+
+5. **Development Server Issues**
+   - Clear browser cache
+   - Restart dev server
+   - Check browser console for errors
+
+### Quick Checks
+
+1. **Authentication Status**: Firebase Console > Authentication > Users
+2. **Firestore Data**: Firebase Console > Firestore Database
+3. **Function Logs**: Firebase Console > Functions > Logs
+4. **Browser Console**: Open Developer Tools (F12) for JavaScript errors
