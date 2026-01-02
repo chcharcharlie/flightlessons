@@ -24,8 +24,9 @@ export const bulkDeleteCurriculum = onCall(
       throw new HttpsError('permission-denied', 'Only CFIs can delete curriculum');
     }
 
-    // Verify workspace ownership
-    if (userDoc.data()?.cfiWorkspaceId !== workspaceId) {
+    // Verify workspace ownership by checking if the workspace belongs to this CFI
+    const workspaceDoc = await db.collection('workspaces').doc(workspaceId).get();
+    if (!workspaceDoc.exists || workspaceDoc.data()?.cfiUid !== request.auth.uid) {
       throw new HttpsError('permission-denied', 'Invalid workspace');
     }
 
@@ -47,21 +48,22 @@ export const bulkDeleteCurriculum = onCall(
         });
       }
 
+      // Get workspace reference
+      const workspaceRef = db.collection('workspaces').doc(workspaceId);
+
       if (deleteType === 'all' || deleteType === 'studyItems') {
-        // First get all study areas for this certificate
-        const studyAreasSnapshot = await db
+        // First get all study areas for this certificate from workspace subcollection
+        const studyAreasSnapshot = await workspaceRef
           .collection('studyAreas')
-          .where('cfiWorkspaceId', '==', workspaceId)
           .where('certificate', '==', certificate)
           .get();
 
         const areaIds = studyAreasSnapshot.docs.map(doc => doc.id);
 
-        // Delete study items for each area
+        // Delete study items for each area from workspace subcollection
         for (const areaId of areaIds) {
-          const itemsSnapshot = await db
+          const itemsSnapshot = await workspaceRef
             .collection('studyItems')
-            .where('cfiWorkspaceId', '==', workspaceId)
             .where('studyAreaId', '==', areaId)
             .get();
 
@@ -73,10 +75,9 @@ export const bulkDeleteCurriculum = onCall(
       }
 
       if (deleteType === 'all' || deleteType === 'studyAreas') {
-        // Delete study areas
-        const studyAreasSnapshot = await db
+        // Delete study areas from workspace subcollection
+        const studyAreasSnapshot = await workspaceRef
           .collection('studyAreas')
-          .where('cfiWorkspaceId', '==', workspaceId)
           .where('certificate', '==', certificate)
           .get();
 
