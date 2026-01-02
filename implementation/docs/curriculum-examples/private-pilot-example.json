@@ -1,0 +1,146 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "title": "Private Pilot Certificate Curriculum",
+    "description": "Comprehensive training curriculum for Private Pilot License (PPL) based on FAA Part 61 requirements",
+    "author": "Example CFI",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "certificate": "PRIVATE",
+    "tags": ["Part 61", "Standard"]
+  },
+  "studyAreas": [
+    {
+      "id": "area_1",
+      "name": "Aerodynamics and Aircraft Performance",
+      "description": "Fundamental principles of flight and aircraft performance",
+      "orderNumber": 1
+    },
+    {
+      "id": "area_2",
+      "name": "Aircraft Systems",
+      "description": "Understanding aircraft components and operations",
+      "orderNumber": 2
+    },
+    {
+      "id": "area_3",
+      "name": "Navigation and Flight Planning",
+      "description": "Charts, navigation techniques, and cross-country planning",
+      "orderNumber": 3
+    }
+  ],
+  "studyItems": [
+    {
+      "id": "item_1",
+      "studyAreaId": "area_1",
+      "name": "Four Forces of Flight",
+      "type": "GROUND",
+      "description": "Understanding lift, weight, thrust, and drag, and their interactions during various phases of flight",
+      "evaluationCriteria": "Student can explain each force, their relationships, and how they affect aircraft in straight-and-level, climbing, descending, and turning flight",
+      "orderNumber": 1,
+      "acsCodeMappings": ["PA.I.B.K1", "PA.I.B.K2"],
+      "referenceMaterials": [
+        {
+          "type": "link",
+          "name": "FAA Airplane Flying Handbook Chapter 4",
+          "url": "https://www.faa.gov/regulations_policies/handbooks_manuals/aviation/airplane_handbook/",
+          "description": "Official FAA resource on aerodynamics"
+        }
+      ]
+    },
+    {
+      "id": "item_2",
+      "studyAreaId": "area_1",
+      "name": "Slow Flight and Stalls",
+      "type": "BOTH",
+      "description": "Recognition of stall indications, stall recovery procedures, and maneuvering during slow flight",
+      "evaluationCriteria": "Ground: Explains aerodynamics of stalls and recovery procedures. Flight: Demonstrates proper slow flight technique and stall recovery with minimal altitude loss",
+      "orderNumber": 2,
+      "acsCodeMappings": ["PA.VII.A.K1", "PA.VII.A.S1", "PA.VII.B.K1", "PA.VII.B.S1"]
+    },
+    {
+      "id": "item_3",
+      "studyAreaId": "area_2",
+      "name": "Engine Operation",
+      "type": "GROUND",
+      "description": "Four-stroke engine cycle, engine components, and normal/abnormal indications",
+      "evaluationCriteria": "Student can describe engine operation, interpret engine instruments, and explain proper operating procedures",
+      "orderNumber": 1,
+      "acsCodeMappings": ["PA.I.F.K1", "PA.I.F.K2"]
+    },
+    {
+      "id": "item_4",
+      "studyAreaId": "area_3",
+      "name": "Pilotage and Dead Reckoning",
+      "type": "BOTH",
+      "description": "Visual navigation techniques using landmarks and calculated navigation",
+      "evaluationCriteria": "Ground: Plans a cross-country using pilotage and DR. Flight: Maintains course using visual checkpoints and time/distance calculations",
+      "orderNumber": 1,
+      "acsCodeMappings": ["PA.I.D.K1", "PA.VI.A.K1", "PA.VI.A.S1"]
+    }
+  ],
+  "lessonPlans": [
+    {
+      "id": "plan_1",
+      "title": "Introduction to Aerodynamics",
+      "orderNumber": 1,
+      "motivation": "Understanding how an airplane flies is fundamental to becoming a safe and competent pilot. This knowledge helps you make better decisions and handle unusual situations.",
+      "objectives": [
+        "Explain the four forces acting on an aircraft",
+        "Describe how control surfaces affect flight",
+        "Understand the relationship between angle of attack and lift"
+      ],
+      "itemIds": ["item_1"],
+      "planDescription": "Ground lesson introducing basic aerodynamic principles using models and diagrams. Discussion includes practical applications during normal flight operations.",
+      "preStudyHomework": "Read PHAK Chapter 5 (Aerodynamics of Flight) pages 5-1 through 5-20",
+      "estimatedDuration": {
+        "ground": 90,
+        "flight": 0
+      },
+      "referenceMaterials": [
+        {
+          "type": "link",
+          "name": "NASA Principles of Flight",
+          "url": "https://www.grc.nasa.gov/www/k-12/UEET/StudentSite/dynamicsofflight.html"
+        }
+      ]
+    },
+    {
+      "id": "plan_2",
+      "title": "Slow Flight and Stall Practice",
+      "orderNumber": 2,
+      "motivation": "Recognizing and recovering from stalls is critical for flight safety. Most stall/spin accidents occur during takeoff and landing phases.",
+      "objectives": [
+        "Recognize stall warning signs",
+        "Perform power-off and power-on stalls",
+        "Demonstrate proper stall recovery technique",
+        "Maintain coordinated flight during slow flight"
+      ],
+      "itemIds": ["item_2"],
+      "planDescription": "After ground briefing on stall aerodynamics, practice slow flight at various configurations, followed by power-off and power-on stalls. Emphasis on coordination and timely recognition.",
+      "preStudyHomework": "Review stall recovery procedures in POH. Watch FAA stall/spin awareness video.",
+      "estimatedDuration": {
+        "ground": 30,
+        "flight": 1.2
+      }
+    },
+    {
+      "id": "plan_3",
+      "title": "Cross-Country Planning",
+      "orderNumber": 3,
+      "motivation": "Cross-country flying opens up the practical utility of an airplane and is required for your certificate. Proper planning ensures safe and efficient flights.",
+      "objectives": [
+        "Plan a cross-country flight using current charts",
+        "Calculate fuel requirements and weight & balance",
+        "Identify checkpoints for pilotage",
+        "Complete a navigation log"
+      ],
+      "itemIds": ["item_4"],
+      "planDescription": "Work together to plan an actual cross-country flight. Student will complete all planning elements including weather briefing, performance calculations, and navigation log.",
+      "preStudyHomework": "Obtain current sectional chart. Review PHAK Chapter 16 (Navigation).",
+      "estimatedDuration": {
+        "ground": 120,
+        "flight": 0
+      }
+    }
+  ]
+}

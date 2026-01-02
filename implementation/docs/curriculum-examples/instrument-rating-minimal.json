@@ -1,0 +1,130 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "title": "Instrument Rating Curriculum - Accelerated",
+    "description": "Focused IFR training curriculum for pilots with PPL",
+    "certificate": "INSTRUMENT",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "tags": ["Accelerated", "Part 61", "GPS Emphasis"]
+  },
+  "studyAreas": [
+    {
+      "id": "area_1",
+      "name": "IFR Regulations and Procedures",
+      "orderNumber": 1
+    },
+    {
+      "id": "area_2",
+      "name": "Weather Theory and Reports",
+      "orderNumber": 2
+    },
+    {
+      "id": "area_3",
+      "name": "Navigation Systems",
+      "orderNumber": 3
+    },
+    {
+      "id": "area_4",
+      "name": "Approach Procedures",
+      "orderNumber": 4
+    }
+  ],
+  "studyItems": [
+    {
+      "id": "item_1",
+      "studyAreaId": "area_1",
+      "name": "IFR Currency Requirements",
+      "type": "GROUND",
+      "description": "Understanding 61.57(c) requirements for instrument currency",
+      "evaluationCriteria": "Explains 6-6-HIT requirements and methods to maintain currency",
+      "orderNumber": 1,
+      "acsCodeMappings": ["IR.I.B.K1"]
+    },
+    {
+      "id": "item_2",
+      "studyAreaId": "area_2",
+      "name": "METAR/TAF Interpretation",
+      "type": "GROUND",
+      "description": "Decoding and applying weather reports for IFR operations",
+      "evaluationCriteria": "Accurately decodes METARs/TAFs and determines IFR alternate requirements",
+      "orderNumber": 1,
+      "acsCodeMappings": ["IR.I.C.K1", "IR.I.C.K2"]
+    },
+    {
+      "id": "item_3",
+      "studyAreaId": "area_3",
+      "name": "GPS/RNAV Operations",
+      "type": "BOTH",
+      "description": "WAAS GPS operations including approach procedures",
+      "evaluationCriteria": "Programs and flies GPS approaches, understands RAIM and WAAS",
+      "orderNumber": 1,
+      "acsCodeMappings": ["IR.II.B.K1", "IR.II.B.S1"]
+    },
+    {
+      "id": "item_4",
+      "studyAreaId": "area_4",
+      "name": "Precision Approach Procedures",
+      "type": "FLIGHT",
+      "description": "Flying ILS approaches to minimums",
+      "evaluationCriteria": "Maintains localizer/glideslope within PTS standards",
+      "orderNumber": 1,
+      "acsCodeMappings": ["IR.VI.A.S1", "IR.VI.A.S2"]
+    }
+  ],
+  "lessonPlans": [
+    {
+      "id": "plan_1",
+      "title": "IFR Regulations Review",
+      "orderNumber": 1,
+      "motivation": "Understanding IFR regulations is essential for safe and legal instrument flight",
+      "objectives": [
+        "Review instrument currency requirements",
+        "Understand IFR equipment requirements",
+        "Know when an alternate is required"
+      ],
+      "itemIds": ["item_1"],
+      "planDescription": "Comprehensive ground lesson covering Part 91 IFR regulations",
+      "preStudyHomework": "Read AIM Chapter 5",
+      "estimatedDuration": {
+        "ground": 120,
+        "flight": 0
+      }
+    },
+    {
+      "id": "plan_2",
+      "title": "Weather Products and Decision Making",
+      "orderNumber": 2,
+      "motivation": "Weather is the leading factor in IFR accidents - proper interpretation saves lives",
+      "objectives": [
+        "Decode all weather products",
+        "Apply weather minimums",
+        "Make go/no-go decisions"
+      ],
+      "itemIds": ["item_2"],
+      "planDescription": "Interactive weather briefing practice with real-world scenarios",
+      "preStudyHomework": "Complete ASA weather course online",
+      "estimatedDuration": {
+        "ground": 90,
+        "flight": 0
+      }
+    },
+    {
+      "id": "plan_3",
+      "title": "GPS Approach Procedures",
+      "orderNumber": 3,
+      "motivation": "GPS approaches are becoming the primary approach type at many airports",
+      "objectives": [
+        "Program GPS for approaches",
+        "Fly LNAV and LPV approaches",
+        "Execute missed approach procedures"
+      ],
+      "itemIds": ["item_3", "item_4"],
+      "planDescription": "Practice multiple GPS approaches with various minimums and missed approach procedures",
+      "preStudyHomework": "Review GPS manual supplement in POH",
+      "estimatedDuration": {
+        "ground": 45,
+        "flight": 1.5
+      }
+    }
+  ]
+}

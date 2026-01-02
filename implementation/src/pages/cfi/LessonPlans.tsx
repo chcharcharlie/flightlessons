@@ -28,6 +28,7 @@ import {
   Bars3Icon,
   LinkIcon,
   DocumentIcon,
+  ArrowsUpDownIcon,
 } from '@heroicons/react/24/outline'
 import {
   DndContext,
@@ -49,6 +50,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { ImportExportModal } from '@/components/curriculum/ImportExportModal'
+import { useWorkspace } from '@/hooks/useWorkspace'
 
 interface EditingLessonPlan extends LessonPlan {
   isEditing?: boolean
@@ -89,13 +92,13 @@ export const LessonPlans: React.FC = () => {
     referenceMaterials: []
   })
 
-  const workspaceId = user?.cfiWorkspaceId || ''
+  const { workspaceId, loading: workspaceLoading } = useWorkspace()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overId, setOverId] = useState<string | null>(null)
+  const [showImportExport, setShowImportExport] = useState(false)
   
   const loadStudyData = async () => {
     if (!workspaceId) {
-      setLoading(false)
       return
     }
 
@@ -115,7 +118,8 @@ export const LessonPlans: React.FC = () => {
           name: data.name,
           certificate: data.certificate,
           order: data.orderNumber || 0,
-          cfiWorkspaceId: workspaceId
+          itemCount: 0, // Will be updated later
+          createdAt: data.createdAt || Timestamp.now()
         }
         
         allAreas.push(area)
@@ -142,12 +146,18 @@ export const LessonPlans: React.FC = () => {
           acsCodeMappings: data.acsCodeMappings || [],
           referenceMaterials: data.referenceMaterials || [],
           areaId: data.studyAreaId,
-          order: data.orderNumber || 0,
-          cfiWorkspaceId: workspaceId
+          order: data.orderNumber || 0
         })
       })
       
       setStudyItems(allItems)
+      
+      // Update itemCount for each area
+      areasMap.forEach((areas, certificate) => {
+        areas.forEach(area => {
+          area.itemCount = allItems.filter(item => item.areaId === area.id).length
+        })
+      })
       
       // Load lesson plans
       const certificates: Certificate[] = ['PRIVATE', 'INSTRUMENT', 'COMMERCIAL']
@@ -222,6 +232,12 @@ export const LessonPlans: React.FC = () => {
   useEffect(() => {
     loadStudyData()
   }, [workspaceId])
+  
+  useEffect(() => {
+    if (!workspaceLoading && workspaceId) {
+      setLoading(true)
+    }
+  }, [workspaceLoading, workspaceId])
   
   useEffect(() => {
     sessionStorage.setItem('selectedCertificate', selectedCertificate)
@@ -345,7 +361,7 @@ export const LessonPlans: React.FC = () => {
           
           updatedAreas.forEach((area, index) => {
             const areaRef = doc(workspaceRef, 'studyAreas', area.id)
-            batch.update(areaRef, { order: index })
+            batch.update(areaRef, { orderNumber: index })
           })
           
           await batch.commit()
@@ -435,8 +451,8 @@ export const LessonPlans: React.FC = () => {
           areaItems.forEach((item) => {
             const itemRef = doc(workspaceRef, 'studyItems', item.id)
             batch.update(itemRef, { 
-              areaId: item.areaId,
-              order: item.order
+              studyAreaId: item.areaId,
+              orderNumber: item.order
             })
           })
         })
@@ -643,15 +659,22 @@ export const LessonPlans: React.FC = () => {
       const newArea = {
         name: newAreaName.trim(),
         certificate: addingAreaFor,
-        order: nextOrder,
-        itemCount: 0,
+        orderNumber: nextOrder,
+        cfiWorkspaceId: workspaceId,
         createdAt: Timestamp.now()
       }
       
       const docRef = await addDoc(collection(workspaceRef, 'studyAreas'), newArea)
       
       // Update local state
-      const updatedAreas = [...areas, { ...newArea, id: docRef.id }]
+      const updatedAreas = [...areas, { 
+        id: docRef.id,
+        name: newAreaName.trim(),
+        certificate: addingAreaFor,
+        order: nextOrder,
+        itemCount: 0,
+        createdAt: Timestamp.now()
+      }]
       setStudyAreas(new Map(studyAreas).set(addingAreaFor, updatedAreas))
       
       setAddingAreaFor(null)
@@ -674,14 +697,15 @@ export const LessonPlans: React.FC = () => {
       
       // Add new item
       const newItem = {
-        areaId: addingItemFor,
+        studyAreaId: addingItemFor,
         name: newItemData.name.trim(),
         type: newItemData.type || 'GROUND',
         description: newItemData.description?.trim() || '',
         evaluationCriteria: newItemData.evaluationCriteria?.trim() || '',
-        acsCodeMappings: [],
-        referenceMaterials: [],
-        order: nextOrder,
+        acsCodeMappings: newItemData.acsCodeMappings || [],
+        referenceMaterials: newItemData.referenceMaterials || [],
+        orderNumber: nextOrder,
+        cfiWorkspaceId: workspaceId,
         createdAt: Timestamp.now()
       }
       
@@ -702,8 +726,18 @@ export const LessonPlans: React.FC = () => {
         setStudyAreas(new Map(studyAreas).set(selectedCertificate, updatedAreas))
       }
       
-      // Update local items state - maintain the new item with its order
-      setStudyItems([...studyItems, { ...newItem, id: docRef.id, order: nextOrder }])
+      // Update local items state
+      setStudyItems([...studyItems, { 
+        id: docRef.id,
+        name: newItemData.name.trim(),
+        type: newItemData.type || 'GROUND',
+        description: newItemData.description?.trim() || '',
+        evaluationCriteria: newItemData.evaluationCriteria?.trim() || '',
+        acsCodeMappings: newItemData.acsCodeMappings || [],
+        referenceMaterials: newItemData.referenceMaterials || [],
+        areaId: addingItemFor,
+        order: nextOrder
+      }])
       
       setAddingItemFor(null)
       setNewItemData({
@@ -1027,42 +1061,6 @@ export const LessonPlans: React.FC = () => {
         </div>
       </div>
 
-      {/* Temporary Migration Button */}
-      {selectedCertificate === 'INSTRUMENT' && (
-        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-gray-600 mb-2">
-            If your study areas aren't showing up, click below to fix the issue:
-          </p>
-          <button
-            onClick={async () => {
-              try {
-                const { httpsCallable } = await import('firebase/functions')
-                const { functions } = await import('@/lib/firebase')
-                
-                console.log('Running migration to fix study areas...')
-                const migrate = httpsCallable(functions, 'migrateStudyAreas')
-                const result = await migrate()
-                console.log('Migration result:', result.data)
-                
-                const data = result.data as any
-                if (data.success) {
-                  alert(`Migration complete! ${data.message}\n\nThe page will now refresh.`)
-                } else {
-                  alert('Migration completed. Check console for details.')
-                }
-                
-                setTimeout(() => window.location.reload(), 1500)
-              } catch (error) {
-                console.error('Migration failed:', error)
-                alert('Migration failed. Check console for details.')
-              }
-            }}
-            className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
-          >
-            Fix Missing Study Areas
-          </button>
-        </div>
-      )}
 
       {/* Certificate Tabs */}
       <div className="mt-6 border-b border-gray-200">
@@ -1084,25 +1082,34 @@ export const LessonPlans: React.FC = () => {
               </button>
             ))}
           </nav>
-          <button
-            onClick={async () => {
-              if (confirm(`Are you sure you want to delete ALL curriculum items for ${getCertificateFullName(selectedCertificate)}? This action cannot be undone.`)) {
-                try {
-                  const { bulkDeleteCurriculum } = await import('@/lib/bulk-operations')
-                  const result = await bulkDeleteCurriculum(workspaceId, selectedCertificate, 'all')
-                  alert(result.message)
-                  // Reload the data
-                  loadStudyData()
-                } catch (error: any) {
-                  alert(`Error deleting curriculum: ${error.message}`)
+          <div className="flex items-center space-x-2 mb-2">
+            <button
+              onClick={() => setShowImportExport(true)}
+              className="px-3 py-1 text-sm text-sky-600 hover:text-sky-700 hover:bg-sky-50 rounded"
+            >
+              <ArrowsUpDownIcon className="h-4 w-4 inline mr-1" />
+              Import/Export
+            </button>
+            <button
+              onClick={async () => {
+                if (confirm(`Are you sure you want to delete ALL curriculum items for ${getCertificateFullName(selectedCertificate)}? This action cannot be undone.`)) {
+                  try {
+                    const { bulkDeleteCurriculum } = await import('@/lib/bulk-operations')
+                    const result = await bulkDeleteCurriculum(workspaceId, selectedCertificate, 'all')
+                    alert(result.message)
+                    // Reload the data
+                    loadStudyData()
+                  } catch (error: any) {
+                    alert(`Error deleting curriculum: ${error.message}`)
+                  }
                 }
-              }
-            }}
-            className="mb-2 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
-          >
-            <TrashIcon className="h-4 w-4 inline mr-1" />
-            Delete All
-          </button>
+              }}
+              className="px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+            >
+              <TrashIcon className="h-4 w-4 inline mr-1" />
+              Delete All
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1952,6 +1959,14 @@ export const LessonPlans: React.FC = () => {
           </div>
         ) : null}
       </DragOverlay>
+      
+      {/* Import/Export Modal */}
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        certificate={selectedCertificate}
+        onImportSuccess={loadStudyData}
+      />
     </DndContext>
   )
 }

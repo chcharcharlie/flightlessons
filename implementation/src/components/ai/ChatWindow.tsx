@@ -10,6 +10,9 @@ import {
 import { ToolExecutionDisplay } from './ToolExecutionDisplay'
 import { AIProgressDisplay } from './AIProgressDisplay'
 import { subscribeToAIProgress, initializeProgressSession, AIProgressUpdate } from '@/lib/ai-progress'
+import { storage } from '@/lib/firebase'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface ToolExecution {
   toolName: string
@@ -36,6 +39,7 @@ interface ChatWindowProps {
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ isOpen, onClose, context: propContext }) => {
   const location = useLocation()
+  const { user } = useAuth()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -212,7 +216,24 @@ Feel free to upload any documents you'd like me to help you with!`,
       // Process any attached files
       if (files.length > 0) {
         const fileContexts = await Promise.all(
-          files.map(file => processDocumentForContext(file))
+          files.map(async (file) => {
+            try {
+              // Upload file to Firebase Storage
+              const timestamp = Date.now()
+              const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+              const storageRef = ref(storage, `ai-chat/${user?.uid}/${timestamp}_${safeName}`)
+              
+              await uploadBytes(storageRef, file)
+              const downloadUrl = await getDownloadURL(storageRef)
+              
+              // Process document with the storage URL
+              return await processDocumentForContext(file, downloadUrl)
+            } catch (error) {
+              console.error('Error uploading file:', error)
+              // Fallback to basic info if upload fails
+              return await processDocumentForContext(file)
+            }
+          })
         )
         context += '\n' + fileContexts.join('\n\n')
       }

@@ -38,5 +38,11 @@ service firebase.storage {
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'CFI'
       );
     }
+    
+    // AI chat file uploads
+    match /ai-chat/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
   }
 }

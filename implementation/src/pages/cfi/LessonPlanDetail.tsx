@@ -33,6 +33,7 @@ import {
 import { ReferenceMaterialModal } from '@/components/ReferenceMaterialModal'
 import { storage } from '@/lib/firebase'
 import { ref, listAll, getDownloadURL } from 'firebase/storage'
+import { useWorkspace } from '@/hooks/useWorkspace'
 
 export const LessonPlanDetail: React.FC = () => {
   const { certificate, planId } = useParams<{ certificate: string; planId: string }>()
@@ -60,7 +61,7 @@ export const LessonPlanDetail: React.FC = () => {
   const [groundDuration, setGroundDuration] = useState(60)
   const [flightDuration, setFlightDuration] = useState(1.5)
 
-  const workspaceId = user?.cfiWorkspaceId || ''
+  const { workspaceId, loading: workspaceLoading } = useWorkspace()
   const isNewPlan = planId === 'new'
   const isDuplicating = planId?.startsWith('duplicate-')
 
@@ -115,11 +116,17 @@ export const LessonPlanDetail: React.FC = () => {
           // orderBy('order', 'asc') // Temporarily removed while index builds
         )
         const areasSnapshot = await getDocs(areasQuery)
-        const areasData = areasSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as StudyArea))
-          .sort((a, b) => a.order - b.order)
+        const areasData = areasSnapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            name: data.name,
+            certificate: data.certificate,
+            order: data.orderNumber || 0,
+            itemCount: 0, // Will be updated later
+            createdAt: data.createdAt || Timestamp.now()
+          } as StudyArea
+        }).sort((a, b) => a.order - b.order)
         setAreas(areasData)
         
         // Start with all areas expanded
@@ -127,16 +134,30 @@ export const LessonPlanDetail: React.FC = () => {
 
         // Load all study items
         const itemsSnapshot = await getDocs(collection(workspaceRef, 'studyItems'))
-        const allItemsData = itemsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as StudyItem))
-          .sort((a, b) => (a.order || 0) - (b.order || 0))
+        const allItemsData = itemsSnapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            name: data.name,
+            type: data.type,
+            description: data.description || '',
+            evaluationCriteria: data.evaluationCriteria || '',
+            acsCodeMappings: data.acsCodeMappings || [],
+            referenceMaterials: data.referenceMaterials || [],
+            areaId: data.studyAreaId,
+            order: data.orderNumber || 0
+          } as StudyItem
+        }).sort((a, b) => (a.order || 0) - (b.order || 0))
         
         // Filter items to only those belonging to areas for this certificate
         const areaIds = new Set(areasData.map(area => area.id))
         const certificateItems = allItemsData.filter(item => areaIds.has(item.areaId))
         setItems(certificateItems)
+        
+        // Update itemCount for each area
+        areasData.forEach(area => {
+          area.itemCount = certificateItems.filter(item => item.areaId === area.id).length
+        })
 
         // Get the next order number for new plans
         if (isNewPlan && !isDuplicating) {

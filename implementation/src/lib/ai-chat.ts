@@ -81,12 +81,33 @@ export async function sendChatMessage(
 }
 
 // Helper function to process documents for context
-export async function processDocumentForContext(file: File): Promise<string> {
-  // For now, just return basic file info
-  // In a real implementation, you might want to:
-  // 1. Upload to Cloud Storage
-  // 2. Use a document processing service to extract text
-  // 3. Return the extracted content
+export async function processDocumentForContext(file: File, storageUrl?: string): Promise<string> {
+  // If no storage URL provided, just return basic info
+  if (!storageUrl) {
+    return `Document: ${file.name} (${file.type}, ${Math.round(file.size / 1024)}KB) - ERROR: Failed to upload file`
+  }
   
-  return `Document: ${file.name} (${file.type}, ${Math.round(file.size / 1024)}KB)`
+  try {
+    // Call the processDocument function to extract content
+    const processDoc = httpsCallable<
+      { fileUrl: string; fileName: string; mimeType: string },
+      { success: boolean; content: string; metadata: any }
+    >(functions, 'processDocument')
+    
+    const result = await processDoc({
+      fileUrl: storageUrl,
+      fileName: file.name,
+      mimeType: file.type
+    })
+    
+    if (result.data.success && result.data.content) {
+      return `\n=== Document: ${file.name} ===\n${result.data.content}\n=== End of Document ===\n`
+    }
+  } catch (error: any) {
+    console.error('Error processing document:', error)
+    return `Document: ${file.name} (${file.type}, ${Math.round(file.size / 1024)}KB) - ERROR: Failed to process document content: ${error.message || 'Unknown error'}. The AI cannot see the document content.`
+  }
+  
+  // Fallback to error message
+  return `Document: ${file.name} (${file.type}, ${Math.round(file.size / 1024)}KB) - ERROR: Failed to extract document content. The AI cannot see the document content.`
 }

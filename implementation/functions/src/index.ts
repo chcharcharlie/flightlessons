@@ -10,6 +10,9 @@ admin.initializeApp();
 export { aiChat } from './ai-chat';
 export { aiChatWithTools } from './ai-chat-with-tools';
 
+// Export document processing
+export { processDocument } from './process-document';
+
 // Export bulk operations
 export { bulkDeleteCurriculum } from './bulk-operations';
 
@@ -18,6 +21,9 @@ export { migrateStudyAreas } from './migrate-study-areas';
 
 // Data check function
 export { checkAllData } from './check-all-data';
+
+// Fix lesson plan order field
+export { fixLessonPlanOrder } from './fix-lesson-plan-order';
 
 const db = admin.firestore();
 const auth = admin.auth();

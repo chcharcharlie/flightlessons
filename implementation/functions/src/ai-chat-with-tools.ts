@@ -337,7 +337,7 @@ async function executeTool(
           cfiWorkspaceId: workspaceId,
           certificate: args.certificate,
           name: args.name,
-          order: args.orderNumber || 0,
+          orderNumber: args.orderNumber || 0,
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
@@ -423,7 +423,7 @@ async function executeTool(
           type: args.type,
           description: args.description || '',
           evaluationCriteria: args.evaluationCriteria || '',
-          order: args.orderNumber || 0,
+          orderNumber: args.orderNumber || 0,
           acsCodeMappings: [],
           referenceMaterials: [],
           createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -499,7 +499,7 @@ async function executeTool(
           referenceMaterials: [],
           preStudyHomework: args.preStudyHomework || '',
           estimatedDuration: args.estimatedDuration || { ground: 60, flight: 0 },
-          order: args.orderNumber || 0,
+          orderNumber: args.orderNumber || 0,
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
@@ -555,16 +555,16 @@ async function executeTool(
           totalDeleted++;
         });
 
-        // Delete study areas and their items
-        const areas = await db
+        // Delete study areas and their items from workspace subcollection
+        const workspaceRef = db.collection('workspaces').doc(workspaceId);
+        const areas = await workspaceRef
           .collection('studyAreas')
-          .where('cfiWorkspaceId', '==', workspaceId)
           .where('certificate', '==', args.certificate)
           .get();
 
         for (const areaDoc of areas.docs) {
-          // Delete associated items
-          const items = await db
+          // Delete associated items from workspace subcollection
+          const items = await workspaceRef
             .collection('studyItems')
             .where('studyAreaId', '==', areaDoc.id)
             .get();
@@ -691,6 +691,16 @@ Important guidelines:
 - When asked to create content, use the create tool
 - When asked to delete content, use the delete tool with appropriate filters
 - Always use the certificate from the context (PRIVATE, INSTRUMENT, or COMMERCIAL)
+
+Document Processing:
+- When documents are provided (marked with === Document: filename ===), analyze their content carefully
+- If you see "ERROR:" in the document context, the document failed to load - you MUST acknowledge this to the user
+- NEVER pretend to have read a document if it shows an error
+- If a document fails to load, tell the user: "I'm sorry, but I couldn't read the content of [filename] due to a processing error. Could you try uploading it again or provide the information in another format?"
+- Only create curriculum based on documents you can actually read
+- Extract relevant curriculum information like topics, learning objectives, and lesson structures
+- Use the document content to create comprehensive study areas, items, and lesson plans
+- When creating curriculum from documents, organize it into logical areas and items based on the document structure
 
 CRITICAL RULE: When creating study items, you MUST use ALL tools in ONE response:
 
