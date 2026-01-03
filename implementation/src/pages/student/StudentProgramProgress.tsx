@@ -55,6 +55,7 @@ export const StudentProgramProgress: React.FC = () => {
             where('certificate', '==', programData.certificate)
           )
         )
+        
         const areasData = areasSnapshot.docs.map(doc => {
           const data = doc.data()
           return {
@@ -67,10 +68,12 @@ export const StudentProgramProgress: React.FC = () => {
           } as StudyArea
         })
           .sort((a, b) => a.order - b.order)
+        
         setAreas(areasData)
         
         // Load all study items for these areas
         const itemsSnapshot = await getDocs(collection(workspaceRef, 'studyItems'))
+        
         const allItems = itemsSnapshot.docs.map(doc => {
           const data = doc.data()
           return {
@@ -90,7 +93,11 @@ export const StudentProgramProgress: React.FC = () => {
         
         // Filter items for this certificate's areas
         const areaIds = areasData.map(a => a.id)
-        const certificateItems = allItems.filter(item => areaIds.includes(item.areaId))
+        
+        const certificateItems = allItems.filter(item => {
+          return areaIds.includes(item.areaId)
+        })
+        
         setItems(certificateItems)
         
         // Load progress for this student
@@ -100,10 +107,14 @@ export const StudentProgramProgress: React.FC = () => {
           where('cfiWorkspaceId', '==', user.cfiWorkspaceId)
         )
         const progressSnapshot = await getDocs(progressQuery)
-        const progressData = progressSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Progress))
+        
+        const progressData = progressSnapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            ...data
+          } as Progress
+        })
         setProgress(progressData)
         
         // Load lessons for this program
@@ -114,11 +125,11 @@ export const StudentProgramProgress: React.FC = () => {
           where('cfiWorkspaceId', '==', user.cfiWorkspaceId)
         )
         const lessonsSnapshot = await getDocs(lessonsQuery)
+        
         const lessonsData = lessonsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         } as Lesson))
-        
         setLessons(lessonsData)
         
         // Load lesson plans for this certificate
@@ -129,13 +140,14 @@ export const StudentProgramProgress: React.FC = () => {
           orderBy('orderNumber', 'asc')
         )
         const plansSnapshot = await getDocs(plansQuery)
+        
         const plansData = plansSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         } as LessonPlan))
         setLessonPlans(plansData)
       } catch (error) {
-        // Silently handle error
+        console.error('Error loading data:', error)
       } finally {
         setLoading(false)
       }
@@ -310,6 +322,7 @@ export const StudentProgramProgress: React.FC = () => {
   }
 
   const totalItems = items.length
+  
   const completedItems = items.filter(item => {
     const itemProgress = getItemProgress(item.id)
     
@@ -402,6 +415,7 @@ export const StudentProgramProgress: React.FC = () => {
           <div className="space-y-3">
             {areas.map(area => {
             const areaItems = items.filter(item => item.areaId === area.id)
+            
             const areaCompleted = areaItems.filter(item => {
               const itemProgress = getItemProgress(item.id)
               

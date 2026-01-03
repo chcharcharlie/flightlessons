@@ -7,10 +7,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { TrainingProgram, User, StudyArea, StudyItem, Progress, GroundScore, FlightScore, Lesson, LessonPlan, ReferenceMaterial } from '@/types'
 import { ChartBarIcon, BookOpenIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, CalendarDaysIcon, PlusIcon, CheckCircleIcon, DocumentTextIcon, LinkIcon, DocumentIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { ReferenceMaterialModal } from '@/components/ReferenceMaterialModal'
+import { useWorkspace } from '@/hooks/useWorkspace'
 
 export const ProgramProgress: React.FC = () => {
   const { programId } = useParams<{ programId: string }>()
   const { user } = useAuth()
+  const { workspaceId, loading: workspaceLoading } = useWorkspace()
   const navigate = useNavigate()
   
   const [program, setProgram] = useState<TrainingProgram | null>(null)
@@ -43,8 +45,10 @@ export const ProgramProgress: React.FC = () => {
   const [existingFiles, setExistingFiles] = useState<{ id: string; name: string; url: string }[]>([])
 
   useEffect(() => {
-    if (!programId || !user?.cfiWorkspaceId) {
-      setLoading(false)
+    if (!programId || !workspaceId || workspaceLoading) {
+      if (!workspaceLoading) {
+        setLoading(false)
+      }
       return
     }
 
@@ -60,7 +64,7 @@ export const ProgramProgress: React.FC = () => {
         const programData = { id: programDoc.id, ...programDoc.data() } as TrainingProgram
         
         // Verify this program belongs to the CFI's workspace
-        if (programData.cfiWorkspaceId !== user.cfiWorkspaceId) {
+        if (programData.cfiWorkspaceId !== workspaceId) {
           navigate('/cfi/programs')
           return
         }
@@ -74,26 +78,44 @@ export const ProgramProgress: React.FC = () => {
         }
         
         // Load study areas for this certificate
-        const workspaceRef = doc(db, 'workspaces', user.cfiWorkspaceId)
+        const workspaceRef = doc(db, 'workspaces', workspaceId)
         const areasSnapshot = await getDocs(
           query(
             collection(workspaceRef, 'studyAreas'),
             where('certificate', '==', programData.certificate)
           )
         )
-        const areasData = areasSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as StudyArea))
+        const areasData = areasSnapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            name: data.name,
+            certificate: data.certificate,
+            order: data.orderNumber || 0,
+            itemCount: data.itemCount || 0,
+            createdAt: data.createdAt
+          } as StudyArea
+        })
           .sort((a, b) => a.order - b.order)
         setAreas(areasData)
         
         // Load all study items for these areas
         const itemsSnapshot = await getDocs(collection(workspaceRef, 'studyItems'))
-        const allItems = itemsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as StudyItem))
+        const allItems = itemsSnapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            areaId: data.studyAreaId,
+            name: data.name,
+            type: data.type,
+            description: data.description || '',
+            evaluationCriteria: data.evaluationCriteria || '',
+            acsCodeMappings: data.acsCodeMappings || [],
+            referenceMaterials: data.referenceMaterials || [],
+            order: data.orderNumber || 0,
+            createdAt: data.createdAt
+          } as StudyItem
+        })
           .sort((a, b) => (a.order || 0) - (b.order || 0))
         
         // Filter items for this certificate's areas
@@ -105,7 +127,7 @@ export const ProgramProgress: React.FC = () => {
         const progressQuery = query(
           collection(db, 'progress'),
           where('studentUid', '==', programData.studentUid),
-          where('cfiWorkspaceId', '==', user.cfiWorkspaceId)
+          where('cfiWorkspaceId', '==', workspaceId)
         )
         const progressSnapshot = await getDocs(progressQuery)
         const progressData = progressSnapshot.docs.map(doc => ({
@@ -118,7 +140,7 @@ export const ProgramProgress: React.FC = () => {
         const lessonsQuery = query(
           collection(db, 'lessons'),
           where('programId', '==', programId),
-          where('cfiWorkspaceId', '==', user.cfiWorkspaceId)
+          where('cfiWorkspaceId', '==', workspaceId)
         )
         const lessonsSnapshot = await getDocs(lessonsQuery)
         const lessonsData = lessonsSnapshot.docs.map(doc => ({
@@ -132,7 +154,7 @@ export const ProgramProgress: React.FC = () => {
         const plansQuery = query(
           collection(db, 'lessonPlans'),
           where('certificate', '==', programData.certificate),
-          where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+          where('cfiWorkspaceId', '==', workspaceId),
           orderBy('orderNumber', 'asc')
         )
         const plansSnapshot = await getDocs(plansQuery)
@@ -149,7 +171,7 @@ export const ProgramProgress: React.FC = () => {
     }
 
     loadData()
-  }, [programId, user?.cfiWorkspaceId, navigate])
+  }, [programId, workspaceId, workspaceLoading, navigate])
 
   // Update form fields when a lesson plan is selected
   useEffect(() => {
@@ -191,7 +213,7 @@ export const ProgramProgress: React.FC = () => {
 
   // Fetch existing files when modal is opened
   useEffect(() => {
-    if (showReferenceModal && user?.cfiWorkspaceId) {
+    if (showReferenceModal && workspaceId) {
       const fetchExistingFiles = async () => {
         try {
           const materialsRef = ref(storage, `workspaces/${user.cfiWorkspaceId}/materials`)
@@ -222,7 +244,7 @@ export const ProgramProgress: React.FC = () => {
       
       fetchExistingFiles()
     }
-  }, [showReferenceModal, user?.cfiWorkspaceId])
+  }, [showReferenceModal, workspaceId])
 
   const getCertificateFullName = (cert: string) => {
     switch (cert) {
@@ -352,7 +374,7 @@ export const ProgramProgress: React.FC = () => {
     
     try {
       const lessonData: Record<string, any> = {
-        cfiWorkspaceId: user?.cfiWorkspaceId || '',
+        cfiWorkspaceId: workspaceId || '',
         studentUid: program.studentUid,
         programId: programId,
         status: 'SCHEDULED',
@@ -1415,7 +1437,7 @@ export const ProgramProgress: React.FC = () => {
             setEditingMaterialIndex(null)
           }}
           initialMaterial={editingMaterialIndex !== null ? referenceMaterials[editingMaterialIndex] : undefined}
-          workspaceId={user?.cfiWorkspaceId || ''}
+          workspaceId={workspaceId || ''}
           existingFiles={existingFiles}
         />
       )}
