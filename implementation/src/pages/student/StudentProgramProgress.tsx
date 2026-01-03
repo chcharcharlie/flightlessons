@@ -55,19 +55,37 @@ export const StudentProgramProgress: React.FC = () => {
             where('certificate', '==', programData.certificate)
           )
         )
-        const areasData = areasSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as StudyArea))
+        const areasData = areasSnapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            name: data.name,
+            certificate: data.certificate,
+            order: data.orderNumber || 0,
+            itemCount: data.itemCount || 0,
+            createdAt: data.createdAt
+          } as StudyArea
+        })
           .sort((a, b) => a.order - b.order)
         setAreas(areasData)
         
         // Load all study items for these areas
         const itemsSnapshot = await getDocs(collection(workspaceRef, 'studyItems'))
-        const allItems = itemsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as StudyItem))
+        const allItems = itemsSnapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            areaId: data.studyAreaId,
+            name: data.name,
+            type: data.type,
+            description: data.description || '',
+            evaluationCriteria: data.evaluationCriteria || '',
+            acsCodeMappings: data.acsCodeMappings || [],
+            referenceMaterials: data.referenceMaterials || [],
+            order: data.orderNumber || 0,
+            createdAt: data.createdAt
+          } as StudyItem
+        })
           .sort((a, b) => (a.order || 0) - (b.order || 0))
         
         // Filter items for this certificate's areas
