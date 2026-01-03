@@ -561,9 +561,18 @@ export const LessonDetail: React.FC = () => {
         
         // Only include optional fields if they have values
         if (notes) lessonItem.notes = notes
-        if (item.type === 'BOTH') {
-          if (item.includeGround !== undefined) lessonItem.includeGround = item.includeGround
-          if (item.includeFlight !== undefined) lessonItem.includeFlight = item.includeFlight
+        
+        // Set include flags based on item type
+        if (item.type === 'GROUND') {
+          lessonItem.includeGround = true
+          lessonItem.includeFlight = false
+        } else if (item.type === 'FLIGHT') {
+          lessonItem.includeGround = false
+          lessonItem.includeFlight = true
+        } else if (item.type === 'BOTH') {
+          // For BOTH items, use the selection or default to both
+          lessonItem.includeGround = item.includeGround !== false
+          lessonItem.includeFlight = item.includeFlight !== false
         }
         
         // Store scores in the lesson item (temporarily until completion)
@@ -676,9 +685,18 @@ export const LessonDetail: React.FC = () => {
         
         // Only include optional fields if they have values
         if (notes) lessonItem.notes = notes
-        if (item.type === 'BOTH') {
-          if (item.includeGround !== undefined) lessonItem.includeGround = item.includeGround
-          if (item.includeFlight !== undefined) lessonItem.includeFlight = item.includeFlight
+        
+        // Set include flags based on item type
+        if (item.type === 'GROUND') {
+          lessonItem.includeGround = true
+          lessonItem.includeFlight = false
+        } else if (item.type === 'FLIGHT') {
+          lessonItem.includeGround = false
+          lessonItem.includeFlight = true
+        } else if (item.type === 'BOTH') {
+          // For BOTH items, use the selection or default to both
+          lessonItem.includeGround = item.includeGround !== false
+          lessonItem.includeFlight = item.includeFlight !== false
         }
         
         // Store scores in the lesson item
@@ -724,8 +742,20 @@ export const LessonDetail: React.FC = () => {
           // Only record progress if there are actual scores
           if (itemScore) {
             try {
-              // Record ground score if included and scored
-              if (lessonItem.includeGround && itemScore.ground !== undefined) {
+              // Get the item type from selectedItemsMap
+              const item = selectedItemsMap.get(lessonItem.itemId)
+              if (!item) continue
+              
+              // For GROUND items or BOTH items with ground included
+              const shouldRecordGround = item.type === 'GROUND' || 
+                                       (item.type === 'BOTH' && lessonItem.includeGround !== false)
+              
+              // For FLIGHT items or BOTH items with flight included  
+              const shouldRecordFlight = item.type === 'FLIGHT' || 
+                                       (item.type === 'BOTH' && lessonItem.includeFlight !== false)
+              
+              // Record ground score if applicable and scored
+              if (shouldRecordGround && itemScore.ground !== undefined) {
                 await recordProgress({
                   studentUid: lesson.studentUid,
                   cfiWorkspaceId: lesson.cfiWorkspaceId,
@@ -737,8 +767,8 @@ export const LessonDetail: React.FC = () => {
                 })
               }
 
-              // Record flight score if included
-              if (lessonItem.includeFlight && itemScore.flight !== undefined) {
+              // Record flight score if applicable and scored
+              if (shouldRecordFlight && itemScore.flight !== undefined) {
                 await recordProgress({
                   studentUid: lesson.studentUid,
                   cfiWorkspaceId: lesson.cfiWorkspaceId,
