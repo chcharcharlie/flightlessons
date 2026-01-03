@@ -714,18 +714,12 @@ export const LessonDetail: React.FC = () => {
         const recordProgress = httpsCallable(functions, 'recordProgress')
         const progressErrors: string[] = []
         
-        console.log('Recording progress for lesson items:', currentLessonItems.length)
-        
         // Use the current lesson items we just built, not the potentially stale lesson.items
         for (const lessonItem of currentLessonItems) {
           // Skip if item wasn't planned for this lesson
-          if (!lessonItem.planned) {
-            console.log(`Skipping item ${lessonItem.itemId} - not planned`)
-            continue
-          }
+          if (!lessonItem.planned) continue
           
           const itemScore = itemScores.get(lessonItem.itemId)
-          console.log(`Item ${lessonItem.itemId}: includeGround=${lessonItem.includeGround}, includeFlight=${lessonItem.includeFlight}, scores=`, itemScore)
           
           // Only record progress if there are actual scores
           if (itemScore) {
@@ -760,10 +754,6 @@ export const LessonDetail: React.FC = () => {
               progressErrors.push(lessonItem.itemId)
             }
           }
-        }
-        
-        if (progressErrors.length > 0) {
-          console.warn(`Failed to record progress for ${progressErrors.length} items:`, progressErrors)
         }
       }
       
