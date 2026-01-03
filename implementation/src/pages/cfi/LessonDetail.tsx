@@ -417,14 +417,29 @@ export const LessonDetail: React.FC = () => {
           }
           
           // Initialize scores and notes
-          if (lessonItem.score !== undefined) {
-            const existingScore = scores.get(lessonItem.itemId) || {}
+          const existingScore = scores.get(lessonItem.itemId) || {}
+          
+          // Handle new score fields first
+          if (lessonItem.groundScore !== undefined) {
+            existingScore.ground = lessonItem.groundScore
+          }
+          if (lessonItem.flightScore !== undefined) {
+            existingScore.flight = lessonItem.flightScore
+          }
+          
+          // Fall back to old score field for backwards compatibility
+          if (!existingScore.ground && !existingScore.flight && lessonItem.score !== undefined) {
             if (typeof lessonItem.score === 'string') {
-              scores.set(lessonItem.itemId, { ...existingScore, ground: lessonItem.score as GroundScore })
+              existingScore.ground = lessonItem.score as GroundScore
             } else {
-              scores.set(lessonItem.itemId, { ...existingScore, flight: lessonItem.score as FlightScore })
+              existingScore.flight = lessonItem.score as FlightScore
             }
           }
+          
+          if (Object.keys(existingScore).length > 0) {
+            scores.set(lessonItem.itemId, existingScore)
+          }
+          
           if (lessonItem.notes) notes.set(lessonItem.itemId, lessonItem.notes)
         })
         
@@ -553,9 +568,8 @@ export const LessonDetail: React.FC = () => {
         
         // Store scores in the lesson item (temporarily until completion)
         if (scores) {
-          // For now we just store one score - will need to handle this better later
-          if (scores.ground) lessonItem.score = scores.ground
-          else if (scores.flight) lessonItem.score = scores.flight
+          if (scores.ground !== undefined) lessonItem.groundScore = scores.ground
+          if (scores.flight !== undefined) lessonItem.flightScore = scores.flight
         }
         
         return lessonItem
@@ -633,6 +647,49 @@ export const LessonDetail: React.FC = () => {
     if (!lesson) return
 
     try {
+      // Build current lesson items from selected items (same as handleSave does)
+      const currentLessonItems: LessonItem[] = Array.from(selectedItemsMap.values()).map(item => {
+        const scores = itemScores.get(item.id)
+        const notes = itemNotes.get(item.id)
+        
+        // Determine if item is completed based on scores
+        let completed = false
+        if (scores) {
+          // Check based on what's included in the lesson
+          if (item.type === 'GROUND' || (item.type === 'BOTH' && item.includeGround && !item.includeFlight)) {
+            completed = scores.ground === 'LEARNED'
+          } else if (item.type === 'FLIGHT' || (item.type === 'BOTH' && !item.includeGround && item.includeFlight)) {
+            completed = scores.flight !== undefined && scores.flight >= 4
+          } else if (item.type === 'BOTH' && item.includeGround && item.includeFlight) {
+            // For BOTH items where both are included, both need to meet criteria
+            const groundComplete = scores.ground === 'LEARNED'
+            const flightComplete = scores.flight !== undefined && scores.flight >= 4
+            completed = groundComplete && flightComplete
+          }
+        }
+        
+        const lessonItem: LessonItem = {
+          itemId: item.id,
+          planned: true,
+          completed,
+        }
+        
+        // Only include optional fields if they have values
+        if (notes) lessonItem.notes = notes
+        if (item.type === 'BOTH') {
+          if (item.includeGround !== undefined) lessonItem.includeGround = item.includeGround
+          if (item.includeFlight !== undefined) lessonItem.includeFlight = item.includeFlight
+        }
+        
+        // Store scores in the lesson item
+        if (scores) {
+          if (scores.ground !== undefined) lessonItem.groundScore = scores.ground
+          if (scores.flight !== undefined) lessonItem.flightScore = scores.flight
+        }
+        
+        return lessonItem
+      })
+
       // Save current changes first
       await handleSave()
 
@@ -655,37 +712,58 @@ export const LessonDetail: React.FC = () => {
       // If completing lesson, record progress
       if (newStatus === 'COMPLETED') {
         const recordProgress = httpsCallable(functions, 'recordProgress')
+        const progressErrors: string[] = []
         
-        for (const lessonItem of lesson.items || []) {
-          const itemScore = itemScores.get(lessonItem.itemId)
+        console.log('Recording progress for lesson items:', currentLessonItems.length)
+        
+        // Use the current lesson items we just built, not the potentially stale lesson.items
+        for (const lessonItem of currentLessonItems) {
+          // Skip if item wasn't planned for this lesson
+          if (!lessonItem.planned) {
+            console.log(`Skipping item ${lessonItem.itemId} - not planned`)
+            continue
+          }
           
-          if (lessonItem.planned && itemScore) {
-            // Record ground score if included
-            if (lessonItem.includeGround && itemScore.ground) {
-              await recordProgress({
-                studentUid: lesson.studentUid,
-                cfiWorkspaceId: lesson.cfiWorkspaceId,
-                itemId: lessonItem.itemId,
-                score: itemScore.ground,
-                scoreType: 'GROUND',
-                lessonId: lesson.id,
-                notes: itemNotes.get(lessonItem.itemId) || '',
-              })
-            }
+          const itemScore = itemScores.get(lessonItem.itemId)
+          console.log(`Item ${lessonItem.itemId}: includeGround=${lessonItem.includeGround}, includeFlight=${lessonItem.includeFlight}, scores=`, itemScore)
+          
+          // Only record progress if there are actual scores
+          if (itemScore) {
+            try {
+              // Record ground score if included and scored
+              if (lessonItem.includeGround && itemScore.ground !== undefined) {
+                await recordProgress({
+                  studentUid: lesson.studentUid,
+                  cfiWorkspaceId: lesson.cfiWorkspaceId,
+                  itemId: lessonItem.itemId,
+                  score: itemScore.ground,
+                  scoreType: 'GROUND',
+                  lessonId: lesson.id,
+                  notes: itemNotes.get(lessonItem.itemId) || '',
+                })
+              }
 
-            // Record flight score if included
-            if (lessonItem.includeFlight && itemScore.flight) {
-              await recordProgress({
-                studentUid: lesson.studentUid,
-                cfiWorkspaceId: lesson.cfiWorkspaceId,
-                itemId: lessonItem.itemId,
-                score: itemScore.flight,
-                scoreType: 'FLIGHT',
-                lessonId: lesson.id,
-                notes: itemNotes.get(lessonItem.itemId) || '',
-              })
+              // Record flight score if included
+              if (lessonItem.includeFlight && itemScore.flight !== undefined) {
+                await recordProgress({
+                  studentUid: lesson.studentUid,
+                  cfiWorkspaceId: lesson.cfiWorkspaceId,
+                  itemId: lessonItem.itemId,
+                  score: itemScore.flight,
+                  scoreType: 'FLIGHT',
+                  lessonId: lesson.id,
+                  notes: itemNotes.get(lessonItem.itemId) || '',
+                })
+              }
+            } catch (error) {
+              console.error(`Failed to record progress for item ${lessonItem.itemId}:`, error)
+              progressErrors.push(lessonItem.itemId)
             }
           }
+        }
+        
+        if (progressErrors.length > 0) {
+          console.warn(`Failed to record progress for ${progressErrors.length} items:`, progressErrors)
         }
       }
       

@@ -161,7 +161,9 @@ export interface LessonItem {
   itemId: string
   planned: boolean
   completed: boolean
-  score?: FlightScore | GroundScore
+  score?: FlightScore | GroundScore  // Deprecated - use groundScore/flightScore instead
+  groundScore?: GroundScore
+  flightScore?: FlightScore
   notes?: string
   includeGround?: boolean
   includeFlight?: boolean
