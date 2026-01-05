@@ -11,7 +11,8 @@ import {
   addDoc,
   Timestamp,
 } from 'firebase/firestore'
-import { db, storage } from '@/lib/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { db, storage, functions } from '@/lib/firebase'
 import { ref, listAll, getDownloadURL } from 'firebase/storage'
 import { useAuth } from '@/contexts/AuthContext'
 import { Lesson, Student, User, TrainingProgram, LessonPlan, StudyItem, StudyArea, ReferenceMaterial } from '@/types'
@@ -59,6 +60,25 @@ export const Lessons: React.FC = () => {
   const [existingFiles, setExistingFiles] = useState<{ id: string; name: string; url: string }[]>([])
 
   const workspaceId = user?.cfiWorkspaceId || ''
+
+  // Helper function to safely convert timestamps to dates
+  const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null
+    try {
+      if (typeof timestamp.toDate === 'function') {
+        return timestamp.toDate()
+      } else if (timestamp instanceof Date) {
+        return timestamp
+      } else if (timestamp.seconds !== undefined) {
+        return new Date(timestamp.seconds * 1000)
+      } else {
+        return new Date(timestamp)
+      }
+    } catch (error) {
+      console.error('Error converting timestamp to date:', error)
+      return null
+    }
+  }
 
   useEffect(() => {
     if (!workspaceId) {
@@ -425,7 +445,10 @@ export const Lessons: React.FC = () => {
     if (!timestamp) {
       return 'Unscheduled'
     }
-    const date = timestamp.toDate()
+    const date = toDate(timestamp)
+    if (!date) {
+      return 'Unscheduled'
+    }
     // Check if this is an unscheduled lesson
     if (date.getFullYear() >= 2099) {
       return 'Unscheduled'
@@ -465,7 +488,9 @@ export const Lessons: React.FC = () => {
   // Group lessons by date
   const lessonsByDate = lessons.reduce((acc, lesson) => {
     if (!lesson.scheduledDate) return acc
-    const dateKey = lesson.scheduledDate.toDate().toDateString()
+    const date = toDate(lesson.scheduledDate)
+    if (!date) return acc
+    const dateKey = date.toDateString()
     if (!acc[dateKey]) acc[dateKey] = []
     acc[dateKey].push(lesson)
     return acc
@@ -474,7 +499,9 @@ export const Lessons: React.FC = () => {
   // Check if a lesson is unscheduled (has far future date)
   const isUnscheduled = (lesson: Lesson) => {
     if (!lesson.scheduledDate) return true
-    const year = lesson.scheduledDate.toDate().getFullYear()
+    const date = toDate(lesson.scheduledDate)
+    if (!date) return true
+    const year = date.getFullYear()
     return year >= 2099
   }
 
@@ -489,14 +516,23 @@ export const Lessons: React.FC = () => {
       // Otherwise sort by date
       if (!a.scheduledDate) return 1
       if (!b.scheduledDate) return -1
-      return a.scheduledDate.toMillis() - b.scheduledDate.toMillis()
+      const aDate = toDate(a.scheduledDate)
+      const bDate = toDate(b.scheduledDate)
+      if (!aDate) return 1
+      if (!bDate) return -1
+      return aDate.getTime() - bDate.getTime()
     })
 
   const completedLessons = lessons.filter(l => l.status === 'COMPLETED')
     .sort((a, b) => {
-      if (!a.scheduledDate) return 1
-      if (!b.scheduledDate) return -1
-      return b.scheduledDate.toMillis() - a.scheduledDate.toMillis()
+      // Use completedDate for completed lessons, fallback to scheduledDate
+      const aTimestamp = a.completedDate || a.scheduledDate
+      const bTimestamp = b.completedDate || b.scheduledDate
+      const aDate = toDate(aTimestamp)
+      const bDate = toDate(bTimestamp)
+      if (!aDate) return 1
+      if (!bDate) return -1
+      return bDate.getTime() - aDate.getTime()
     })
 
   return (
@@ -1057,7 +1093,10 @@ export const Lessons: React.FC = () => {
                       </div>
                       <div className="flex items-center space-x-4">
                         {/* Show if the lesson is past its scheduled time */}
-                        {!isUnscheduled(lesson) && lesson.scheduledDate && lesson.scheduledDate.toDate() < new Date() && (
+                        {!isUnscheduled(lesson) && lesson.scheduledDate && (() => {
+                          const date = toDate(lesson.scheduledDate)
+                          return date && date < new Date()
+                        })() && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                             Past scheduled time
                           </span>
@@ -1108,7 +1147,13 @@ export const Lessons: React.FC = () => {
                             {lesson.title && <span className="ml-2 text-gray-500">- {lesson.title}</span>}
                           </div>
                           <div className="text-sm text-gray-500">
-                            Completed on {lesson.completedDate ? lesson.completedDate.toDate().toLocaleDateString() : lesson.scheduledDate ? lesson.scheduledDate.toDate().toLocaleDateString() : 'Unknown'}
+                            Completed on {(() => {
+                              const completedDate = toDate(lesson.completedDate)
+                              if (completedDate) return completedDate.toLocaleDateString()
+                              const scheduledDate = toDate(lesson.scheduledDate)
+                              if (scheduledDate) return scheduledDate.toLocaleDateString()
+                              return 'Unknown'
+                            })()}
                           </div>
                           {lesson.actualRoute && (
                             <div className="text-xs text-gray-400 mt-1">

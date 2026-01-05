@@ -31,6 +31,25 @@ export const TrainingPrograms: React.FC = () => {
 
   const workspaceId = user?.cfiWorkspaceId || ''
 
+  // Helper function to safely convert timestamps to dates
+  const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null
+    try {
+      if (typeof timestamp.toDate === 'function') {
+        return timestamp.toDate()
+      } else if (timestamp instanceof Date) {
+        return timestamp
+      } else if (timestamp.seconds !== undefined) {
+        return new Date(timestamp.seconds * 1000)
+      } else {
+        return new Date(timestamp)
+      }
+    } catch (error) {
+      console.error('Error converting timestamp to date:', error)
+      return null
+    }
+  }
+
   useEffect(() => {
     if (!workspaceId) {
       setLoading(false)
@@ -371,7 +390,10 @@ export const TrainingPrograms: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-2 text-xs text-gray-500">
-                    Started {program.startDate.toDate().toLocaleDateString()}
+                    Started {(() => {
+                      const date = toDate(program.startDate)
+                      return date ? date.toLocaleDateString() : 'Unknown'
+                    })()}
                   </div>
                 </div>
               </li>
@@ -453,10 +475,14 @@ export const TrainingPrograms: React.FC = () => {
                         </div>
                       </div>
                       <div className="mt-2 text-xs text-gray-500">
-                        Started {program.startDate.toDate().toLocaleDateString()}
-                        {program.completedDate && 
-                          ` • Completed ${program.completedDate.toDate().toLocaleDateString()}`
-                        }
+                        Started {(() => {
+                          const date = toDate(program.startDate)
+                          return date ? date.toLocaleDateString() : 'Unknown'
+                        })()}
+                        {program.completedDate && (() => {
+                          const date = toDate(program.completedDate)
+                          return date ? ` • Completed ${date.toLocaleDateString()}` : ''
+                        })()}
                       </div>
                     </div>
                   </li>

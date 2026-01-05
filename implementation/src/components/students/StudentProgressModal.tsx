@@ -17,7 +17,7 @@ export const StudentProgressModal: React.FC<StudentProgressModalProps> = ({
 }) => {
   const { areas, items } = useStudyItems()
   const { progress, loading, recordProgress } = useProgress(student.uid)
-  const [selectedCertificate, setSelectedCertificate] = useState<Certificate>(student.currentCertificate)
+  const [selectedCertificate, setSelectedCertificate] = useState<Certificate>('PRIVATE')
   const [selectedArea, setSelectedArea] = useState<StudyArea | null>(null)
   const [recordingItem, setRecordingItem] = useState<StudyItem | null>(null)
 

@@ -25,6 +25,9 @@ export { checkAllData } from './check-all-data';
 // Fix lesson plan order field
 export { fixLessonPlanOrder } from './fix-lesson-plan-order';
 
+// Fix completed dates to use actual execution date
+export { fixCompletedDates } from './fix-completed-dates';
+
 const db = admin.firestore();
 const auth = admin.auth();
 
@@ -32,7 +35,7 @@ const auth = admin.auth();
 // This was causing deployment issues with blocking functions
 
 // Set user role (called during registration)
-export const setUserRole = onCall(async (request) => {
+export const setUserRole = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -80,7 +83,7 @@ export const setUserRole = onCall(async (request) => {
 });
 
 // Invite student
-export const inviteStudent = onCall(async (request) => {
+export const inviteStudent = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -137,7 +140,7 @@ export const inviteStudent = onCall(async (request) => {
 });
 
 // Record progress
-export const recordProgress = onCall(async (request) => {
+export const recordProgress = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -184,7 +187,7 @@ export const recordProgress = onCall(async (request) => {
 });
 
 // Accept invitation
-export const acceptInvitation = onCall(async (request) => {
+export const acceptInvitation = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }

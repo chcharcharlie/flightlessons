@@ -598,7 +598,8 @@ async function executeTool(
 export const aiChatWithTools = onCall(
   {
     timeoutSeconds: 540,
-    memory: '1GiB'
+    memory: '1GiB',
+    cors: true
   },
   async (request) => {
     if (!request.auth) {

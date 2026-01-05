@@ -43,6 +43,26 @@ export const ProgramProgress: React.FC = () => {
   const [showReferenceModal, setShowReferenceModal] = useState(false)
   const [editingMaterialIndex, setEditingMaterialIndex] = useState<number | null>(null)
   const [existingFiles, setExistingFiles] = useState<{ id: string; name: string; url: string }[]>([])
+  const [showAllCompletedLessons, setShowAllCompletedLessons] = useState(false)
+
+  // Helper function to safely convert timestamps to dates
+  const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null
+    try {
+      if (typeof timestamp.toDate === 'function') {
+        return timestamp.toDate()
+      } else if (timestamp instanceof Date) {
+        return timestamp
+      } else if (timestamp.seconds !== undefined) {
+        return new Date(timestamp.seconds * 1000)
+      } else {
+        return new Date(timestamp)
+      }
+    } catch (error) {
+      console.error('Error converting timestamp to date:', error)
+      return null
+    }
+  }
 
   useEffect(() => {
     if (!programId || !workspaceId || workspaceLoading) {
@@ -105,7 +125,7 @@ export const ProgramProgress: React.FC = () => {
           const data = doc.data()
           return {
             id: doc.id,
-            areaId: data.studyAreaId,
+            areaId: data.studyAreaId || data.areaId, // Handle both field names
             name: data.name,
             type: data.type,
             description: data.description || '',
@@ -389,9 +409,9 @@ export const ProgramProgress: React.FC = () => {
           }
         }),
         createdAt: Timestamp.now(),
-        // Add scheduled date only if both date and time are provided
-        scheduledDate: lessonDate && lessonTime 
-          ? Timestamp.fromDate(new Date(`${lessonDate}T${lessonTime}`))
+        // Add scheduled date - use default time if not provided
+        scheduledDate: lessonDate 
+          ? Timestamp.fromDate(new Date(`${lessonDate}T${lessonTime || '09:00'}`))
           : null
       }
       
@@ -443,19 +463,42 @@ export const ProgramProgress: React.FC = () => {
     }
   }
   
-  const formatLessonDate = (timestamp: Timestamp | null) => {
+  const formatLessonDate = (lesson: { status: string; scheduledDate: Timestamp | null; completedDate?: Timestamp | null }) => {
+    const timestamp = lesson.status === 'COMPLETED' && lesson.completedDate ? lesson.completedDate : lesson.scheduledDate
+    
     if (!timestamp) {
       return 'Unscheduled'
     }
-    const date = timestamp.toDate()
-    return date.toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    })
+    
+    try {
+      let date: Date
+      if (typeof timestamp.toDate === 'function') {
+        date = timestamp.toDate()
+      } else if (timestamp instanceof Date) {
+        date = timestamp
+      } else if ((timestamp as any).seconds !== undefined) {
+        date = new Date((timestamp as any).seconds * 1000)
+      } else {
+        date = new Date(timestamp as any)
+      }
+      
+      // Check for unscheduled lessons
+      if (date.getFullYear() >= 2099) {
+        return 'Unscheduled'
+      }
+      
+      return date.toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+    } catch (error) {
+      console.error('Error formatting lesson date:', error)
+      return 'Date unavailable'
+    }
   }
   
   const getLessonStatusColor = (status: string) => {
@@ -528,10 +571,12 @@ export const ProgramProgress: React.FC = () => {
   
   const completedLessons = lessons.filter(l => l.status === 'COMPLETED')
     .sort((a, b) => {
-      // Handle null scheduledDate
-      if (!a.scheduledDate) return 1
-      if (!b.scheduledDate) return -1
-      return b.scheduledDate.toMillis() - a.scheduledDate.toMillis()
+      // Use completedDate for completed lessons, fallback to scheduledDate
+      const aDate = a.completedDate || a.scheduledDate
+      const bDate = b.completedDate || b.scheduledDate
+      if (!aDate) return 1
+      if (!bDate) return -1
+      return bDate.toMillis() - aDate.toMillis()
     })
 
   return (
@@ -782,7 +827,7 @@ export const ProgramProgress: React.FC = () => {
 
                   <div>
                     <label htmlFor="time" className="block text-sm font-medium text-gray-700">
-                      Time (optional)
+                      Time (optional, defaults to 9:00 AM)
                     </label>
                     <input
                       type="time"
@@ -1159,7 +1204,7 @@ export const ProgramProgress: React.FC = () => {
                             {lesson.title || 'Untitled Lesson'}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {formatLessonDate(lesson.scheduledDate)}
+                            {formatLessonDate(lesson)}
                           </p>
                           {lesson.items.length > 0 && (
                             <p className="text-xs text-gray-400 mt-1">
@@ -1167,7 +1212,10 @@ export const ProgramProgress: React.FC = () => {
                             </p>
                           )}
                         </div>
-                        {lesson.scheduledDate && lesson.scheduledDate.toDate() < new Date() && (
+                        {lesson.scheduledDate && (() => {
+                          const date = toDate(lesson.scheduledDate)
+                          return date && date < new Date()
+                        })() && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                             Past scheduled time
                           </span>
@@ -1200,7 +1248,7 @@ export const ProgramProgress: React.FC = () => {
                 </h4>
               </div>
               <ul className="divide-y divide-gray-200">
-                {completedLessons.slice(0, 5).map(lesson => (
+                {(showAllCompletedLessons ? completedLessons : completedLessons.slice(0, 3)).map(lesson => (
                   <li key={lesson.id}>
                     <div
                       onClick={() => navigate(`/cfi/lessons/${lesson.id}`)}
@@ -1212,7 +1260,7 @@ export const ProgramProgress: React.FC = () => {
                             {lesson.title || 'Untitled Lesson'}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {formatLessonDate(lesson.scheduledDate)}
+                            {formatLessonDate(lesson)}
                           </p>
                           {lesson.items.length > 0 && (
                             <p className="text-xs text-gray-400 mt-1">
@@ -1228,13 +1276,15 @@ export const ProgramProgress: React.FC = () => {
                   </li>
                 ))}
               </ul>
-              {completedLessons.length > 5 && (
+              {completedLessons.length > 3 && (
                 <div className="p-4 bg-gray-50">
                   <button
-                    onClick={() => navigate('/cfi/lessons')}
+                    onClick={() => setShowAllCompletedLessons(!showAllCompletedLessons)}
                     className="text-sm text-sky hover:text-sky-600"
                   >
-                    View all {completedLessons.length} completed lessons →
+                    {showAllCompletedLessons 
+                      ? 'Show less' 
+                      : `Show all ${completedLessons.length} completed lessons`}
                   </button>
                 </div>
               )}

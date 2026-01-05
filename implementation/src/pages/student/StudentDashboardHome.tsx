@@ -23,6 +23,25 @@ export const StudentDashboardHome: React.FC = () => {
   const [upcomingLessons, setUpcomingLessons] = useState<Lesson[]>([])
   const [recentLessons, setRecentLessons] = useState<Lesson[]>([])
 
+  // Helper function to safely convert timestamps to dates
+  const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null
+    try {
+      if (typeof timestamp.toDate === 'function') {
+        return timestamp.toDate()
+      } else if (timestamp instanceof Date) {
+        return timestamp
+      } else if (timestamp.seconds !== undefined) {
+        return new Date(timestamp.seconds * 1000)
+      } else {
+        return new Date(timestamp)
+      }
+    } catch (error) {
+      console.error('Error converting timestamp to date:', error)
+      return null
+    }
+  }
+
   useEffect(() => {
     const loadCFIInfo = async () => {
       if (!user?.cfiWorkspaceId) {
@@ -187,7 +206,10 @@ export const StudentDashboardHome: React.FC = () => {
       return 'Unscheduled'
     }
     
-    const date = timestamp.toDate()
+    const date = toDate(timestamp)
+    if (!date) {
+      return 'Unscheduled'
+    }
     
     // Check for unscheduled lessons
     if (date.getFullYear() >= 2099) {
@@ -282,7 +304,10 @@ export const StudentDashboardHome: React.FC = () => {
                           {getCertificateFullName(program.certificate)}
                         </dt>
                         <dd className="mt-1 text-sm text-gray-500">
-                          Started {program.startDate.toDate().toLocaleDateString()}
+                          Started {(() => {
+                            const date = toDate(program.startDate)
+                            return date ? date.toLocaleDateString() : 'Unknown'
+                          })()}
                         </dd>
                       </dl>
                     </div>
@@ -331,7 +356,10 @@ export const StudentDashboardHome: React.FC = () => {
                             {getCertificateFullName(program.certificate)}
                           </dt>
                           <dd className="mt-1 text-sm text-gray-500">
-                            Completed {program.completedDate?.toDate().toLocaleDateString()}
+                            Completed {(() => {
+                              const date = toDate(program.completedDate)
+                              return date ? date.toLocaleDateString() : 'Unknown'
+                            })()}
                           </dd>
                         </dl>
                       </div>
@@ -378,7 +406,10 @@ export const StudentDashboardHome: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      {lesson.scheduledDate && lesson.scheduledDate.toDate() < new Date(Date.now() + 24 * 60 * 60 * 1000) && (
+                      {lesson.scheduledDate && (() => {
+                        const date = toDate(lesson.scheduledDate)
+                        return date && date < new Date(Date.now() + 24 * 60 * 60 * 1000)
+                      })() && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                           <ClockIcon className="h-3 w-3 mr-1" />
                           Soon
@@ -401,65 +432,52 @@ export const StudentDashboardHome: React.FC = () => {
       )}
 
       {/* Recently Completed Lessons */}
-      <div className="mt-8">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Recently Completed Lessons</h3>
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-4 py-5 sm:p-6">
-            {recentLessons.length === 0 ? (
-              <p className="text-center text-gray-500 py-4">No completed lessons yet</p>
-            ) : (
-              <div className="space-y-4">
-                {recentLessons.map((lesson) => (
-                  <Link
-                    key={lesson.id}
-                    to={`/student/lessons/${lesson.id}`}
-                    className="block hover:bg-gray-50 -mx-4 px-4 py-3 rounded-lg transition-colors"
+      {recentLessons.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Recently Completed Lessons</h3>
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <ul className="divide-y divide-gray-200">
+              {recentLessons.map(lesson => (
+                <li key={lesson.id}>
+                  <div
+                    onClick={() => navigate(`/student/lessons/${lesson.id}`)}
+                    className="p-4 hover:bg-gray-50 cursor-pointer"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center">
-                          <h4 className="text-sm font-medium text-gray-900">
-                            {lesson.title || 'Lesson'}
-                          </h4>
-                          {lesson.completedDate && (
-                            <span className="ml-2 text-xs text-gray-500">
-                              Completed {formatLessonDateTime(lesson.completedDate)}
-                            </span>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start">
+                        <CalendarDaysIcon className="h-6 w-6 text-gray-400 mt-0.5" />
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-900">
+                            {lesson.title || 'Flight Lesson'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Completed {lesson.completedDate ? formatLessonDateTime(lesson.completedDate) : 'Unknown date'}
+                          </p>
+                          {lesson.actualRoute && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              Route: {lesson.actualRoute}
+                            </p>
+                          )}
+                          {lesson.postNotes && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              Notes: {lesson.postNotes}
+                            </p>
                           )}
                         </div>
-                        {lesson.items && lesson.items.filter(item => item.completed).length > 0 && (
-                          <p className="mt-1 text-xs text-gray-600">
-                            {lesson.items.filter(item => item.completed).length} items completed
-                            {lesson.postNotes && ' • Instructor notes available'}
-                          </p>
-                        )}
                       </div>
-                      <div className="ml-4 flex items-center text-gray-400">
-                        <CalendarDaysIcon className="h-5 w-5" />
-                      </div>
+                      {lesson.items && lesson.items.filter(item => item.completed).length > 0 && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {lesson.items.filter(item => item.completed).length} completed
+                        </span>
+                      )}
                     </div>
-                    {lesson.postNotes && (
-                      <div className="mt-2 text-xs text-gray-500 line-clamp-2">
-                        <span className="font-medium">Post-lesson notes:</span> {lesson.postNotes}
-                      </div>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            )}
-            {recentLessons.length > 0 && (
-              <div className="mt-4 text-center">
-                <Link
-                  to="/student/lessons"
-                  className="text-sm font-medium text-sky hover:text-sky/80"
-                >
-                  View all lessons →
-                </Link>
-              </div>
-            )}
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

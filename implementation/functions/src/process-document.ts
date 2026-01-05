@@ -6,7 +6,8 @@ const storage = admin.storage();
 export const processDocument = onCall(
   {
     timeoutSeconds: 60,
-    memory: '512MiB'
+    memory: '512MiB',
+    cors: true
   },
   async (request) => {
     if (!request.auth) {

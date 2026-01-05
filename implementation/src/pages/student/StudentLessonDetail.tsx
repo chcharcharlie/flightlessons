@@ -120,7 +120,7 @@ export const StudentLessonDetail: React.FC = () => {
     
     // Sort by date and get the latest
     const sorted = filtered.sort((a, b) => 
-      b.recordedAt.toMillis() - a.recordedAt.toMillis()
+      b.createdAt.toMillis() - a.createdAt.toMillis()
     )
     return sorted[0].score
   }
@@ -129,16 +129,43 @@ export const StudentLessonDetail: React.FC = () => {
     if (!timestamp) {
       return 'Unscheduled'
     }
-    const date = timestamp.toDate()
-    return date.toLocaleString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    })
+    
+    try {
+      let date: Date
+      
+      // Handle various date formats
+      if (typeof timestamp.toDate === 'function') {
+        date = timestamp.toDate()
+      } else if (timestamp instanceof Date) {
+        date = timestamp
+      } else if (typeof timestamp === 'string') {
+        date = new Date(timestamp)
+      } else if (timestamp.seconds !== undefined) {
+        // Handle raw Firestore timestamp format {seconds, nanoseconds}
+        date = new Date(timestamp.seconds * 1000)
+      } else {
+        // If it's something else, try to convert it
+        date = new Date(timestamp)
+      }
+      
+      // Check for unscheduled lessons
+      if (date.getFullYear() >= 2099) {
+        return 'Unscheduled'
+      }
+      
+      return date.toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+    } catch (error) {
+      console.error('Error formatting lesson date:', error, timestamp)
+      return 'Date unavailable'
+    }
   }
 
   if (loading) {
@@ -219,7 +246,7 @@ export const StudentLessonDetail: React.FC = () => {
             </h2>
             <p className="mt-2 text-sm text-gray-700">
               <CalendarDaysIcon className="inline-block h-4 w-4 mr-1" />
-              {formatLessonDateTime(lesson.scheduledDate)}
+              {formatLessonDateTime(lesson.status === 'COMPLETED' && lesson.completedDate ? lesson.completedDate : lesson.scheduledDate)}
             </p>
           </div>
           <div className="mt-4 sm:mt-0">

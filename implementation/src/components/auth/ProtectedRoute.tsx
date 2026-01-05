@@ -12,7 +12,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requireRole,
 }) => {
-  const { user, loading } = useAuth()
+  const { user, firebaseUser, loading } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -23,11 +23,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     )
   }
 
-  if (!user) {
+  // If no firebaseUser at all, redirect to login
+  if (!firebaseUser) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (requireRole && user.role !== requireRole) {
+  // If firebaseUser exists but no user document, allow access
+  // (App.tsx will handle redirecting to role selection)
+  if (!user && !requireRole) {
+    return <>{children}</>
+  }
+
+  // If a specific role is required but user doesn't exist or has wrong role
+  if (requireRole && (!user || user.role !== requireRole)) {
     return <Navigate to="/" replace />
   }
 

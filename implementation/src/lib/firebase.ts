@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import { getFunctions } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
@@ -28,6 +28,18 @@ export const storage = getStorage(app)
 
 // Initialize Analytics (only in production)
 export const analytics = import.meta.env.PROD ? getAnalytics(app) : null
+
+// Initialize Google Auth Provider
+export const googleProvider = new GoogleAuthProvider()
+// Add scopes if needed
+googleProvider.addScope('profile')
+googleProvider.addScope('email')
+
+// Configure auth settings
+auth.useDeviceLanguage()
+
+// Set persistence to LOCAL to maintain auth state across redirects
+setPersistence(auth, browserLocalPersistence).catch(console.error)
 
 // Enable emulators in development (commented out - using live Firebase)
 // if (import.meta.env.DEV) {

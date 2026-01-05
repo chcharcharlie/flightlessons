@@ -146,7 +146,8 @@ export const LessonPlans: React.FC = () => {
           acsCodeMappings: data.acsCodeMappings || [],
           referenceMaterials: data.referenceMaterials || [],
           areaId: data.studyAreaId,
-          order: data.orderNumber || 0
+          order: data.orderNumber || 0,
+          createdAt: data.createdAt
         })
       })
       
@@ -736,7 +737,8 @@ export const LessonPlans: React.FC = () => {
         acsCodeMappings: newItemData.acsCodeMappings || [],
         referenceMaterials: newItemData.referenceMaterials || [],
         areaId: addingItemFor,
-        order: nextOrder
+        order: nextOrder,
+        createdAt: Timestamp.now()
       }])
       
       setAddingItemFor(null)

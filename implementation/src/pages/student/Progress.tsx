@@ -12,6 +12,25 @@ export const StudentProgress: React.FC = () => {
   const [programs, setPrograms] = useState<TrainingProgram[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Helper function to safely convert timestamps to dates
+  const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null
+    try {
+      if (typeof timestamp.toDate === 'function') {
+        return timestamp.toDate()
+      } else if (timestamp instanceof Date) {
+        return timestamp
+      } else if (timestamp.seconds !== undefined) {
+        return new Date(timestamp.seconds * 1000)
+      } else {
+        return new Date(timestamp)
+      }
+    } catch (error) {
+      console.error('Error converting timestamp to date:', error)
+      return null
+    }
+  }
+
   useEffect(() => {
     if (!user?.cfiWorkspaceId) {
       setLoading(false)
@@ -137,7 +156,10 @@ export const StudentProgress: React.FC = () => {
                           {getCertificateFullName(program.certificate)}
                         </dt>
                         <dd className="mt-1 text-sm text-gray-500">
-                          Completed {program.completedDate?.toDate().toLocaleDateString()}
+                          Completed {(() => {
+                            const date = toDate(program.completedDate)
+                            return date ? date.toLocaleDateString() : 'Unknown'
+                          })()}
                         </dd>
                       </dl>
                     </div>

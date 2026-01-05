@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
+import { RoleSelectionPage } from '@/pages/auth/RoleSelectionPage'
 import { CFIDashboard } from '@/pages/cfi/Dashboard'
 import { StudentDashboard } from '@/pages/student/Dashboard'
 import { AcceptInvitation } from '@/pages/AcceptInvitation'
@@ -19,7 +20,7 @@ const queryClient = new QueryClient({
 })
 
 const AppRoutes: React.FC = () => {
-  const { user, loading } = useAuth()
+  const { user, firebaseUser, loading } = useAuth()
 
   if (loading) {
     return (
@@ -34,13 +35,17 @@ const AppRoutes: React.FC = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/accept-invitation" element={<AcceptInvitation />} />
+      <Route path="/select-role" element={<RoleSelectionPage />} />
       
       {/* Protected routes */}
       <Route
         path="/"
         element={
           <ProtectedRoute>
-            {user?.role === 'CFI' ? (
+            {/* If user is authenticated but has no role, redirect to role selection */}
+            {firebaseUser && !user ? (
+              <Navigate to="/select-role" replace />
+            ) : user?.role === 'CFI' ? (
               <Navigate to="/cfi" replace />
             ) : (
               <Navigate to="/student" replace />

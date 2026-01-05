@@ -8,7 +8,8 @@ const db = admin.firestore();
 export const aiChat = onCall(
   { 
     timeoutSeconds: 540, // 9 minutes
-    memory: '1GiB'
+    memory: '1GiB',
+    cors: true
   },
   async (request) => {
     if (!request.auth) {

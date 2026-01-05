@@ -3,6 +3,9 @@ import {
   User as FirebaseUser,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   updateProfile,
@@ -16,7 +19,7 @@ import {
   updateDoc,
   serverTimestamp,
 } from 'firebase/firestore'
-import { auth, db } from '@/lib/firebase'
+import { auth, db, googleProvider } from '@/lib/firebase'
 import { User, UserRole } from '@/types'
 
 interface AuthContextType {
@@ -30,6 +33,8 @@ interface AuthContextType {
     role: UserRole
   ) => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
+  signInWithGoogleRedirect: () => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -51,7 +56,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
+    
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!mounted) return
+      
       setFirebaseUser(firebaseUser)
 
       if (firebaseUser) {
@@ -125,8 +134,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               setUser(null)
             }
           } else {
-            // User exists in Auth but not in Firestore and no pending role. Sign out.
-            await signOut(auth)
+            // User exists in Auth but not in Firestore and no pending role
+            // Don't sign out - let the app redirect to role selection
             setUser(null)
           }
         }
@@ -137,7 +146,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(false)
     })
 
-    return unsubscribe
+    // Also check for redirect result on mount
+    const checkRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth)
+        if (result) {
+          // The onAuthStateChanged will handle the rest
+        }
+      } catch (error: any) {
+        if (error.code !== 'auth/no-auth-event') {
+          console.error('Error checking redirect result:', error)
+        }
+      }
+    }
+    
+    checkRedirectResult()
+
+    return () => {
+      mounted = false
+      unsubscribe()
+    }
   }, [])
 
   const signUp = async (
@@ -165,6 +193,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await signInWithEmailAndPassword(auth, email, password)
   }
 
+  const signInWithGoogle = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider)
+      // The onAuthStateChanged listener will handle user creation/loading
+    } catch (error: any) {
+      // If popup fails, throw a descriptive error
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in cancelled')
+      } else if (error.code === 'auth/popup-blocked') {
+        throw new Error('Pop-up blocked. Please allow pop-ups for this site.')
+      } else if (error.code === 'auth/unauthorized-domain') {
+        throw new Error('This domain is not authorized for OAuth operations.')
+      } else {
+        throw new Error(error.message || 'Failed to sign in with Google')
+      }
+    }
+  }
+
+  const signInWithGoogleRedirect = async () => {
+    // Use redirect method directly - better for avoiding COOP issues
+    await signInWithRedirect(auth, googleProvider)
+    // Browser will redirect - no return
+  }
+
   const logout = async () => {
     await signOut(auth)
   }
@@ -175,6 +227,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     loading,
     signUp,
     signIn,
+    signInWithGoogle,
+    signInWithGoogleRedirect,
     logout,
   }
 

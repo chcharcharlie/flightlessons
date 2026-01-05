@@ -71,6 +71,8 @@ export const LessonDetail: React.FC = () => {
   const [preStudyHomework, setPreStudyHomework] = useState('')
   const [plannedRoute, setPlannedRoute] = useState('')
   const [preNotes, setPreNotes] = useState('')
+  const [scheduledDate, setScheduledDate] = useState('')
+  const [scheduledTime, setScheduledTime] = useState('')
   const [referenceMaterials, setReferenceMaterials] = useState<ReferenceMaterial[]>([])
   const [showReferenceModal, setShowReferenceModal] = useState(false)
   const [editingMaterialIndex, setEditingMaterialIndex] = useState<number | null>(null)
@@ -95,6 +97,8 @@ export const LessonDetail: React.FC = () => {
   // Track initial auto-populated values
   const [initialActualDate, setInitialActualDate] = useState('')
   const [initialActualTime, setInitialActualTime] = useState('')
+  const [initialScheduledDate, setInitialScheduledDate] = useState('')
+  const [initialScheduledTime, setInitialScheduledTime] = useState('')
   const [initialItemScores, setInitialItemScores] = useState<Map<string, { ground?: GroundScore; flight?: FlightScore }>>(new Map())
 
   // Track changes to enable/disable save button
@@ -109,7 +113,9 @@ export const LessonDetail: React.FC = () => {
         planDescription !== (lesson.planDescription || '') ||
         preStudyHomework !== (lesson.preStudyHomework || '') ||
         plannedRoute !== (lesson.plannedRoute || '') ||
-        preNotes !== (lesson.preNotes || '')
+        preNotes !== (lesson.preNotes || '') ||
+        scheduledDate !== initialScheduledDate || 
+        scheduledTime !== initialScheduledTime
       
       // Check if actual date/time have changed from initial values
       const executionChanged = 
@@ -186,13 +192,32 @@ export const LessonDetail: React.FC = () => {
       
       const hasAnyChanges = planningChanged || executionChanged || itemsChanged || scoresChanged
       setHasChanges(hasAnyChanges)
-    } else if (lesson && lesson.status !== 'SCHEDULED') {
+    } else if (lesson && (lesson.status === 'COMPLETED' || lesson.status === 'CANCELLED')) {
       // For completed/cancelled lessons, only check execution fields
       // Check if actual date/time have changed
       let actualDateTimeValue = ''
       if (lesson.actualDate) {
-        const actualDateObj = lesson.actualDate.toDate()
-        actualDateTimeValue = `${actualDateObj.toISOString().split('T')[0]}T${actualDateObj.toTimeString().slice(0, 5)}`
+        try {
+          // Handle various date formats
+          let actualDateObj: Date
+          if (typeof lesson.actualDate.toDate === 'function') {
+            actualDateObj = lesson.actualDate.toDate()
+          } else if (lesson.actualDate instanceof Date) {
+            actualDateObj = lesson.actualDate
+          } else if (typeof lesson.actualDate === 'string') {
+            actualDateObj = new Date(lesson.actualDate)
+          } else if (lesson.actualDate.seconds !== undefined) {
+            // Handle raw Firestore timestamp format {seconds, nanoseconds}
+            actualDateObj = new Date(lesson.actualDate.seconds * 1000)
+          } else {
+            // If it's something else, try to convert it
+            actualDateObj = new Date(lesson.actualDate as any)
+          }
+          actualDateTimeValue = `${actualDateObj.toISOString().split('T')[0]}T${actualDateObj.toTimeString().slice(0, 5)}`
+        } catch (error) {
+          console.error('Error parsing actualDate in change detection:', error, lesson.actualDate)
+          actualDateTimeValue = ''
+        }
       }
       const currentDateTime = actualDate && actualTime ? `${actualDate}T${actualTime}` : ''
       
@@ -206,6 +231,7 @@ export const LessonDetail: React.FC = () => {
       setHasChanges(executionChanged)
     }
   }, [lesson, loading, initialLoadComplete, title, motivation, objectives, planDescription, preStudyHomework, plannedRoute, preNotes,
+      scheduledDate, scheduledTime, initialScheduledDate, initialScheduledTime,
       actualDate, actualTime, actualRoute, aircraft, weatherNotes, postNotes, selectedItemsMap, itemScores, itemNotes, items,
       initialActualDate, initialActualTime, initialItemScores])
 
@@ -278,6 +304,31 @@ export const LessonDetail: React.FC = () => {
         setPlannedRoute(lessonData.plannedRoute || '')
         setPreNotes(lessonData.preNotes || '')
         setReferenceMaterials(lessonData.referenceMaterials || [])
+        
+        // Initialize scheduled date/time
+        if (lessonData.scheduledDate) {
+          try {
+            let scheduledDateObj: Date
+            if (typeof lessonData.scheduledDate.toDate === 'function') {
+              scheduledDateObj = lessonData.scheduledDate.toDate()
+            } else if (lessonData.scheduledDate instanceof Date) {
+              scheduledDateObj = lessonData.scheduledDate
+            } else if (lessonData.scheduledDate.seconds !== undefined) {
+              scheduledDateObj = new Date(lessonData.scheduledDate.seconds * 1000)
+            } else {
+              scheduledDateObj = new Date(lessonData.scheduledDate as any)
+            }
+            
+            const dateStr = scheduledDateObj.toISOString().split('T')[0]
+            const timeStr = scheduledDateObj.toTimeString().slice(0, 5)
+            setScheduledDate(dateStr)
+            setScheduledTime(timeStr)
+            setInitialScheduledDate(dateStr)
+            setInitialScheduledTime(timeStr)
+          } catch (error) {
+            console.error('Error parsing scheduledDate:', error)
+          }
+        }
         
         // Initialize execution fields
         let autoPopulatedDate = ''
@@ -393,10 +444,21 @@ export const LessonDetail: React.FC = () => {
         setAreas(areasData)
 
         const itemsSnapshot = await getDocs(collection(workspaceRef, 'studyItems'))
-        const itemsData = itemsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as StudyItem))
+        const itemsData = itemsSnapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            areaId: data.studyAreaId || data.areaId, // Handle both field names
+            name: data.name,
+            type: data.type,
+            description: data.description || '',
+            evaluationCriteria: data.evaluationCriteria || '',
+            acsCodeMappings: data.acsCodeMappings || [],
+            referenceMaterials: data.referenceMaterials || [],
+            order: data.orderNumber || data.order || 0,
+            createdAt: data.createdAt
+          } as StudyItem
+        })
         setItems(itemsData)
 
         // Initialize selected items with ground/flight selection from lesson
@@ -608,6 +670,10 @@ export const LessonDetail: React.FC = () => {
         if (preStudyHomework) updates.preStudyHomework = preStudyHomework
         if (plannedRoute) updates.plannedRoute = plannedRoute
         if (preNotes) updates.preNotes = preNotes
+        // Update scheduled date/time
+        if (scheduledDate) {
+          updates.scheduledDate = Timestamp.fromDate(new Date(`${scheduledDate}T${scheduledTime || '09:00'}`))
+        }
         // Reference materials are now auto-saved, so we don't include them here
       }
 
@@ -708,13 +774,36 @@ export const LessonDetail: React.FC = () => {
         return lessonItem
       })
 
-      // Save current changes first
+      // Save current changes first (including actualDate)
       await handleSave()
 
       // Then update status
       const updates: any = { status: newStatus }
       if (newStatus === 'COMPLETED') {
-        updates.completedDate = Timestamp.now()
+        // Set completedDate to when the lesson actually occurred:
+        // 1. Use actual execution date/time if available (when the lesson was actually flown)
+        // 2. Otherwise use scheduled date (when it was supposed to happen) 
+        // 3. If neither exists, use current time as fallback
+        
+        // First check if we have actualDate in state (which was just saved)
+        if (actualDate && actualTime) {
+          updates.completedDate = Timestamp.fromDate(new Date(`${actualDate}T${actualTime}`))
+        } else {
+          // If no actual date in state, check the lesson's actualDate field
+          // (might exist from a previous save)
+          const lessonDoc = await getDoc(doc(db, 'lessons', lesson.id))
+          const currentLessonData = lessonDoc.data()
+          
+          if (currentLessonData?.actualDate) {
+            updates.completedDate = currentLessonData.actualDate
+          } else if (currentLessonData?.scheduledDate) {
+            updates.completedDate = currentLessonData.scheduledDate
+          } else if (lesson.scheduledDate) {
+            updates.completedDate = lesson.scheduledDate
+          } else {
+            updates.completedDate = Timestamp.now()
+          }
+        }
       }
 
       // Clean up any undefined values before updating
@@ -924,7 +1013,10 @@ export const LessonDetail: React.FC = () => {
 
   // Filter areas and items by active programs
   const activeCertificates = programs.map(p => p.certificate)
-  const relevantAreas = areas.filter(a => activeCertificates.includes(a.certificate))
+  // If no active programs, show all areas
+  const relevantAreas = activeCertificates.length > 0 
+    ? areas.filter(a => activeCertificates.includes(a.certificate))
+    : areas
   const relevantAreaIds = relevantAreas.map(a => a.id)
   const relevantItems = items.filter(item => relevantAreaIds.includes(item.areaId))
 
@@ -957,14 +1049,35 @@ export const LessonDetail: React.FC = () => {
             </h2>
             <p className="mt-2 text-sm text-gray-700">
               <CalendarDaysIcon className="inline-block h-4 w-4 mr-1" />
-              {lesson.scheduledDate ? lesson.scheduledDate.toDate().toLocaleString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-              }) : 'Not scheduled'}
+              {(() => {
+                const dateToShow = lesson.status === 'COMPLETED' && lesson.completedDate ? lesson.completedDate : lesson.scheduledDate
+                if (!dateToShow) return 'Not scheduled'
+                
+                try {
+                  let date: Date
+                  if (typeof dateToShow.toDate === 'function') {
+                    date = dateToShow.toDate()
+                  } else if (dateToShow instanceof Date) {
+                    date = dateToShow
+                  } else if (dateToShow.seconds !== undefined) {
+                    date = new Date(dateToShow.seconds * 1000)
+                  } else {
+                    date = new Date(dateToShow as any)
+                  }
+                  
+                  return date.toLocaleString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })
+                } catch (error) {
+                  console.error('Error formatting lesson date:', error)
+                  return 'Date unavailable'
+                }
+              })()}
             </p>
           </div>
           <div className="mt-4 sm:mt-0 flex items-center space-x-3">
@@ -1031,7 +1144,17 @@ export const LessonDetail: React.FC = () => {
               Lesson Planning
             </button>
             <button
-              onClick={() => setActiveTab('execution')}
+              onClick={() => {
+                setActiveTab('execution')
+                // Auto-populate actual date/time with current date/time if empty
+                if (!actualDate && !actualTime) {
+                  const now = new Date()
+                  const dateStr = now.toISOString().split('T')[0]
+                  const timeStr = now.toTimeString().slice(0, 5)
+                  setActualDate(dateStr)
+                  setActualTime(timeStr)
+                }
+              }}
               className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'execution'
                   ? 'border-sky text-sky-600'
@@ -1067,6 +1190,33 @@ export const LessonDetail: React.FC = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
                     placeholder="Enter lesson title"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="scheduledDate" className="block text-sm font-medium text-gray-700">
+                      Scheduled Date
+                    </label>
+                    <input
+                      type="date"
+                      id="scheduledDate"
+                      value={scheduledDate}
+                      onChange={(e) => setScheduledDate(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="scheduledTime" className="block text-sm font-medium text-gray-700">
+                      Scheduled Time
+                    </label>
+                    <input
+                      type="time"
+                      id="scheduledTime"
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -1275,11 +1425,29 @@ export const LessonDetail: React.FC = () => {
                   
                   {/* Areas with items */}
                   <div className="space-y-2">
-                    {relevantAreas.map(area => {
+                    {relevantAreas.length === 0 ? (
+                      <p className="text-sm text-gray-500 italic py-4">
+                        {areas.length === 0 
+                          ? 'No study curriculum has been set up yet. Please create study areas and items in the Curriculum section.'
+                          : programs.length === 0 
+                            ? 'The student needs an active training program to see relevant study items.'
+                            : 'No study areas found for the student\'s active programs.'}
+                      </p>
+                    ) : (
+                      <>
+                      {relevantAreas.filter(area => (itemsByArea.get(area.id) || []).length > 0).length === 0 && (
+                        <p className="text-sm text-gray-500 italic py-4">
+                          No study items available in the curriculum. Please add items to the study areas in the Curriculum section.
+                        </p>
+                      )}
+                      {relevantAreas.map(area => {
                       const areaItems = itemsByArea.get(area.id) || []
                       if (areaItems.length === 0) return null
                       
                       const isExpanded = expandedAreas.has(area.id)
+                      
+                      // Count selected items in this area
+                      const selectedCount = areaItems.filter(item => selectedItemsMap.has(item.id)).length
                       
                       return (
                         <div key={area.id} className="border rounded-md">
@@ -1298,9 +1466,16 @@ export const LessonDetail: React.FC = () => {
                                 ({getCertificateFullName(area.certificate)})
                               </span>
                             </div>
-                            <span className="text-xs text-gray-400">
-                              {areaItems.length} items
-                            </span>
+                            <div className="flex items-center space-x-3">
+                              {selectedCount > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+                                  {selectedCount} selected
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-500">
+                                {areaItems.length} items
+                              </span>
+                            </div>
                           </button>
                           
                           {isExpanded && (
@@ -1391,6 +1566,9 @@ export const LessonDetail: React.FC = () => {
                         </div>
                       )
                     })}
+                    </>
+                    )
+                    }
                   </div>
                 </div>
               )}

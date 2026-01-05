@@ -23,6 +23,25 @@ export const Students: React.FC = () => {
   const [invitationLink, setInvitationLink] = useState<string | null>(null)
   const [studentPrograms, setStudentPrograms] = useState<Map<string, TrainingProgram[]>>(new Map())
 
+  // Helper function to safely convert timestamps to dates
+  const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null
+    try {
+      if (typeof timestamp.toDate === 'function') {
+        return timestamp.toDate()
+      } else if (timestamp instanceof Date) {
+        return timestamp
+      } else if (timestamp.seconds !== undefined) {
+        return new Date(timestamp.seconds * 1000)
+      } else {
+        return new Date(timestamp)
+      }
+    } catch (error) {
+      console.error('Error converting timestamp to date:', error)
+      return null
+    }
+  }
+
   const handleInviteStudent = async (email: string) => {
     const result = await inviteStudent(email)
     if (result.invitationLink) {
@@ -176,7 +195,10 @@ export const Students: React.FC = () => {
                     </div>
 
                     <div className="mt-3 text-sm text-gray-500">
-                      Enrolled: {new Date(student.enrollmentDate.toDate()).toLocaleDateString()}
+                      Enrolled: {(() => {
+                        const date = toDate(student.enrollmentDate)
+                        return date ? date.toLocaleDateString() : 'Unknown'
+                      })()}
                     </div>
                   </div>
                 </div>

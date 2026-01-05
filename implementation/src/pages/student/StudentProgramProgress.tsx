@@ -21,6 +21,26 @@ export const StudentProgramProgress: React.FC = () => {
   const [expandedLessonPlans, setExpandedLessonPlans] = useState<Set<string>>(new Set())
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAllCompletedLessons, setShowAllCompletedLessons] = useState(false)
+
+  // Helper function to safely convert timestamps to dates
+  const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null
+    try {
+      if (typeof timestamp.toDate === 'function') {
+        return timestamp.toDate()
+      } else if (timestamp instanceof Date) {
+        return timestamp
+      } else if (timestamp.seconds !== undefined) {
+        return new Date(timestamp.seconds * 1000)
+      } else {
+        return new Date(timestamp)
+      }
+    } catch (error) {
+      console.error('Error converting timestamp to date:', error)
+      return null
+    }
+  }
 
   useEffect(() => {
     if (!programId || !user?.cfiWorkspaceId) {
@@ -270,7 +290,10 @@ export const StudentProgramProgress: React.FC = () => {
     if (!timestamp) {
       return 'Unscheduled'
     }
-    const date = timestamp.toDate()
+    const date = toDate(timestamp)
+    if (!date) {
+      return 'Unscheduled'
+    }
     return date.toLocaleString('en-US', {
       weekday: 'short',
       month: 'short',
@@ -583,7 +606,10 @@ export const StudentProgramProgress: React.FC = () => {
                             </p>
                           )}
                         </div>
-                        {lesson.scheduledDate && lesson.scheduledDate.toDate() < new Date() && (
+                        {lesson.scheduledDate && (() => {
+                          const date = toDate(lesson.scheduledDate)
+                          return date && date < new Date()
+                        })() && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                             Past scheduled time
                           </span>
@@ -616,7 +642,7 @@ export const StudentProgramProgress: React.FC = () => {
                 </h4>
               </div>
               <ul className="divide-y divide-gray-200">
-                {completedLessons.slice(0, 5).map(lesson => (
+                {(showAllCompletedLessons ? completedLessons : completedLessons.slice(0, 3)).map(lesson => (
                   <li key={lesson.id}>
                     <div
                       onClick={() => navigate(`/student/lessons/${lesson.id}`)}
@@ -644,13 +670,15 @@ export const StudentProgramProgress: React.FC = () => {
                   </li>
                 ))}
               </ul>
-              {completedLessons.length > 5 && (
+              {completedLessons.length > 3 && (
                 <div className="p-4 bg-gray-50">
                   <button
-                    onClick={() => navigate('/student/lessons')}
+                    onClick={() => setShowAllCompletedLessons(!showAllCompletedLessons)}
                     className="text-sm text-sky hover:text-sky-600"
                   >
-                    View all {completedLessons.length} completed lessons →
+                    {showAllCompletedLessons 
+                      ? 'Show less' 
+                      : `Show all ${completedLessons.length} completed lessons`}
                   </button>
                 </div>
               )}

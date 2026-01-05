@@ -6,7 +6,8 @@ const db = admin.firestore();
 export const migrateStudyAreas = onCall(
   { 
     timeoutSeconds: 60,
-    memory: '256MiB'
+    memory: '256MiB',
+    cors: true
   },
   async (request) => {
     if (!request.auth) {

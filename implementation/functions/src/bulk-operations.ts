@@ -6,6 +6,7 @@ const db = admin.firestore();
 export const bulkDeleteCurriculum = onCall(
   { 
     timeoutSeconds: 60,
+    cors: true
   },
   async (request) => {
     if (!request.auth) {

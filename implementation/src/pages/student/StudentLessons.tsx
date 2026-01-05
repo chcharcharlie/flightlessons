@@ -54,8 +54,28 @@ export const StudentLessons: React.FC = () => {
     loadLessons()
   }, [user])
 
+  // Helper function to safely convert timestamps to dates
+  const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null
+    try {
+      if (typeof timestamp.toDate === 'function') {
+        return timestamp.toDate()
+      } else if (timestamp instanceof Date) {
+        return timestamp
+      } else if (timestamp.seconds !== undefined) {
+        return new Date(timestamp.seconds * 1000)
+      } else {
+        return new Date(timestamp)
+      }
+    } catch (error) {
+      console.error('Error converting timestamp to date:', error)
+      return null
+    }
+  }
+
   const formatLessonDateTime = (timestamp: any) => {
-    const date = timestamp.toDate()
+    const date = toDate(timestamp)
+    if (!date) return 'Unknown'
     return date.toLocaleString('en-US', {
       weekday: 'short',
       year: 'numeric',
@@ -170,7 +190,7 @@ export const StudentLessons: React.FC = () => {
                     </div>
                     <div className="ml-4 flex-1">
                       <div className="text-sm font-medium text-gray-900">
-                        {formatLessonDateTime(lesson.scheduledDate)}
+                        {formatLessonDateTime(lesson.status === 'COMPLETED' && lesson.completedDate ? lesson.completedDate : lesson.scheduledDate)}
                       </div>
                       {lesson.actualRoute && (
                         <div className="text-sm text-gray-500 mt-1">
