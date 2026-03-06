@@ -183,10 +183,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // Update display name
     await updateProfile(userCredential.user, { displayName })
 
-    // Store the role temporarily in localStorage since Firestore might not be ready
-    localStorage.setItem(`pending_role_${userCredential.user.uid}`, role)
-
-    // Don't try to create Firestore documents here - let the onAuthStateChanged handle it
+    // Do NOT store pending_role or create Firestore docs here.
+    // onAuthStateChanged will detect no user doc and redirect to /select-role,
+    // where the user picks their role and we write to Firestore with a stable auth token.
+    // (Previously, writing to Firestore immediately after auth creation could fail due to
+    // token propagation delay, causing an unwanted signOut that broke the setup flow.)
   }
 
   const signIn = async (email: string, password: string) => {

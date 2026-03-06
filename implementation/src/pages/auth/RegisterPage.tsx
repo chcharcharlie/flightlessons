@@ -1,13 +1,11 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { UserRole } from '@/types'
 
 export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [role, setRole] = useState<UserRole>('STUDENT')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -26,7 +24,7 @@ export const RegisterPage: React.FC = () => {
     }
 
     try {
-      await signUp(email, password, displayName, role)
+      await signUp(email, password, displayName, 'STUDENT')
       navigate('/')
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
@@ -141,35 +139,7 @@ export const RegisterPage: React.FC = () => {
                 placeholder="At least 6 characters"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                I am a:
-              </label>
-              <div className="mt-2 space-x-4">
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="STUDENT"
-                    checked={role === 'STUDENT'}
-                    onChange={(e) => setRole(e.target.value as UserRole)}
-                    className="form-radio h-4 w-4 text-sky"
-                  />
-                  <span className="ml-2">Student</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="CFI"
-                    checked={role === 'CFI'}
-                    onChange={(e) => setRole(e.target.value as UserRole)}
-                    className="form-radio h-4 w-4 text-sky"
-                  />
-                  <span className="ml-2">Flight Instructor (CFI)</span>
-                </label>
-              </div>
-            </div>
+
           </div>
 
           <div>

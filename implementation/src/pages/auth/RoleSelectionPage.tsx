@@ -2,9 +2,58 @@ import React, { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { doc, setDoc, addDoc, collection, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { User as FirebaseUser } from 'firebase/auth'
 import { db } from '@/lib/firebase'
 import { UserRole } from '@/types'
 import { AcademicCapIcon, UserGroupIcon } from '@heroicons/react/24/outline'
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+async function setupUserRole(selectedRole: UserRole, firebaseUser: FirebaseUser): Promise<string | null> {
+  const userDocRef = doc(db, 'users', firebaseUser.uid)
+  const newUserData = {
+    uid: firebaseUser.uid,
+    email: firebaseUser.email || '',
+    displayName: firebaseUser.displayName || '',
+    role: selectedRole,
+    createdAt: serverTimestamp(),
+    settings: {
+      notifications: {
+        email: true,
+        lessonReminders: true,
+      },
+    },
+  }
+
+  await setDoc(userDocRef, newUserData)
+
+  if (selectedRole === 'CFI') {
+    const workspaceRef = await addDoc(collection(db, 'workspaces'), {
+      cfiUid: firebaseUser.uid,
+      name: firebaseUser.displayName + "'s Flight School",
+      createdAt: serverTimestamp(),
+      studentCount: 0,
+      settings: {
+        defaultLessonDuration: {
+          ground: 60,
+          flight: 1.5,
+        },
+      },
+    })
+
+    await updateDoc(userDocRef, {
+      cfiWorkspaceId: workspaceRef.id,
+    })
+  }
+
+  // Return redirect path
+  const savedRedirect = sessionStorage.getItem('redirect_after_login')
+  if (savedRedirect) {
+    sessionStorage.removeItem('redirect_after_login')
+    return savedRedirect
+  }
+  return selectedRole === 'CFI' ? '/cfi' : '/student'
+}
 
 export const RoleSelectionPage: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
@@ -19,63 +68,38 @@ export const RoleSelectionPage: React.FC = () => {
     setError('')
     setLoading(true)
 
-    try {
-      // Create user document
-      const userDocRef = doc(db, 'users', firebaseUser.uid)
-      const newUserData = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email || '',
-        displayName: firebaseUser.displayName || '',
-        role: selectedRole,
-        createdAt: serverTimestamp(),
-        settings: {
-          notifications: {
-            email: true,
-            lessonReminders: true,
-          },
-        },
+    const MAX_RETRIES = 3
+    let lastError: any = null
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        // New Firebase Auth tokens need time to propagate to Firestore backend
+        await sleep(1500 * attempt)
       }
-
-      await setDoc(userDocRef, newUserData)
-
-      // If CFI, create workspace
-      if (selectedRole === 'CFI') {
-        const workspaceRef = await addDoc(collection(db, 'workspaces'), {
-          cfiUid: firebaseUser.uid,
-          name: firebaseUser.displayName + "'s Flight School",
-          createdAt: serverTimestamp(),
-          studentCount: 0,
-          settings: {
-            defaultLessonDuration: {
-              ground: 60,
-              flight: 1.5,
-            },
-          },
-        })
-
-        // Update user with workspace ID
-        await updateDoc(userDocRef, {
-          cfiWorkspaceId: workspaceRef.id,
-        })
+      try {
+        const redirectPath = await setupUserRole(selectedRole, firebaseUser)
+        navigate(redirectPath ?? (selectedRole === 'CFI' ? '/cfi' : '/student'))
+        return
+      } catch (err) {
+        lastError = err
       }
-
-      // Navigate to saved redirect or appropriate dashboard
-      const savedRedirect = sessionStorage.getItem('redirect_after_login')
-      if (savedRedirect) {
-        sessionStorage.removeItem('redirect_after_login')
-        navigate(savedRedirect)
-      } else {
-        navigate(selectedRole === 'CFI' ? '/cfi' : '/student')
-      }
-    } catch (error: any) {
-      console.error('Error setting role:', error)
-      setError('Failed to set up account. Please try again.')
-    } finally {
-      setLoading(false)
     }
+
+    // All retries failed — but check if user doc was partially written (most likely case)
+    try {
+      const { getDoc, doc: fsDoc } = await import('firebase/firestore')
+      const snap = await getDoc(fsDoc(db, 'users', firebaseUser.uid))
+      if (snap.exists()) {
+        navigate(selectedRole === 'CFI' ? '/cfi' : '/student')
+        return
+      }
+    } catch {}
+
+    console.error('Error setting role after retries:', lastError)
+    setError('Failed to set up account. Please try again.')
+    setLoading(false)
   }
 
-  // Show loading while checking auth state
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -84,12 +108,10 @@ export const RoleSelectionPage: React.FC = () => {
     )
   }
 
-  // If no Firebase user, redirect to login
   if (!firebaseUser) {
     return <Navigate to="/login" replace />
   }
 
-  // If user already has a role, redirect to appropriate dashboard
   if (user) {
     return <Navigate to={user.role === 'CFI' ? '/cfi' : '/student'} replace />
   }
