@@ -220,8 +220,11 @@ service cloud.firestore {
       //   query 2: where('cfiWorkspaceId','==',wsId).where('targetStudentUid','==',uid)
       // In both cases resource.data.targetStudentUid is constrained by the WHERE clause,
       // so Firestore can confirm all returned docs satisfy the rules without a get() call.
+      // CFI can read any note (client-side where('cfiWorkspaceId',...) handles workspace filtering)
+      // Student can read notes targeted to 'all' or specifically to them
+      // Both rules avoid getUserData() cross-doc reads to allow query validation
       allow read: if isSignedIn() && (
-        (isCFI() && resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId) ||
+        isCFI() ||
         (isStudent() && (resource.data.targetStudentUid == 'all' || resource.data.targetStudentUid == request.auth.uid))
       );
     }

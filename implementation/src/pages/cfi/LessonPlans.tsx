@@ -227,12 +227,16 @@ export const LessonPlans: React.FC = () => {
     if (!showNotesTab || !user?.cfiWorkspaceId) return
     setNotesLoading(true)
     Promise.all([
-      import('firebase/firestore').then(({ query, collection, where, orderBy, getDocs }) =>
+      import('firebase/firestore').then(({ query, collection, where, getDocs }) =>
         getDocs(query(
           collection(db, 'cfiNotes'),
-          where('cfiWorkspaceId', '==', user.cfiWorkspaceId!),
-          orderBy('createdAt', 'desc')
-        )).then(snap => setCfiNotes(snap.docs.map(d => ({ id: d.id, ...d.data() } as import('@/types').CfiNote))))
+          where('cfiWorkspaceId', '==', user.cfiWorkspaceId!)
+        )).then(snap => {
+          const notes = snap.docs
+            .map(d => ({ id: d.id, ...d.data() } as import('@/types').CfiNote))
+            .sort((a, b) => ((b.createdAt as any)?.toMillis?.() ?? 0) - ((a.createdAt as any)?.toMillis?.() ?? 0))
+          setCfiNotes(notes)
+        })
       ),
       // Load students for target dropdown
       import('firebase/firestore').then(({ collection: col, getDocs: gd }) =>
