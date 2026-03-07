@@ -358,14 +358,14 @@ export const StudentLessonDetail: React.FC = () => {
         {lesson.preNotes && (
           <div className="mt-4">
             <p className="text-sm font-medium text-gray-700">Pre-lesson Notes</p>
-            <p className="mt-1 text-sm text-gray-600">{lesson.preNotes}</p>
+            <p className="mt-1 text-sm text-gray-600 whitespace-pre-wrap">{lesson.preNotes}</p>
           </div>
         )}
 
         {lesson.postNotes && (
           <div className="mt-4">
             <p className="text-sm font-medium text-gray-700">Post-lesson Notes</p>
-            <p className="mt-1 text-sm text-gray-600">{lesson.postNotes}</p>
+            <p className="mt-1 text-sm text-gray-600 whitespace-pre-wrap">{lesson.postNotes}</p>
           </div>
         )}
       </div>
