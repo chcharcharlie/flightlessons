@@ -22,14 +22,31 @@ interface StudentNoteEntry {
   updatedAt: any
 }
 
+interface TrainingProgram {
+  id: string
+  certificate: string
+  status: string
+  name?: string
+}
+
+const CERT_LABELS: Record<string, string> = {
+  PRIVATE: 'Private Pilot (PPL)',
+  INSTRUMENT: 'Instrument Rating (IR)',
+  COMMERCIAL: 'Commercial Pilot (CPL)',
+}
+
 export const StudentStudy: React.FC = () => {
   const { user } = useAuth()
+
+  // Programs
+  const [programs, setPrograms] = useState<TrainingProgram[]>([])
+  const [selectedProgram, setSelectedProgram] = useState<TrainingProgram | null>(null)
+  const [loadingPrograms, setLoadingPrograms] = useState(true)
 
   // Structure
   const [studyAreas, setStudyAreas] = useState<StudyArea[]>([])
   const [studyItems, setStudyItems] = useState<StudyItem[]>([])
-  const [activeCertificates, setActiveCertificates] = useState<string[]>([])
-  const [loadingStructure, setLoadingStructure] = useState(true)
+  const [loadingStructure, setLoadingStructure] = useState(false)
 
   // Selection & navigation
   const [selectedArea, setSelectedArea] = useState<StudyArea | null>(null)
@@ -55,33 +72,42 @@ export const StudentStudy: React.FC = () => {
   const [noteSaveStatus, setNoteSaveStatus] = useState<'saved' | 'saving' | ''>('saved')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Load active program certificates ──────────────────────────────────────
+  // ── Load all training programs ────────────────────────────────────────────
   useEffect(() => {
     if (!user?.uid) return
-    getDocs(query(
-      collection(db, 'trainingPrograms'),
-      where('studentUid', '==', user.uid),
-      where('status', '==', 'active')
-    )).then(snap => {
-      const certs = snap.docs.map(d => (d.data() as any).certificate).filter(Boolean) as string[]
-      setActiveCertificates(certs.length > 0 ? certs : ['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'])
-    }).catch(() => {
-      setActiveCertificates(['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'])
-    })
+    setLoadingPrograms(true)
+    getDocs(query(collection(db, 'trainingPrograms'), where('studentUid', '==', user.uid)))
+      .then(snap => {
+        const progs = snap.docs.map(d => ({ id: d.id, ...d.data() } as TrainingProgram))
+        // Sort: active first, then by certificate order
+        const certOrder = ['PRIVATE', 'INSTRUMENT', 'COMMERCIAL']
+        progs.sort((a, b) => {
+          if (a.status === 'active' && b.status !== 'active') return -1
+          if (a.status !== 'active' && b.status === 'active') return 1
+          return certOrder.indexOf(a.certificate) - certOrder.indexOf(b.certificate)
+        })
+        setPrograms(progs)
+        // Default: first active, or first overall
+        const defaultProg = progs.find(p => p.status === 'active') || progs[0] || null
+        setSelectedProgram(defaultProg)
+      })
+      .catch(() => setPrograms([]))
+      .finally(() => setLoadingPrograms(false))
   }, [user?.uid])
 
-  // ── Load study areas & items (filtered by certificate) ────────────────────
+  // ── Load study areas & items (filtered by selected program certificate) ───
   useEffect(() => {
-    if (!user?.cfiWorkspaceId || activeCertificates.length === 0) return
+    if (!user?.cfiWorkspaceId || !selectedProgram) return
     const wsRef = doc(db, 'workspaces', user.cfiWorkspaceId)
     setLoadingStructure(true)
+    setSelectedArea(null) // reset area when program changes
     Promise.all([
       getDocs(query(collection(wsRef, 'studyAreas'), orderBy('orderNumber', 'asc'))),
       getDocs(collection(wsRef, 'studyItems')),
     ]).then(([areasSnap, itemsSnap]) => {
       const areas = areasSnap.docs
         .map(d => { const data = d.data(); return { id: d.id, ...data, order: data.orderNumber || 0 } as StudyArea })
-        .filter(a => activeCertificates.includes(a.certificate))
+        .filter(a => a.certificate === selectedProgram.certificate)
       const items = itemsSnap.docs.map(d => {
         const data = d.data()
         return { id: d.id, ...data, areaId: data.studyAreaId, order: data.orderNumber || 0 } as StudyItem
@@ -90,7 +116,7 @@ export const StudentStudy: React.FC = () => {
       setStudyItems(items)
     }).catch(err => console.error('StudentStudy: structure error', err))
     .finally(() => setLoadingStructure(false))
-  }, [user?.cfiWorkspaceId, activeCertificates])
+  }, [user?.cfiWorkspaceId, selectedProgram])
 
   // ── Load student's own questions ──────────────────────────────────────────
   useEffect(() => {
@@ -227,10 +253,25 @@ export const StudentStudy: React.FC = () => {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
-  if (loadingStructure) {
+  if (loadingPrograms) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-500" />
+      </div>
+    )
+  }
+
+  if (programs.length === 0) {
+    return (
+      <div className="px-4 sm:px-0">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Study</h2>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-16 text-center">
+          <BookOpenIcon className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 text-sm font-medium">No training programs yet</p>
+          <p className="text-gray-400 text-xs mt-1">Ask your instructor to enroll you in a program</p>
+        </div>
       </div>
     )
   }
@@ -244,11 +285,33 @@ export const StudentStudy: React.FC = () => {
   return (
     <div className="px-4 sm:px-0">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Study</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Browse study materials, take notes, and ask your instructor questions
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Study</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Browse study materials, take notes, and ask your instructor questions
+          </p>
+        </div>
+        {/* Program selector */}
+        <div className="flex items-center gap-2 shrink-0">
+          <label htmlFor="program-select" className="text-sm text-gray-500 whitespace-nowrap">Program:</label>
+          <select
+            id="program-select"
+            value={selectedProgram?.id ?? ''}
+            onChange={e => {
+              const prog = programs.find(p => p.id === e.target.value) || null
+              setSelectedProgram(prog)
+            }}
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 min-w-[200px]"
+          >
+            {programs.map(p => (
+              <option key={p.id} value={p.id}>
+                {CERT_LABELS[p.certificate] ?? p.certificate}
+                {p.status === 'active' ? ' ✓' : ' (completed)'}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="flex gap-5">
