@@ -1673,6 +1673,20 @@ export const LessonDetail: React.FC = () => {
                   <p className="text-sm text-gray-600 whitespace-pre-wrap mt-1">{lesson.planDescription}</p>
                 </div>
               )}
+
+              {lesson.preStudyHomework && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700">Pre-Study Homework</p>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap mt-1">{lesson.preStudyHomework}</p>
+                </div>
+              )}
+
+              {lesson.preNotes && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700">Pre-Lesson Notes</p>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap mt-1">{lesson.preNotes}</p>
+                </div>
+              )}
             </div>
           )}
           
@@ -1768,15 +1782,20 @@ export const LessonDetail: React.FC = () => {
               <label htmlFor="postNotes" className="block text-sm font-medium text-gray-700">
                 Post-lesson Notes
               </label>
-              <textarea
-                id="postNotes"
-                rows={3}
-                value={postNotes}
-                onChange={(e) => setPostNotes(e.target.value)}
-                disabled={isReadOnly}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm disabled:bg-gray-50"
-                placeholder="Summary of the lesson, areas of focus for next time..."
-              />
+              {isReadOnly ? (
+                <div className="mt-1 min-h-[80px] rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 whitespace-pre-wrap">
+                  {postNotes || <span className="text-gray-400 italic">No post-lesson notes recorded.</span>}
+                </div>
+              ) : (
+                <textarea
+                  id="postNotes"
+                  rows={6}
+                  value={postNotes}
+                  onChange={(e) => setPostNotes(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky focus:ring-sky sm:text-sm"
+                  placeholder="Summary of the lesson, areas of focus for next time..."
+                />
+              )}
             </div>
 
             {/* Reference Materials - Read-only display */}
