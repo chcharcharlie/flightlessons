@@ -74,6 +74,16 @@ export const LessonPlans: React.FC = () => {
     (sessionStorage.getItem('selectedCertificate') as Certificate) ||
     'PRIVATE'
   )
+  const [showNotesTab, setShowNotesTab] = useState(false)
+  // Study Notes state
+  const [cfiNotes, setCfiNotes] = useState<import('@/types').CfiNote[]>([])
+  const [notesLoading, setNotesLoading] = useState(false)
+  const [showNewNote, setShowNewNote] = useState(false)
+  const [newNoteTitle, setNewNoteTitle] = useState('')
+  const [newNoteContent, setNewNoteContent] = useState('')
+  const [newNoteTarget, setNewNoteTarget] = useState<string>('all')
+  const [savingNote, setSavingNote] = useState(false)
+  const [workspaceStudents, setWorkspaceStudents] = useState<{uid: string, name: string}[]>([])
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
   const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set())
   const [editingArea, setEditingArea] = useState<string | null>(null)
@@ -212,6 +222,62 @@ export const LessonPlans: React.FC = () => {
     }
   }
   
+  // Load Study Notes when tab is selected
+  useEffect(() => {
+    if (!showNotesTab || !user?.cfiWorkspaceId) return
+    setNotesLoading(true)
+    Promise.all([
+      import('firebase/firestore').then(({ query, collection, where, orderBy, getDocs }) =>
+        getDocs(query(
+          collection(db, 'cfiNotes'),
+          where('cfiWorkspaceId', '==', user.cfiWorkspaceId!),
+          orderBy('createdAt', 'desc')
+        )).then(snap => setCfiNotes(snap.docs.map(d => ({ id: d.id, ...d.data() } as import('@/types').CfiNote))))
+      ),
+      // Load students for target dropdown
+      import('firebase/firestore').then(({ collection: col, getDocs: gd }) =>
+        gd(col(db, 'workspaces', user.cfiWorkspaceId!, 'students')).then(async snap => {
+          const students = await Promise.all(snap.docs.map(async s => {
+            const { getDoc, doc: fd } = await import('firebase/firestore')
+            const ud = await getDoc(fd(db, 'users', s.id))
+            return { uid: s.id, name: ud.exists() ? (ud.data().displayName || s.id) : s.id }
+          }))
+          setWorkspaceStudents(students)
+        })
+      ),
+    ]).finally(() => setNotesLoading(false))
+  }, [showNotesTab, user?.cfiWorkspaceId])
+
+  const saveNote = async () => {
+    if (!newNoteTitle.trim() || !newNoteContent.trim() || !user?.cfiWorkspaceId) return
+    setSavingNote(true)
+    try {
+      const { addDoc, collection: col, Timestamp: TS } = await import('firebase/firestore')
+      const noteData = {
+        cfiWorkspaceId: user.cfiWorkspaceId,
+        createdBy: user.uid,
+        title: newNoteTitle.trim(),
+        content: newNoteContent.trim(),
+        targetStudentUid: newNoteTarget,
+        createdAt: TS.now(),
+      }
+      const ref = await addDoc(col(db, 'cfiNotes'), noteData)
+      setCfiNotes(prev => [{ id: ref.id, ...noteData } as import('@/types').CfiNote, ...prev])
+      setNewNoteTitle('')
+      setNewNoteContent('')
+      setNewNoteTarget('all')
+      setShowNewNote(false)
+    } finally {
+      setSavingNote(false)
+    }
+  }
+
+  const deleteNote = async (noteId: string) => {
+    const { deleteDoc, doc: fd } = await import('firebase/firestore')
+    await deleteDoc(fd(db, 'cfiNotes', noteId))
+    setCfiNotes(prev => prev.filter(n => n.id !== noteId))
+  }
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -1041,9 +1107,130 @@ export const LessonPlans: React.FC = () => {
     )
   }
 
+  // --- Study Notes panel (early return when NOTES tab is active) ---
+  if (showNotesTab) {
+    return (
+      <div className="px-4 sm:px-0">
+        <div className="sm:flex sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Curriculum Management</h2>
+            <p className="mt-2 text-sm text-gray-700">Manage study items and lesson plans for your training programs</p>
+          </div>
+        </div>
+        {/* Tabs */}
+        <div className="mt-6 border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {(['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'] as Certificate[]).map(cert => (
+              <button key={cert} onClick={() => { setSelectedCertificate(cert); setShowNotesTab(false) }}
+                className="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                {getCertificateFullName(cert)}
+              </button>
+            ))}
+            <button className="py-2 px-1 border-b-2 border-amber-500 text-amber-600 font-medium text-sm">
+              📝 Study Notes
+            </button>
+          </nav>
+        </div>
+
+        {/* Study Notes content */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Study Notes for Students</h3>
+            <button
+              onClick={() => setShowNewNote(v => !v)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500 text-white rounded-md text-sm font-medium hover:bg-amber-600"
+            >
+              <PlusIcon className="w-4 h-4" />
+              New Note
+            </button>
+          </div>
+
+          {showNewNote && (
+            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-5">
+              <h4 className="text-sm font-semibold text-amber-800 mb-3">Create New Study Note</h4>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={newNoteTitle}
+                  onChange={e => setNewNoteTitle(e.target.value)}
+                  placeholder="Title"
+                  className="w-full rounded-md border-gray-300 text-sm focus:ring-amber-400 focus:border-amber-400"
+                />
+                <textarea
+                  rows={5}
+                  value={newNoteContent}
+                  onChange={e => setNewNoteContent(e.target.value)}
+                  placeholder="Content (explanations, tips, reminders…)"
+                  className="w-full rounded-md border-gray-300 text-sm focus:ring-amber-400 focus:border-amber-400"
+                />
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-gray-600">Send to:</label>
+                  <select
+                    value={newNoteTarget}
+                    onChange={e => setNewNoteTarget(e.target.value)}
+                    className="rounded-md border-gray-300 text-sm focus:ring-amber-400 focus:border-amber-400"
+                  >
+                    <option value="all">All Students</option>
+                    {workspaceStudents.map(s => (
+                      <option key={s.uid} value={s.uid}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end gap-2">
+                <button onClick={() => setShowNewNote(false)} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+                <button
+                  onClick={saveNote}
+                  disabled={!newNoteTitle.trim() || !newNoteContent.trim() || savingNote}
+                  className="px-3 py-1.5 bg-amber-500 text-white rounded-md text-sm font-medium disabled:opacity-50 hover:bg-amber-600"
+                >
+                  {savingNote ? 'Publishing…' : 'Publish'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {notesLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+            </div>
+          ) : cfiNotes.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-12 text-center">
+              <p className="text-gray-400 text-sm">No study notes yet. Create one to share with your students.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {cfiNotes.map(note => {
+                const targetLabel = note.targetStudentUid === 'all'
+                  ? 'All Students'
+                  : workspaceStudents.find(s => s.uid === note.targetStudentUid)?.name || 'Specific Student'
+                return (
+                  <div key={note.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900">{note.title}</h4>
+                        <p className="mt-0.5 text-xs text-gray-400">
+                          To: {targetLabel} · {note.createdAt?.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <button onClick={() => deleteNote(note.id)} className="text-gray-300 hover:text-red-500 text-xs">
+                        Delete
+                      </button>
+                    </div>
+                    <p className="mt-3 text-sm text-gray-700 whitespace-pre-wrap">{note.content}</p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const coverage = calculateCoverage()
-  const areas = studyAreas.get(selectedCertificate) || []
-  const plans = lessonPlans.get(selectedCertificate) || []
+  const areas = studyAreas.get(selectedCertificate as Certificate) || []
+  const plans = lessonPlans.get(selectedCertificate as Certificate) || []
 
   return (
     <DndContext
@@ -1071,7 +1258,7 @@ export const LessonPlans: React.FC = () => {
             {(['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'] as Certificate[]).map((cert) => (
               <button
                 key={cert}
-                onClick={() => setSelectedCertificate(cert)}
+                onClick={() => { setSelectedCertificate(cert); setShowNotesTab(false) }}
                 className={`
                   py-2 px-1 border-b-2 font-medium text-sm
                   ${selectedCertificate === cert
@@ -1083,6 +1270,18 @@ export const LessonPlans: React.FC = () => {
                 {getCertificateFullName(cert)}
               </button>
             ))}
+            <button
+              onClick={() => setShowNotesTab(true)}
+              className={`
+                py-2 px-1 border-b-2 font-medium text-sm
+                ${showNotesTab
+                  ? 'border-amber-500 text-amber-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }
+              `}
+            >
+              📝 Study Notes
+            </button>
           </nav>
           <div className="flex items-center space-x-2 mb-2">
             <button
@@ -1966,7 +2165,7 @@ export const LessonPlans: React.FC = () => {
       <ImportExportModal
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
-        certificate={selectedCertificate}
+        certificate={selectedCertificate as Certificate}
         onImportSuccess={loadStudyData}
       />
     </DndContext>

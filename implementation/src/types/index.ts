@@ -181,3 +181,35 @@ export interface ACSElement {
   description: string
   aircraftClass?: string[]
 }
+export interface Question {
+  id: string
+  studentUid: string
+  studentName?: string
+  cfiWorkspaceId: string
+  studyItemId?: string   // optional: linked study item
+  studyItemName?: string
+  question: string
+  status: 'open' | 'answered'
+  answer?: string
+  answeredAt?: Timestamp
+  createdAt: Timestamp
+}
+
+export interface StudentNote {
+  id: string
+  studentUid: string
+  studyItemId: string
+  content: string
+  updatedAt: Timestamp
+}
+
+export interface CfiNote {
+  id: string
+  cfiWorkspaceId: string
+  createdBy: string  // CFI uid
+  title: string
+  content: string
+  targetStudentUid: string | 'all'
+  studyAreaId?: string
+  createdAt: Timestamp
+}

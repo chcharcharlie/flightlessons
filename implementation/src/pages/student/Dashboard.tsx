@@ -13,6 +13,7 @@ import { StudentProgress } from './Progress'
 import { StudentProgramProgress } from './StudentProgramProgress'
 import { StudentLessons } from './StudentLessons'
 import { StudentLessonDetail } from './StudentLessonDetail'
+import { StudentStudy } from './StudentStudy'
 
 const navigation = [
   { name: 'Dashboard', href: '/student', icon: HomeIcon },
@@ -81,7 +82,7 @@ export const StudentDashboard: React.FC = () => {
           <Route path="programs/:programId/progress" element={<StudentProgramProgress />} />
           <Route path="lessons" element={<StudentLessons />} />
           <Route path="lessons/:lessonId" element={<StudentLessonDetail />} />
-          <Route path="study" element={<div>Study Materials - Coming Soon</div>} />
+          <Route path="study" element={<StudentStudy />} />
         </Routes>
       </main>
     </div>

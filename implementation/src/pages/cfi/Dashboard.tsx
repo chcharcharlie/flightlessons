@@ -153,6 +153,10 @@ const CFIDashboardHome: React.FC = () => {
   const [isEditingSchoolName, setIsEditingSchoolName] = useState(false)
   const [editSchoolName, setEditSchoolName] = useState('')
   const [savingSchoolName, setSavingSchoolName] = useState(false)
+  const [pendingQuestions, setPendingQuestions] = useState<import('@/types').Question[]>([])
+  const [answeringId, setAnsweringId] = useState<string | null>(null)
+  const [answerText, setAnswerText] = useState('')
+  const [submittingAnswer, setSubmittingAnswer] = useState(false)
 
   // Helper function to safely convert timestamps to dates
   const toDate = (timestamp: any): Date | null => {
@@ -182,6 +186,45 @@ const CFIDashboardHome: React.FC = () => {
       }
     })
   }, [user?.cfiWorkspaceId])
+
+  // Load pending questions
+  useEffect(() => {
+    if (!user?.cfiWorkspaceId) return
+    import('firebase/firestore').then(({ query, collection, where, getDocs }) => {
+      getDocs(query(
+        collection(db, 'questions'),
+        where('cfiWorkspaceId', '==', user.cfiWorkspaceId!),
+        where('status', '==', 'open')
+      )).then(snap => {
+        const qs = snap.docs
+          .map(d => ({ id: d.id, ...d.data() } as import('@/types').Question))
+          .sort((a, b) => {
+            const ta = (a.createdAt as any)?.toMillis?.() ?? 0
+            const tb = (b.createdAt as any)?.toMillis?.() ?? 0
+            return ta - tb
+          })
+        setPendingQuestions(qs)
+      }).catch(err => console.error('[Dashboard] pending questions error:', err))
+    })
+  }, [user?.cfiWorkspaceId])
+
+  const submitAnswer = async (questionId: string) => {
+    if (!answerText.trim()) return
+    setSubmittingAnswer(true)
+    try {
+      const { updateDoc, doc: firestoreDoc, Timestamp: TS } = await import('firebase/firestore')
+      await updateDoc(firestoreDoc(db, 'questions', questionId), {
+        answer: answerText.trim(),
+        status: 'answered',
+        answeredAt: TS.now(),
+      })
+      setPendingQuestions(prev => prev.filter(q => q.id !== questionId))
+      setAnsweringId(null)
+      setAnswerText('')
+    } finally {
+      setSubmittingAnswer(false)
+    }
+  }
 
   const saveSchoolName = async () => {
     if (!user?.cfiWorkspaceId || !editSchoolName.trim()) return
@@ -707,6 +750,80 @@ const CFIDashboardHome: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Student Questions */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+            Student Questions
+            {pendingQuestions.length > 0 && (
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold">
+                {pendingQuestions.length}
+              </span>
+            )}
+          </h3>
+        </div>
+        {pendingQuestions.length === 0 ? (
+          <div className="bg-white shadow sm:rounded-md px-6 py-8 text-center">
+            <p className="text-sm text-gray-400">No pending questions from students</p>
+          </div>
+        ) : (
+          <div className="bg-white shadow overflow-hidden sm:rounded-md">
+            <ul className="divide-y divide-gray-200">
+              {pendingQuestions.map(q => (
+                <li key={q.id} className="px-6 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">
+                        {q.studentName || 'Student'}
+                        {q.studyItemName && (
+                          <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                            re: {q.studyItemName}
+                          </span>
+                        )}
+                      </p>
+                      <p className="mt-1 text-sm text-gray-700">{q.question}</p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        {q.createdAt?.toDate ? q.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => { setAnsweringId(q.id); setAnswerText('') }}
+                      className="flex-shrink-0 text-sm text-sky-600 hover:text-sky-800 font-medium"
+                    >
+                      Reply
+                    </button>
+                  </div>
+                  {answeringId === q.id && (
+                    <div className="mt-3">
+                      <textarea
+                        rows={3}
+                        value={answerText}
+                        onChange={e => setAnswerText(e.target.value)}
+                        placeholder="Type your answer…"
+                        className="w-full rounded-md border-gray-300 text-sm focus:ring-sky-500 focus:border-sky-500"
+                        autoFocus
+                      />
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button onClick={() => setAnsweringId(null)} className="text-sm text-gray-500 hover:text-gray-700">
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => submitAnswer(q.id)}
+                          disabled={!answerText.trim() || submittingAnswer}
+                          className="px-3 py-1.5 bg-sky-500 text-white rounded-md text-sm font-medium disabled:opacity-50 hover:bg-sky-600"
+                        >
+                          {submittingAnswer ? 'Sending…' : 'Send Answer'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
       {/* Empty States */}
       {activePrograms.length === 0 && scheduledLessons.length === 0 && (

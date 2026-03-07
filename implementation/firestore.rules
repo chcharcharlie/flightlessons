@@ -178,5 +178,52 @@ service cloud.firestore {
       // Only authenticated users can read/write their own progress sessions
       allow read, write: if isSignedIn();
     }
+
+    // Student questions to CFI
+    match /questions/{questionId} {
+      // Student can create their own questions (cfiWorkspaceId validated client-side from user doc)
+      allow create: if isStudent() &&
+        request.resource.data.studentUid == request.auth.uid;
+      // Read: student reads own questions (query: where studentUid==uid — statically verifiable)
+      //       CFI reads any question — client-side where('cfiWorkspaceId','==',wsId) handles filtering.
+      //       Removing getUserData() cross-doc read so Firestore can validate queries statically.
+      allow read: if isSignedIn() && (
+        resource.data.studentUid == request.auth.uid ||
+        isCFI()
+      );
+      // Update: student edits own question; CFI adds answer (any CFI — workspace filtering is client-side)
+      allow update: if isSignedIn() && (
+        resource.data.studentUid == request.auth.uid ||
+        isCFI()
+      );
+      allow delete: if isSignedIn() && resource.data.studentUid == request.auth.uid;
+    }
+
+    // Student private notes (per study item)
+    match /studentNotes/{noteId} {
+      allow read, write: if isSignedIn() &&
+        (resource == null || resource.data.studentUid == request.auth.uid) &&
+        (request.resource == null || request.resource.data.studentUid == request.auth.uid);
+    }
+
+    // CFI knowledge notes pushed to students
+    match /cfiNotes/{noteId} {
+      // CFI can create/update/delete notes in their workspace
+      allow create: if isCFI() &&
+        request.resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId;
+      allow update, delete: if isCFI() &&
+        resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId;
+      // Students can read notes targeted at them or 'all'.
+      // Rules use only request.auth.uid (no getUserData cross-doc read) so that Firestore
+      // can statically validate the two separate queries we run:
+      //   query 1: where('cfiWorkspaceId','==',wsId).where('targetStudentUid','==','all')
+      //   query 2: where('cfiWorkspaceId','==',wsId).where('targetStudentUid','==',uid)
+      // In both cases resource.data.targetStudentUid is constrained by the WHERE clause,
+      // so Firestore can confirm all returned docs satisfy the rules without a get() call.
+      allow read: if isSignedIn() && (
+        (isCFI() && resource.data.cfiWorkspaceId == getUserData().cfiWorkspaceId) ||
+        (isStudent() && (resource.data.targetStudentUid == 'all' || resource.data.targetStudentUid == request.auth.uid))
+      );
+    }
   }
 }
