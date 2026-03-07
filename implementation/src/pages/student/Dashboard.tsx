@@ -1,5 +1,6 @@
 import React from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
+import { AdBanner } from '@/components/AdBanner'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   HomeIcon,
@@ -75,7 +76,7 @@ export const StudentDashboard: React.FC = () => {
       </nav>
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 pb-20">
         <Routes>
           <Route index element={<StudentDashboardHome />} />
           <Route path="progress" element={<StudentProgress />} />
@@ -85,6 +86,11 @@ export const StudentDashboard: React.FC = () => {
           <Route path="study" element={<StudentStudy />} />
         </Routes>
       </main>
+
+      {/* Ad Banner — fixed bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex justify-center py-1 shadow-sm">
+        <AdBanner format="horizontal" className="w-full max-w-3xl" />
+      </div>
     </div>
   )
 }
