@@ -11,6 +11,9 @@ import {
   CalendarIcon,
   ChevronRightIcon,
   CheckCircleIcon,
+  PencilIcon,
+  CheckIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { Students } from './Students'
 import { TrainingPrograms } from './TrainingPrograms'
@@ -21,7 +24,7 @@ import { LessonPlans } from './LessonPlans'
 import { LessonPlanDetail } from './LessonPlanDetail'
 import { FloatingChatButton } from '@/components/ai/FloatingChatButton'
 import { ChatWindow } from '@/components/ai/ChatWindow'
-import { collection, query, where, orderBy, onSnapshot, doc, getDoc, getDocs, Timestamp } from 'firebase/firestore'
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, getDocs, updateDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Lesson, TrainingProgram, Progress, User } from '@/types'
 import { format, isToday, isTomorrow } from 'date-fns'
@@ -146,6 +149,10 @@ const CFIDashboardHome: React.FC = () => {
   const [scheduledLessons, setScheduledLessons] = useState<DashboardLesson[]>([])
   const [recentLessons, setRecentLessons] = useState<DashboardLesson[]>([])
   const [loading, setLoading] = useState(true)
+  const [schoolName, setSchoolName] = useState<string>('')
+  const [isEditingSchoolName, setIsEditingSchoolName] = useState(false)
+  const [editSchoolName, setEditSchoolName] = useState('')
+  const [savingSchoolName, setSavingSchoolName] = useState(false)
 
   // Helper function to safely convert timestamps to dates
   const toDate = (timestamp: any): Date | null => {
@@ -163,6 +170,30 @@ const CFIDashboardHome: React.FC = () => {
     } catch (error) {
       console.error('Error converting timestamp to date:', error)
       return null
+    }
+  }
+
+  // Load workspace (school) name
+  useEffect(() => {
+    if (!user?.cfiWorkspaceId) return
+    getDoc(doc(db, 'workspaces', user.cfiWorkspaceId)).then(snap => {
+      if (snap.exists()) {
+        setSchoolName(snap.data().name || '')
+      }
+    })
+  }, [user?.cfiWorkspaceId])
+
+  const saveSchoolName = async () => {
+    if (!user?.cfiWorkspaceId || !editSchoolName.trim()) return
+    setSavingSchoolName(true)
+    try {
+      await updateDoc(doc(db, 'workspaces', user.cfiWorkspaceId), { name: editSchoolName.trim() })
+      setSchoolName(editSchoolName.trim())
+      setIsEditingSchoolName(false)
+    } catch (e) {
+      console.error('Failed to update school name', e)
+    } finally {
+      setSavingSchoolName(false)
     }
   }
 
@@ -422,9 +453,45 @@ const CFIDashboardHome: React.FC = () => {
 
   return (
     <div className="px-4 sm:px-0">
-      <h2 className="text-2xl font-bold text-gray-900">
-        Welcome back, {user?.displayName}
-      </h2>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Welcome back, {user?.displayName}
+          </h2>
+          <div className="mt-1 flex items-center gap-2">
+            {isEditingSchoolName ? (
+              <>
+                <input
+                  type="text"
+                  value={editSchoolName}
+                  onChange={e => setEditSchoolName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveSchoolName(); if (e.key === 'Escape') setIsEditingSchoolName(false) }}
+                  className="text-sm text-gray-600 border border-gray-300 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-sky"
+                  autoFocus
+                  disabled={savingSchoolName}
+                />
+                <button onClick={saveSchoolName} disabled={savingSchoolName} className="text-green-600 hover:text-green-700">
+                  <CheckIcon className="w-4 h-4" />
+                </button>
+                <button onClick={() => setIsEditingSchoolName(false)} className="text-gray-400 hover:text-gray-500">
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="text-sm text-gray-500">{schoolName}</span>
+                <button
+                  onClick={() => { setEditSchoolName(schoolName); setIsEditingSchoolName(true) }}
+                  className="text-gray-400 hover:text-gray-600"
+                  title="Edit school name"
+                >
+                  <PencilIcon className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
       <p className="mt-2 text-gray-600">
         {scheduledLessons.filter(l => {
           const date = toDate(l.scheduledDate)
