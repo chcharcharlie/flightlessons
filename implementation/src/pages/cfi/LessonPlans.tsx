@@ -82,6 +82,7 @@ export const LessonPlans: React.FC = () => {
   const [newNoteTitle, setNewNoteTitle] = useState('')
   const [newNoteContent, setNewNoteContent] = useState('')
   const [newNoteTarget, setNewNoteTarget] = useState<string>('all')
+  const [newNoteCertificate, setNewNoteCertificate] = useState<Certificate>('PRIVATE')
   const [savingNote, setSavingNote] = useState(false)
   const [workspaceStudents, setWorkspaceStudents] = useState<{uid: string, name: string}[]>([])
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
@@ -263,7 +264,7 @@ export const LessonPlans: React.FC = () => {
         title: newNoteTitle.trim(),
         content: newNoteContent.trim(),
         targetStudentUid: newNoteTarget,
-        certificate: selectedCertificate,
+        certificate: newNoteCertificate,
         createdAt: TS.now(),
       }
       const ref = await addDoc(col(db, 'cfiNotes'), noteData)
@@ -271,6 +272,7 @@ export const LessonPlans: React.FC = () => {
       setNewNoteTitle('')
       setNewNoteContent('')
       setNewNoteTarget('all')
+      setNewNoteCertificate('PRIVATE')
       setShowNewNote(false)
     } finally {
       setSavingNote(false)
@@ -1168,18 +1170,32 @@ export const LessonPlans: React.FC = () => {
                   placeholder="Content (explanations, tips, reminders…)"
                   className="w-full rounded-md border-gray-300 text-sm focus:ring-amber-400 focus:border-amber-400"
                 />
-                <div className="flex items-center gap-3">
-                  <label className="text-sm text-gray-600">Send to:</label>
-                  <select
-                    value={newNoteTarget}
-                    onChange={e => setNewNoteTarget(e.target.value)}
-                    className="rounded-md border-gray-300 text-sm focus:ring-amber-400 focus:border-amber-400"
-                  >
-                    <option value="all">All Students</option>
-                    {workspaceStudents.map(s => (
-                      <option key={s.uid} value={s.uid}>{s.name}</option>
-                    ))}
-                  </select>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600 whitespace-nowrap">Program:</label>
+                    <select
+                      value={newNoteCertificate}
+                      onChange={e => setNewNoteCertificate(e.target.value as Certificate)}
+                      className="rounded-md border-gray-300 text-sm focus:ring-amber-400 focus:border-amber-400"
+                    >
+                      <option value="PRIVATE">Private Pilot (PPL)</option>
+                      <option value="INSTRUMENT">Instrument Rating (IR)</option>
+                      <option value="COMMERCIAL">Commercial Pilot (CPL)</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600 whitespace-nowrap">Send to:</label>
+                    <select
+                      value={newNoteTarget}
+                      onChange={e => setNewNoteTarget(e.target.value)}
+                      className="rounded-md border-gray-300 text-sm focus:ring-amber-400 focus:border-amber-400"
+                    >
+                      <option value="all">All Students</option>
+                      {workspaceStudents.map(s => (
+                        <option key={s.uid} value={s.uid}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
               <div className="mt-3 flex justify-end gap-2">
@@ -1199,21 +1215,32 @@ export const LessonPlans: React.FC = () => {
             <div className="flex justify-center py-10">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
             </div>
-          ) : cfiNotes.filter(n => !n.certificate || n.certificate === selectedCertificate).length === 0 ? (
+          ) : cfiNotes.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-12 text-center">
-              <p className="text-gray-400 text-sm">No study notes yet for this program. Create one to share with your students.</p>
+              <p className="text-gray-400 text-sm">No study notes yet. Create one to share with your students.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {cfiNotes.filter(n => !n.certificate || n.certificate === selectedCertificate).map(note => {
+              {cfiNotes.map(note => {
                 const targetLabel = note.targetStudentUid === 'all'
                   ? 'All Students'
                   : workspaceStudents.find(s => s.uid === note.targetStudentUid)?.name || 'Specific Student'
+                const certLabel = note.certificate === 'PRIVATE' ? 'PPL'
+                  : note.certificate === 'INSTRUMENT' ? 'IR'
+                  : note.certificate === 'COMMERCIAL' ? 'CPL'
+                  : null
                 return (
                   <div key={note.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-900">{note.title}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-semibold text-gray-900">{note.title}</h4>
+                          {certLabel && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                              {certLabel}
+                            </span>
+                          )}
+                        </div>
                         <p className="mt-0.5 text-xs text-gray-400">
                           To: {targetLabel} · {note.createdAt?.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>
