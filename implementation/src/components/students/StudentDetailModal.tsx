@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { XMarkIcon, ChartBarIcon, CalendarIcon, AcademicCapIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, ChartBarIcon, CalendarIcon, AcademicCapIcon, PlusIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
 import { StudentWithDetails } from '@/hooks/useStudents'
 import { Certificate, TrainingProgram } from '@/types'
 import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore'
@@ -26,6 +26,11 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate>('PRIVATE')
   const [notes, setNotes] = useState('')
   const [creatingProgram, setCreatingProgram] = useState(false)
+  // Send note state
+  const [sendNoteProgramId, setSendNoteProgramId] = useState<string | null>(null)
+  const [noteTitle, setNoteTitle] = useState('')
+  const [noteContent, setNoteContent] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
 
   useEffect(() => {
     if (!user?.cfiWorkspaceId) return
@@ -92,6 +97,29 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
       setCreatingProgram(false)
     }
   }
+  const handleSendNote = async (program: TrainingProgram) => {
+    if (!user?.cfiWorkspaceId || !noteTitle.trim() || !noteContent.trim()) return
+    setSavingNote(true)
+    try {
+      await addDoc(collection(db, 'cfiNotes'), {
+        cfiWorkspaceId: user.cfiWorkspaceId,
+        createdBy: user.uid,
+        title: noteTitle.trim(),
+        content: noteContent.trim(),
+        targetStudentUid: student.uid,
+        certificate: program.certificate,
+        createdAt: Timestamp.now(),
+      })
+      setNoteTitle('')
+      setNoteContent('')
+      setSendNoteProgramId(null)
+    } catch (error) {
+      // Silently handle
+    } finally {
+      setSavingNote(false)
+    }
+  }
+
   const getCertificateFullName = (cert: Certificate) => {
     switch (cert) {
       case 'PRIVATE':
@@ -158,22 +186,65 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             {loadingPrograms ? (
               <div className="animate-pulse h-4 bg-gray-200 rounded w-1/2"></div>
             ) : programs.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {programs.map(program => (
-                  <div key={program.id} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center">
-                      <AcademicCapIcon className="h-4 w-4 mr-2 text-gray-400" />
-                      <span className="text-gray-600">
-                        {getCertificateFullName(program.certificate)}
-                      </span>
+                  <div key={program.id} className="border border-gray-100 rounded-md p-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center">
+                        <AcademicCapIcon className="h-4 w-4 mr-2 text-gray-400" />
+                        <span className="text-gray-600">
+                          {getCertificateFullName(program.certificate)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          program.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                          program.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {program.status}
+                        </span>
+                        <button
+                          onClick={() => setSendNoteProgramId(sendNoteProgramId === program.id ? null : program.id)}
+                          className="text-amber-500 hover:text-amber-600"
+                          title="Send study note"
+                        >
+                          <PencilSquareIcon className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      program.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                      program.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {program.status}
-                    </span>
+                    {/* Inline note form */}
+                    {sendNoteProgramId === program.id && (
+                      <div className="mt-2 pt-2 border-t border-gray-100 space-y-2">
+                        <input
+                          type="text"
+                          value={noteTitle}
+                          onChange={e => setNoteTitle(e.target.value)}
+                          placeholder="Note title"
+                          className="w-full rounded-md border-gray-300 text-xs focus:ring-amber-400 focus:border-amber-400"
+                        />
+                        <textarea
+                          rows={3}
+                          value={noteContent}
+                          onChange={e => setNoteContent(e.target.value)}
+                          placeholder="Content (explanations, tips, reminders…)"
+                          className="w-full rounded-md border-gray-300 text-xs focus:ring-amber-400 focus:border-amber-400"
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => { setSendNoteProgramId(null); setNoteTitle(''); setNoteContent('') }}
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                          >Cancel</button>
+                          <button
+                            onClick={() => handleSendNote(program)}
+                            disabled={!noteTitle.trim() || !noteContent.trim() || savingNote}
+                            className="px-2 py-1 bg-amber-500 text-white rounded text-xs font-medium disabled:opacity-50 hover:bg-amber-600"
+                          >
+                            {savingNote ? 'Sending…' : 'Send Note'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -210,6 +210,7 @@ export interface CfiNote {
   title: string
   content: string
   targetStudentUid: string | 'all'
+  certificate: Certificate  // which training program this note belongs to
   studyAreaId?: string
   createdAt: Timestamp
 }

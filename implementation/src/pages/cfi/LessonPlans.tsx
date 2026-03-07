@@ -263,6 +263,7 @@ export const LessonPlans: React.FC = () => {
         title: newNoteTitle.trim(),
         content: newNoteContent.trim(),
         targetStudentUid: newNoteTarget,
+        certificate: selectedCertificate,
         createdAt: TS.now(),
       }
       const ref = await addDoc(col(db, 'cfiNotes'), noteData)
@@ -1198,13 +1199,13 @@ export const LessonPlans: React.FC = () => {
             <div className="flex justify-center py-10">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
             </div>
-          ) : cfiNotes.length === 0 ? (
+          ) : cfiNotes.filter(n => !n.certificate || n.certificate === selectedCertificate).length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-12 text-center">
-              <p className="text-gray-400 text-sm">No study notes yet. Create one to share with your students.</p>
+              <p className="text-gray-400 text-sm">No study notes yet for this program. Create one to share with your students.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {cfiNotes.map(note => {
+              {cfiNotes.filter(n => !n.certificate || n.certificate === selectedCertificate).map(note => {
                 const targetLabel = note.targetStudentUid === 'all'
                   ? 'All Students'
                   : workspaceStudents.find(s => s.uid === note.targetStudentUid)?.name || 'Specific Student'

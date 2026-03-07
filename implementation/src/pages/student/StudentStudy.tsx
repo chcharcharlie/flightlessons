@@ -177,8 +177,10 @@ export const StudentStudy: React.FC = () => {
     ? studentNotes.filter(n => areaItemIds.has(n.studyItemId))
     : studentNotes
 
-  // CFI notes: no area linkage in schema → always show all
-  const filteredCfiNotes = cfiNotes
+  // CFI notes: filter by selected program's certificate
+  const filteredCfiNotes = selectedProgram
+    ? cfiNotes.filter(n => !n.certificate || n.certificate === selectedProgram.certificate)
+    : cfiNotes
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const submitQuestion = async () => {
