@@ -1,5 +1,5 @@
 /**
- * FlightLessons Curriculum Exchange Format
+ * FirstSolo Curriculum Exchange Format
  * Version 1.0
  * 
  * This format allows CFIs to share and import/export complete curriculum structures

@@ -123,7 +123,7 @@ export const AcceptInvitation: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full">
           <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-2">Join FlightLessons</h2>
+            <h2 className="text-lg font-medium text-gray-900 mb-2">Join FirstSolo</h2>
             <p className="text-sm text-gray-600 mb-4">
               {invitation.cfiName} has invited you to join their flight training workspace.
             </p>
