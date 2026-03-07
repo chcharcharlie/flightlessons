@@ -36,6 +36,10 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>
   signInWithGoogleRedirect: () => Promise<void>
   logout: () => Promise<void>
+  /** Re-reads the Firestore user doc and updates user state.
+   *  Call this after writing to Firestore outside of onAuthStateChanged
+   *  (e.g. after role selection) so the UI reflects the new state. */
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -222,6 +226,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await signOut(auth)
   }
 
+  const refreshUser = async () => {
+    const currentUser = auth.currentUser
+    if (!currentUser) return
+    const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+    if (userDoc.exists()) {
+      setUser(userDoc.data() as User)
+    }
+  }
+
   const value = {
     firebaseUser,
     user,
@@ -231,6 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     signInWithGoogle,
     signInWithGoogleRedirect,
     logout,
+    refreshUser,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

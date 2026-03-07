@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { doc, setDoc, addDoc, collection, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, collection, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { User as FirebaseUser } from 'firebase/auth'
 import { db } from '@/lib/firebase'
 import { UserRole } from '@/types'
@@ -9,9 +9,11 @@ import { AcademicCapIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-async function setupUserRole(selectedRole: UserRole, firebaseUser: FirebaseUser): Promise<string | null> {
+async function setupUserRole(selectedRole: UserRole, firebaseUser: FirebaseUser): Promise<void> {
+  const batch = writeBatch(db)
   const userDocRef = doc(db, 'users', firebaseUser.uid)
-  const newUserData = {
+
+  const newUserData: Record<string, any> = {
     uid: firebaseUser.uid,
     email: firebaseUser.email || '',
     displayName: firebaseUser.displayName || '',
@@ -25,12 +27,15 @@ async function setupUserRole(selectedRole: UserRole, firebaseUser: FirebaseUser)
     },
   }
 
-  await setDoc(userDocRef, newUserData)
-
   if (selectedRole === 'CFI') {
-    const workspaceRef = await addDoc(collection(db, 'workspaces'), {
+    // Pre-generate workspace doc ref so we can include the ID in the user doc atomically
+    const workspaceRef = doc(collection(db, 'workspaces'))
+    newUserData.cfiWorkspaceId = workspaceRef.id
+
+    batch.set(userDocRef, newUserData)
+    batch.set(workspaceRef, {
       cfiUid: firebaseUser.uid,
-      name: firebaseUser.displayName + "'s Flight School",
+      name: (firebaseUser.displayName || 'My') + "'s Flight School",
       createdAt: serverTimestamp(),
       studentCount: 0,
       settings: {
@@ -40,27 +45,20 @@ async function setupUserRole(selectedRole: UserRole, firebaseUser: FirebaseUser)
         },
       },
     })
-
-    await updateDoc(userDocRef, {
-      cfiWorkspaceId: workspaceRef.id,
-    })
+  } else {
+    batch.set(userDocRef, newUserData)
   }
 
-  // Return redirect path
-  const savedRedirect = sessionStorage.getItem('redirect_after_login')
-  if (savedRedirect) {
-    sessionStorage.removeItem('redirect_after_login')
-    return savedRedirect
-  }
-  return selectedRole === 'CFI' ? '/cfi' : '/student'
+  // Single atomic commit — onAuthStateChanged will only see the complete state
+  await batch.commit()
+
 }
 
 export const RoleSelectionPage: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { firebaseUser, user, loading: authLoading } = useAuth()
-  const navigate = useNavigate()
+  const { firebaseUser, user, loading: authLoading, refreshUser } = useAuth()
 
   const handleRoleSelection = async () => {
     if (!selectedRole || !firebaseUser) return
@@ -73,27 +71,19 @@ export const RoleSelectionPage: React.FC = () => {
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       if (attempt > 0) {
-        // New Firebase Auth tokens need time to propagate to Firestore backend
         await sleep(1500 * attempt)
       }
       try {
-        const redirectPath = await setupUserRole(selectedRole, firebaseUser)
-        navigate(redirectPath ?? (selectedRole === 'CFI' ? '/cfi' : '/student'))
+        await setupUserRole(selectedRole, firebaseUser)
+        // Firestore write succeeded. onAuthStateChanged won't re-fire (it's
+        // auth-state-based, not Firestore-based), so manually refresh user state.
+        await refreshUser()
+        // Now `user` is set → the `if (user)` guard below will redirect.
         return
       } catch (err) {
         lastError = err
       }
     }
-
-    // All retries failed — but check if user doc was partially written (most likely case)
-    try {
-      const { getDoc, doc: fsDoc } = await import('firebase/firestore')
-      const snap = await getDoc(fsDoc(db, 'users', firebaseUser.uid))
-      if (snap.exists()) {
-        navigate(selectedRole === 'CFI' ? '/cfi' : '/student')
-        return
-      }
-    } catch {}
 
     console.error('Error setting role after retries:', lastError)
     setError('Failed to set up account. Please try again.')
