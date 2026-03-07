@@ -1,215 +1,233 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  updateDoc,
-  doc,
-  getDoc,
-  setDoc,
-  orderBy,
-  Timestamp,
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { StudyArea, StudyItem, Question, StudentNote, CfiNote } from '@/types'
+import { db } from '@/lib/firebase'
+import {
+  collection, doc, getDocs, query, where, setDoc, addDoc, Timestamp, orderBy
+} from 'firebase/firestore'
+import type { StudyArea, StudyItem, Question, CfiNote } from '@/types'
 import {
   ChevronRightIcon,
-  ChevronDownIcon,
-  PlusIcon,
-  PaperAirplaneIcon,
-  BookOpenIcon,
   ChatBubbleLeftEllipsisIcon,
   LightBulbIcon,
+  PencilSquareIcon,
+  PlusIcon,
+  BookOpenIcon,
 } from '@heroicons/react/24/outline'
-import { CheckCircleIcon } from '@heroicons/react/24/solid'
 
-type StudyTab = 'notes' | 'questions'
+type TabType = 'instructor' | 'questions' | 'notes'
+
+interface StudentNoteEntry {
+  studyItemId: string
+  content: string
+  updatedAt: any
+}
 
 export const StudentStudy: React.FC = () => {
   const { user } = useAuth()
 
-  // Study Areas & Items
+  // Structure
   const [studyAreas, setStudyAreas] = useState<StudyArea[]>([])
-  const [studyItems, setStudyItems] = useState<Map<string, StudyItem[]>>(new Map()) // areaId -> items
-  const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set())
-  const [selectedItem, setSelectedItem] = useState<StudyItem | null>(null)
+  const [studyItems, setStudyItems] = useState<StudyItem[]>([])
+  const [activeCertificates, setActiveCertificates] = useState<string[]>([])
+  const [loadingStructure, setLoadingStructure] = useState(true)
 
-  // CFI Notes
+  // Selection & navigation
+  const [selectedArea, setSelectedArea] = useState<StudyArea | null>(null)
+  const [activeTab, setActiveTab] = useState<TabType>('instructor')
+
+  // Content data
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [studentNotes, setStudentNotes] = useState<StudentNoteEntry[]>([])
   const [cfiNotes, setCfiNotes] = useState<CfiNote[]>([])
 
-  // Per-item state
-  const [activeTab, setActiveTab] = useState<StudyTab>('notes')
-  const [note, setNote] = useState('')
-  const [noteSaved, setNoteSaved] = useState(true)
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [newQuestion, setNewQuestion] = useState('')
-  const [submittingQuestion, setSubmittingQuestion] = useState(false)
+  // Ask form
+  const [showAskForm, setShowAskForm] = useState(false)
+  const [askText, setAskText] = useState('')
+  const [askItemId, setAskItemId] = useState('')
+  const [submittingQ, setSubmittingQ] = useState(false)
 
-  // General question (not tied to item)
-  const [generalQuestion, setGeneralQuestion] = useState('')
-  const [submittingGeneral, setSubmittingGeneral] = useState(false)
-  const [showGeneralQ, setShowGeneralQ] = useState(false)
+  // Q expand
+  const [expandedQId, setExpandedQId] = useState<string | null>(null)
 
-  const [loading, setLoading] = useState(true)
+  // Note editing
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [noteText, setNoteText] = useState('')
+  const [noteSaveStatus, setNoteSaveStatus] = useState<'saved' | 'saving' | ''>('saved')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Load study areas + items
+  // ── Load active program certificates ──────────────────────────────────────
   useEffect(() => {
-    if (!user?.cfiWorkspaceId) return
-    const load = async () => {
-      setLoading(true)
-      try {
-        const wsId = user.cfiWorkspaceId
-        const workspaceRef = doc(db, 'workspaces', wsId)
+    if (!user?.uid) return
+    getDocs(query(
+      collection(db, 'trainingPrograms'),
+      where('studentUid', '==', user.uid),
+      where('status', '==', 'active')
+    )).then(snap => {
+      const certs = snap.docs.map(d => (d.data() as any).certificate).filter(Boolean) as string[]
+      setActiveCertificates(certs.length > 0 ? certs : ['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'])
+    }).catch(() => {
+      setActiveCertificates(['PRIVATE', 'INSTRUMENT', 'COMMERCIAL'])
+    })
+  }, [user?.uid])
 
-        // studyAreas: Firestore field is "orderNumber", mapped to "order" in JS
-        const areasSnap = await getDocs(
-          query(collection(workspaceRef, 'studyAreas'), orderBy('orderNumber', 'asc'))
-        )
-        const areas = areasSnap.docs.map(d => {
-          const data = d.data()
-          return { id: d.id, ...data, order: data.orderNumber || 0 } as StudyArea
-        })
-        setStudyAreas(areas)
-
-        // studyItems: Firestore uses "studyAreaId" and "orderNumber"; normalize to "areaId"/"order"
-        const allItemsSnap = await getDocs(collection(workspaceRef, 'studyItems'))
-        const allItems = allItemsSnap.docs.map(d => {
-          const data = d.data()
-          return { id: d.id, ...data, areaId: data.studyAreaId, order: data.orderNumber || 0 } as StudyItem
-        })
-        const itemsMap = new Map<string, StudyItem[]>()
-        allItems.forEach(item => {
-          const list = itemsMap.get(item.areaId) || []
-          list.push(item)
-          itemsMap.set(item.areaId, list)
-        })
-        itemsMap.forEach((items, areaId) => {
-          itemsMap.set(areaId, items.sort((a, b) => (a.order || 0) - (b.order || 0)))
-        })
-        setStudyItems(itemsMap)
-
-        // Load CFI notes: use two separate equality queries to satisfy Firestore security rules
-        // (rules check targetStudentUid; combined where+orderBy would fail static rule evaluation)
-        const [notesAll, notesMine] = await Promise.all([
-          getDocs(query(
-            collection(db, 'cfiNotes'),
-            where('cfiWorkspaceId', '==', wsId),
-            where('targetStudentUid', '==', 'all')
-          )),
-          getDocs(query(
-            collection(db, 'cfiNotes'),
-            where('cfiWorkspaceId', '==', wsId),
-            where('targetStudentUid', '==', user.uid)
-          ))
-        ])
-        const allCfiNotes = [
-          ...notesAll.docs.map(d => ({ id: d.id, ...d.data() } as CfiNote)),
-          ...notesMine.docs.map(d => ({ id: d.id, ...d.data() } as CfiNote))
-        ].sort((a, b) => {
-          const ta = a.createdAt?.toMillis?.() ?? 0
-          const tb = b.createdAt?.toMillis?.() ?? 0
-          return tb - ta
-        })
-        setCfiNotes(allCfiNotes)
-      } catch (err) {
-        console.error('StudentStudy: load error:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [user?.cfiWorkspaceId])
-
-  // Load note + questions when item changes
+  // ── Load study areas & items (filtered by certificate) ────────────────────
   useEffect(() => {
-    if (!selectedItem || !user?.uid) return
-    setNote('')
-    setNoteSaved(true)
-    setQuestions([])
-    setNewQuestion('')
-
-    const loadItem = async () => {
-      // Load note
-      const noteRef = doc(db, 'studentNotes', `${user.uid}_${selectedItem.id}`)
-      const noteSnap = await getDoc(noteRef)
-      if (noteSnap.exists()) setNote(noteSnap.data().content || '')
-
-      // Load questions for this item
-      const qSnap = await getDocs(
-        query(
-          collection(db, 'questions'),
-          where('studentUid', '==', user.uid),
-          where('studyItemId', '==', selectedItem.id),
-          orderBy('createdAt', 'desc')
-        )
-      )
-      setQuestions(qSnap.docs.map(d => ({ id: d.id, ...d.data() } as Question)))
-    }
-    loadItem()
-  }, [selectedItem, user?.uid])
-
-  // Auto-save note with debounce
-  const handleNoteChange = useCallback((val: string) => {
-    setNote(val)
-    setNoteSaved(false)
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(async () => {
-      if (!selectedItem || !user?.uid) return
-      const noteRef = doc(db, 'studentNotes', `${user.uid}_${selectedItem.id}`)
-      await setDoc(noteRef, {
-        studentUid: user.uid,
-        studyItemId: selectedItem.id,
-        content: val,
-        updatedAt: Timestamp.now(),
+    if (!user?.cfiWorkspaceId || activeCertificates.length === 0) return
+    const wsRef = doc(db, 'workspaces', user.cfiWorkspaceId)
+    setLoadingStructure(true)
+    Promise.all([
+      getDocs(query(collection(wsRef, 'studyAreas'), orderBy('orderNumber', 'asc'))),
+      getDocs(collection(wsRef, 'studyItems')),
+    ]).then(([areasSnap, itemsSnap]) => {
+      const areas = areasSnap.docs
+        .map(d => { const data = d.data(); return { id: d.id, ...data, order: data.orderNumber || 0 } as StudyArea })
+        .filter(a => activeCertificates.includes(a.certificate))
+      const items = itemsSnap.docs.map(d => {
+        const data = d.data()
+        return { id: d.id, ...data, areaId: data.studyAreaId, order: data.orderNumber || 0 } as StudyItem
       })
-      setNoteSaved(true)
-    }, 1000)
-  }, [selectedItem, user?.uid])
+      setStudyAreas(areas)
+      setStudyItems(items)
+    }).catch(err => console.error('StudentStudy: structure error', err))
+    .finally(() => setLoadingStructure(false))
+  }, [user?.cfiWorkspaceId, activeCertificates])
 
-  const submitQuestion = async (itemId: string | null) => {
-    const text = itemId ? newQuestion : generalQuestion
-    if (!text.trim() || !user?.uid || !user?.cfiWorkspaceId) return
-    if (itemId) setSubmittingQuestion(true)
-    else setSubmittingGeneral(true)
+  // ── Load student's own questions ──────────────────────────────────────────
+  useEffect(() => {
+    if (!user?.uid) return
+    getDocs(query(collection(db, 'questions'), where('studentUid', '==', user.uid)))
+      .then(snap => setQuestions(snap.docs.map(d => ({ id: d.id, ...d.data() } as Question))))
+      .catch(err => console.error('StudentStudy: questions error', err))
+  }, [user?.uid])
+
+  // ── Load student notes ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user?.uid) return
+    getDocs(query(collection(db, 'studentNotes'), where('studentUid', '==', user.uid)))
+      .then(snap => setStudentNotes(snap.docs.map(d => ({
+        studyItemId: d.data().studyItemId,
+        content: d.data().content,
+        updatedAt: d.data().updatedAt,
+      }))))
+      .catch(err => console.error('StudentStudy: studentNotes error', err))
+  }, [user?.uid])
+
+  // ── Load CFI notes (two equality queries to satisfy Firestore rules) ───────
+  useEffect(() => {
+    if (!user?.cfiWorkspaceId || !user?.uid) return
+    Promise.all([
+      getDocs(query(collection(db, 'cfiNotes'),
+        where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+        where('targetStudentUid', '==', 'all'))),
+      getDocs(query(collection(db, 'cfiNotes'),
+        where('cfiWorkspaceId', '==', user.cfiWorkspaceId),
+        where('targetStudentUid', '==', user.uid))),
+    ]).then(([allSnap, mineSnap]) => {
+      const notes = [
+        ...allSnap.docs.map(d => ({ id: d.id, ...d.data() } as CfiNote)),
+        ...mineSnap.docs.map(d => ({ id: d.id, ...d.data() } as CfiNote)),
+      ].sort((a, b) => ((b.createdAt as any)?.toMillis?.() ?? 0) - ((a.createdAt as any)?.toMillis?.() ?? 0))
+      setCfiNotes(notes)
+    }).catch(err => console.error('StudentStudy: cfiNotes error', err))
+  }, [user?.cfiWorkspaceId, user?.uid])
+
+  // ── Derived: items in selected area ──────────────────────────────────────
+  const areaItems: StudyItem[] = selectedArea
+    ? studyItems.filter(i => i.areaId === selectedArea.id)
+    : studyItems
+
+  const areaItemIds = new Set(areaItems.map(i => i.id))
+
+  // ── Derived: filtered content ─────────────────────────────────────────────
+  // Questions: when area selected → only questions linked to items in area
+  //            when no area → all questions (including general with no studyItemId)
+  const filteredQuestions = selectedArea
+    ? questions.filter(q => q.studyItemId && areaItemIds.has(q.studyItemId))
+    : questions
+
+  // Notes: when area selected → notes for items in that area
+  //        when no area → all notes that have content
+  const filteredNotes = selectedArea
+    ? studentNotes.filter(n => areaItemIds.has(n.studyItemId))
+    : studentNotes
+
+  // CFI notes: no area linkage in schema → always show all
+  const filteredCfiNotes = cfiNotes
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
+  const submitQuestion = async () => {
+    if (!askText.trim() || !user?.uid || !user?.cfiWorkspaceId) return
+    setSubmittingQ(true)
     try {
-      const qData: Omit<Question, 'id'> = {
+      const linkedItem = studyItems.find(i => i.id === askItemId)
+      const docRef = await addDoc(collection(db, 'questions'), {
         studentUid: user.uid,
-        studentName: user.displayName,
+        studentName: (user as any).displayName || 'Student',
         cfiWorkspaceId: user.cfiWorkspaceId,
-        question: text.trim(),
+        studyItemId: askItemId || null,
+        studyItemName: linkedItem?.name || '',
+        question: askText.trim(),
         status: 'open',
         createdAt: Timestamp.now(),
-        ...(itemId && selectedItem ? { studyItemId: itemId, studyItemName: selectedItem.name } : {}),
-      }
-      const ref = await addDoc(collection(db, 'questions'), qData)
-      const newQ: Question = { id: ref.id, ...qData }
-      if (itemId) {
-        setQuestions(prev => [newQ, ...prev])
-        setNewQuestion('')
-      } else {
-        setGeneralQuestion('')
-        setShowGeneralQ(false)
-      }
+      })
+      setQuestions(prev => [
+        ...prev,
+        {
+          id: docRef.id,
+          studentUid: user.uid,
+          studentName: (user as any).displayName || 'Student',
+          cfiWorkspaceId: user.cfiWorkspaceId!,
+          studyItemId: askItemId || undefined,
+          studyItemName: linkedItem?.name,
+          question: askText.trim(),
+          status: 'open',
+          createdAt: Timestamp.now(),
+        } as Question,
+      ])
+      setAskText('')
+      setAskItemId('')
+      setShowAskForm(false)
     } finally {
-      setSubmittingQuestion(false)
-      setSubmittingGeneral(false)
+      setSubmittingQ(false)
     }
   }
 
-  const toggleArea = (areaId: string) => {
-    setExpandedAreas(prev => {
-      const next = new Set(prev)
-      if (next.has(areaId)) next.delete(areaId)
-      else next.add(areaId)
-      return next
-    })
+  const handleNoteChange = (itemId: string, value: string) => {
+    setNoteText(value)
+    setNoteSaveStatus('saving')
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      if (!user?.uid) return
+      try {
+        const noteRef = doc(db, 'studentNotes', `${user.uid}_${itemId}`)
+        await setDoc(noteRef, {
+          studentUid: user.uid,
+          studyItemId: itemId,
+          content: value,
+          updatedAt: Timestamp.now(),
+        }, { merge: true })
+        setStudentNotes(prev => {
+          const idx = prev.findIndex(n => n.studyItemId === itemId)
+          if (idx >= 0) return prev.map((n, i) => i === idx ? { ...n, content: value } : n)
+          return [...prev, { studyItemId: itemId, content: value, updatedAt: Timestamp.now() }]
+        })
+        setNoteSaveStatus('saved')
+      } catch (err) {
+        console.error('StudentStudy: note save error', err)
+        setNoteSaveStatus('')
+      }
+    }, 1000)
   }
 
-  if (loading) {
+  const startEditNote = (itemId: string) => {
+    const existing = studentNotes.find(n => n.studyItemId === itemId)
+    setEditingItemId(itemId)
+    setNoteText(existing?.content || '')
+    setNoteSaveStatus('saved')
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  if (loadingStructure) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-500" />
@@ -217,253 +235,368 @@ export const StudentStudy: React.FC = () => {
     )
   }
 
-  const relevantCfiNotes = cfiNotes.filter(
-    n => n.targetStudentUid === 'all' || n.targetStudentUid === user?.uid
-  )
+  const tabs: { key: TabType; label: string }[] = [
+    { key: 'instructor', label: '💡 Instructor Notes' },
+    { key: 'questions', label: '❓ Questions' },
+    { key: 'notes', label: '📝 My Notes' },
+  ]
 
   return (
     <div className="px-4 sm:px-0">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Study</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Browse study materials, take notes, and ask your instructor questions
-          </p>
-        </div>
-        <button
-          onClick={() => setShowGeneralQ(v => !v)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-md text-sm font-medium hover:bg-sky-600"
-        >
-          <ChatBubbleLeftEllipsisIcon className="w-4 h-4" />
-          Ask a Question
-        </button>
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Study</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Browse study materials, take notes, and ask your instructor questions
+        </p>
       </div>
 
-      {/* General Question Box */}
-      {showGeneralQ && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm font-medium text-blue-800 mb-2">Ask your instructor a general question</p>
-          <textarea
-            rows={3}
-            value={generalQuestion}
-            onChange={e => setGeneralQuestion(e.target.value)}
-            placeholder="What would you like to ask?"
-            className="w-full rounded-md border-gray-300 text-sm focus:ring-sky-500 focus:border-sky-500"
-          />
-          <div className="mt-2 flex justify-end gap-2">
-            <button onClick={() => setShowGeneralQ(false)} className="text-sm text-gray-500 hover:text-gray-700">
-              Cancel
-            </button>
-            <button
-              onClick={() => submitQuestion(null)}
-              disabled={!generalQuestion.trim() || submittingGeneral}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500 text-white rounded-md text-sm font-medium disabled:opacity-50 hover:bg-sky-600"
-            >
-              <PaperAirplaneIcon className="w-4 h-4" />
-              {submittingGeneral ? 'Sending…' : 'Send'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="flex gap-6">
-        {/* Left: Study Areas Tree */}
-        <div className="w-64 flex-shrink-0">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Study Areas</h3>
+      <div className="flex gap-5">
+        {/* ── Left: Study Areas ───────────────────────────────────────────── */}
+        <div className="w-52 shrink-0">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden sticky top-4">
+            <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Study Areas</span>
             </div>
             {studyAreas.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-gray-400 text-center">No study materials yet</p>
+              <p className="px-3 py-4 text-xs text-gray-400">No study materials yet</p>
             ) : (
               <ul>
-                {studyAreas.map(area => (
-                  <li key={area.id} className="border-b border-gray-100 last:border-0">
-                    <button
-                      onClick={() => toggleArea(area.id)}
-                      className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50"
-                    >
-                      <span className="text-sm font-medium text-gray-700">{area.name}</span>
-                      {expandedAreas.has(area.id)
-                        ? <ChevronDownIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        : <ChevronRightIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      }
-                    </button>
-                    {expandedAreas.has(area.id) && (
-                      <ul className="bg-gray-50">
-                        {(studyItems.get(area.id) || []).map(item => (
-                          <li key={item.id}>
-                            <button
-                              onClick={() => setSelectedItem(item)}
-                              className={`w-full flex items-center px-6 py-2.5 text-left text-sm hover:bg-blue-50 ${
-                                selectedItem?.id === item.id
-                                  ? 'bg-blue-50 text-sky-700 font-medium'
-                                  : 'text-gray-600'
-                              }`}
-                            >
-                              <BookOpenIcon className="w-3.5 h-3.5 mr-2 flex-shrink-0" />
-                              {item.name}
-                            </button>
-                          </li>
-                        ))}
-                        {(studyItems.get(area.id) || []).length === 0 && (
-                          <li className="px-6 py-2 text-xs text-gray-400">No items</li>
-                        )}
-                      </ul>
-                    )}
-                  </li>
-                ))}
+                {/* "All Areas" option */}
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedArea(null)}
+                    className={`w-full text-left px-3 py-2.5 text-sm flex items-center justify-between transition-colors
+                      ${!selectedArea
+                        ? 'bg-sky-50 text-sky-700 font-medium'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                  >
+                    All Areas
+                    {!selectedArea && <ChevronRightIcon className="w-3.5 h-3.5 shrink-0" />}
+                  </button>
+                </li>
+                {/* Individual areas */}
+                {studyAreas.map(area => {
+                  const isSelected = selectedArea?.id === area.id
+                  const itemCount = studyItems.filter(i => i.areaId === area.id).length
+                  return (
+                    <li key={area.id} className="border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedArea(isSelected ? null : area)}
+                        className={`w-full text-left px-3 py-2.5 text-sm flex items-center justify-between gap-2 transition-colors
+                          ${isSelected
+                            ? 'bg-sky-50 text-sky-700 font-medium'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+                      >
+                        <span className="truncate">{area.name}</span>
+                        <span className="flex items-center gap-1 shrink-0">
+                          <span className="text-xs text-gray-400">{itemCount}</span>
+                          {isSelected && <ChevronRightIcon className="w-3 h-3" />}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </div>
-
-          {/* CFI Notes list in sidebar */}
-          {relevantCfiNotes.length > 0 && (
-            <div className="mt-4 bg-white rounded-lg shadow-sm border border-amber-200 overflow-hidden">
-              <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
-                <h3 className="text-xs font-semibold text-amber-700 uppercase tracking-wider flex items-center gap-1">
-                  <LightBulbIcon className="w-3.5 h-3.5" />
-                  Notes from Instructor
-                </h3>
-              </div>
-              <ul>
-                {relevantCfiNotes.map(n => (
-                  <li key={n.id} className="border-b border-amber-100 last:border-0 px-4 py-3">
-                    <p className="text-sm font-medium text-gray-800">{n.title}</p>
-                    <p className="mt-1 text-sm text-gray-600 whitespace-pre-wrap">{n.content}</p>
-                    <p className="mt-1 text-xs text-gray-400">
-                      {n.createdAt?.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
 
-        {/* Right: Item Detail */}
+        {/* ── Right: Tabbed content ────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
-          {!selectedItem ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col items-center justify-center py-20 text-center">
-              <BookOpenIcon className="w-10 h-10 text-gray-300 mb-3" />
-              <p className="text-gray-500 font-medium">Select a study item</p>
-              <p className="text-sm text-gray-400 mt-1">Choose from the left to view, take notes, or ask questions</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              {/* Item header */}
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">{selectedItem.name}</h3>
-                <div className="mt-1 flex items-center gap-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                    selectedItem.type === 'GROUND' ? 'bg-blue-100 text-blue-700'
-                    : selectedItem.type === 'FLIGHT' ? 'bg-green-100 text-green-700'
-                    : 'bg-purple-100 text-purple-700'
-                  }`}>
-                    {selectedItem.type}
-                  </span>
-                  {selectedItem.description && (
-                    <p className="text-sm text-gray-500 truncate">{selectedItem.description}</p>
-                  )}
+          {/* Tab bar */}
+          <div className="border-b border-gray-200 mb-5">
+            <nav className="-mb-px flex space-x-1">
+              {tabs.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActiveTab(key)}
+                  className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors
+                    ${activeTab === key
+                      ? 'border-sky-500 text-sky-700'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* ── Tab: Instructor Notes ──────────────────────────────────────── */}
+          {activeTab === 'instructor' && (
+            <div>
+              {selectedArea && (
+                <p className="mb-3 text-xs text-gray-400">
+                  Showing all instructor notes (notes are not filtered by study area)
+                </p>
+              )}
+              {filteredCfiNotes.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-16 text-center">
+                  <LightBulbIcon className="w-9 h-9 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm font-medium">No instructor notes yet</p>
+                  <p className="text-gray-400 text-xs mt-1">Your instructor will post notes here when available</p>
                 </div>
-              </div>
-
-              {/* Tabs */}
-              <div className="border-b border-gray-200 px-6">
-                <nav className="-mb-px flex space-x-6">
-                  {(['notes', 'questions'] as StudyTab[]).map(tab => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`py-3 border-b-2 text-sm font-medium capitalize ${
-                        activeTab === tab
-                          ? 'border-sky-500 text-sky-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      {tab === 'notes' ? 'My Notes' : 'Questions'}
-                    </button>
-                  ))}
-                </nav>
-              </div>
-
-              {/* Tab content */}
-              <div className="px-6 py-5">
-                {activeTab === 'notes' && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-gray-400">Private notes — only you can see these</p>
-                      <span className={`text-xs ${noteSaved ? 'text-gray-400' : 'text-amber-500'}`}>
-                        {noteSaved ? 'Saved' : 'Saving…'}
-                      </span>
-                    </div>
-                    <textarea
-                      rows={10}
-                      value={note}
-                      onChange={e => handleNoteChange(e.target.value)}
-                      placeholder="Type your notes here…"
-                      className="w-full rounded-md border-gray-300 text-sm focus:ring-sky-500 focus:border-sky-500"
-                    />
-                  </div>
-                )}
-
-                {activeTab === 'questions' && (
-                  <div>
-                    {/* New question input */}
-                    <div className="mb-5">
-                      <textarea
-                        rows={3}
-                        value={newQuestion}
-                        onChange={e => setNewQuestion(e.target.value)}
-                        placeholder={`Ask about "${selectedItem.name}"…`}
-                        className="w-full rounded-md border-gray-300 text-sm focus:ring-sky-500 focus:border-sky-500"
-                      />
-                      <div className="mt-2 flex justify-end">
-                        <button
-                          onClick={() => submitQuestion(selectedItem.id)}
-                          disabled={!newQuestion.trim() || submittingQuestion}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-500 text-white rounded-md text-sm font-medium disabled:opacity-50 hover:bg-sky-600"
-                        >
-                          <PaperAirplaneIcon className="w-4 h-4" />
-                          {submittingQuestion ? 'Sending…' : 'Ask Instructor'}
-                        </button>
+              ) : (
+                <div className="space-y-3">
+                  {filteredCfiNotes.map(note => (
+                    <div key={note.id} className="bg-white rounded-lg shadow-sm border border-amber-200 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                          <LightBulbIcon className="w-4 h-4 text-amber-500 shrink-0" />
+                          {note.title}
+                        </h4>
+                        <span className="text-xs text-gray-400 shrink-0">
+                          {(note.createdAt as any)?.toDate?.()?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
                       </div>
+                      <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{note.content}</p>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                    {/* Questions list */}
-                    {questions.length === 0 ? (
-                      <p className="text-sm text-gray-400 text-center py-6">No questions yet for this item</p>
-                    ) : (
-                      <ul className="space-y-4">
-                        {questions.map(q => (
-                          <li key={q.id} className="border border-gray-200 rounded-lg p-4">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm text-gray-800 font-medium">{q.question}</p>
-                              <span className={`flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                                q.status === 'answered'
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-amber-100 text-amber-700'
-                              }`}>
-                                {q.status === 'answered' && <CheckCircleIcon className="w-3 h-3" />}
-                                {q.status === 'answered' ? 'Answered' : 'Pending'}
-                              </span>
-                            </div>
-                            <p className="mt-1 text-xs text-gray-400">
-                              {q.createdAt?.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </p>
-                            {q.answer && (
-                              <div className="mt-3 bg-green-50 border border-green-200 rounded p-3">
-                                <p className="text-xs font-semibold text-green-700 mb-1">Instructor's Answer</p>
-                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{q.answer}</p>
-                              </div>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+          {/* ── Tab: Questions ────────────────────────────────────────────── */}
+          {activeTab === 'questions' && (
+            <div>
+              {/* Ask form */}
+              <div className="mb-4">
+                {!showAskForm ? (
+                  <button
+                    type="button"
+                    onClick={() => { setShowAskForm(true); setAskItemId('') }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-md text-sm font-medium hover:bg-sky-600"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    Ask a Question
+                  </button>
+                ) : (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-blue-900 mb-3">Ask your instructor</h4>
+                    <select
+                      value={askItemId}
+                      onChange={e => setAskItemId(e.target.value)}
+                      className="w-full mb-3 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    >
+                      <option value="">General question (not linked to a specific topic)</option>
+                      {areaItems.map(item => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                    <textarea
+                      value={askText}
+                      onChange={e => setAskText(e.target.value)}
+                      placeholder="What would you like to know?"
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                    <div className="mt-3 flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => { setShowAskForm(false); setAskText(''); setAskItemId('') }}
+                        className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={submitQuestion}
+                        disabled={!askText.trim() || submittingQ}
+                        className="px-4 py-1.5 bg-sky-500 text-white rounded-md text-sm font-medium hover:bg-sky-600 disabled:opacity-50"
+                      >
+                        {submittingQ ? 'Sending…' : 'Send Question'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
+
+              {filteredQuestions.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-16 text-center">
+                  <ChatBubbleLeftEllipsisIcon className="w-9 h-9 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm font-medium">
+                    {selectedArea ? `No questions for "${selectedArea.name}"` : 'No questions yet'}
+                  </p>
+                  <p className="text-gray-400 text-xs mt-1">Ask your instructor anything — they'll answer here</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredQuestions
+                    .sort((a, b) => ((b.createdAt as any)?.toMillis?.() ?? 0) - ((a.createdAt as any)?.toMillis?.() ?? 0))
+                    .map(q => (
+                    <div key={q.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          {q.studyItemName && (
+                            <span className="inline-block text-xs text-sky-600 font-medium bg-sky-50 px-2 py-0.5 rounded mb-1.5">
+                              re: {q.studyItemName}
+                            </span>
+                          )}
+                          <p className="text-sm text-gray-900">{q.question}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {(q.createdAt as any)?.toDate?.()?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0
+                          ${q.status === 'answered'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'}`}>
+                          {q.status === 'answered' ? '✓ Answered' : 'Pending'}
+                        </span>
+                      </div>
+                      {q.status === 'answered' && q.answer && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedQId(expandedQId === q.id ? null : q.id)}
+                            className="text-xs text-sky-600 hover:text-sky-800 font-medium"
+                          >
+                            {expandedQId === q.id ? '▲ Hide answer' : '▼ View answer'}
+                          </button>
+                          {expandedQId === q.id && (
+                            <div className="mt-2 bg-green-50 border border-green-200 rounded-md p-3">
+                              <p className="text-xs font-semibold text-green-800 mb-1">Instructor's answer:</p>
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{q.answer}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Tab: My Notes ─────────────────────────────────────────────── */}
+          {activeTab === 'notes' && (
+            <div>
+              {/* When area is selected: show all items in that area (prompt to take notes) */}
+              {/* When no area: show only items that have existing notes */}
+              {selectedArea ? (
+                areaItems.length === 0 ? (
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-16 text-center">
+                    <BookOpenIcon className="w-9 h-9 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">No study items in this area yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {areaItems.map(item => {
+                      const existingNote = studentNotes.find(n => n.studyItemId === item.id)
+                      const isEditing = editingItemId === item.id
+                      return (
+                        <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                          <div className="px-4 py-3 flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+                              {existingNote && !isEditing && (
+                                <p className="text-xs text-gray-500 mt-0.5 truncate">{existingNote.content}</p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isEditing) {
+                                  setEditingItemId(null)
+                                } else {
+                                  startEditNote(item.id)
+                                }
+                              }}
+                              className="text-xs text-sky-600 hover:text-sky-800 flex items-center gap-1 shrink-0"
+                            >
+                              <PencilSquareIcon className="w-3.5 h-3.5" />
+                              {isEditing ? 'Done' : existingNote ? 'Edit' : 'Add note'}
+                            </button>
+                          </div>
+                          {isEditing && (
+                            <div className="px-4 pb-4 border-t border-gray-100">
+                              <textarea
+                                value={noteText}
+                                onChange={e => handleNoteChange(item.id, e.target.value)}
+                                placeholder="Type your private notes here…"
+                                rows={4}
+                                className="w-full mt-3 px-3 py-2 text-sm border border-gray-200 rounded-md resize-y focus:outline-none focus:ring-1 focus:ring-sky-400"
+                              />
+                              <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+                                🔒 Private — only you can see these
+                                <span className="ml-auto">
+                                  {noteSaveStatus === 'saving' ? 'Saving…' : noteSaveStatus === 'saved' ? 'Saved' : ''}
+                                </span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              ) : (
+                /* No area selected: show only items with existing notes */
+                filteredNotes.length === 0 ? (
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 py-16 text-center">
+                    <PencilSquareIcon className="w-9 h-9 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm font-medium">No notes yet</p>
+                    <p className="text-gray-400 text-xs mt-1">Select a study area to start taking notes</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredNotes.map(n => {
+                      const item = studyItems.find(i => i.id === n.studyItemId)
+                      if (!item) return null
+                      const area = studyAreas.find(a => a.id === item.areaId)
+                      const isEditing = editingItemId === item.id
+                      return (
+                        <div key={n.studyItemId} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                          <div className="px-4 py-3 flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900">{item.name}</p>
+                              {area && <p className="text-xs text-gray-400">{area.name}</p>}
+                              {!isEditing && (
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{n.content}</p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isEditing) {
+                                  setEditingItemId(null)
+                                } else {
+                                  startEditNote(item.id)
+                                }
+                              }}
+                              className="text-xs text-sky-600 hover:text-sky-800 flex items-center gap-1 shrink-0"
+                            >
+                              <PencilSquareIcon className="w-3.5 h-3.5" />
+                              {isEditing ? 'Done' : 'Edit'}
+                            </button>
+                          </div>
+                          {isEditing && (
+                            <div className="px-4 pb-4 border-t border-gray-100">
+                              <textarea
+                                value={noteText}
+                                onChange={e => handleNoteChange(item.id, e.target.value)}
+                                placeholder="Type your private notes here…"
+                                rows={4}
+                                className="w-full mt-3 px-3 py-2 text-sm border border-gray-200 rounded-md resize-y focus:outline-none focus:ring-1 focus:ring-sky-400"
+                              />
+                              <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+                                🔒 Private — only you can see these
+                                <span className="ml-auto">
+                                  {noteSaveStatus === 'saving' ? 'Saving…' : noteSaveStatus === 'saved' ? 'Saved' : ''}
+                                </span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              )}
             </div>
           )}
         </div>
@@ -471,3 +604,5 @@ export const StudentStudy: React.FC = () => {
     </div>
   )
 }
+
+export default StudentStudy
