@@ -201,9 +201,12 @@ service cloud.firestore {
 
     // Student private notes (per study item)
     match /studentNotes/{noteId} {
-      allow read, write: if isSignedIn() &&
-        (resource == null || resource.data.studentUid == request.auth.uid) &&
-        (request.resource == null || request.resource.data.studentUid == request.auth.uid);
+      // read: student can only read their own notes
+      allow read: if isSignedIn() &&
+        (resource == null || resource.data.studentUid == request.auth.uid);
+      // write: student can only write notes with their own uid
+      allow write: if isSignedIn() &&
+        request.resource.data.studentUid == request.auth.uid;
     }
 
     // CFI knowledge notes pushed to students
