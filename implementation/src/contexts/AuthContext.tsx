@@ -65,6 +65,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!mounted) return
       
+      // Re-set loading true while we fetch Firestore user data.
+      // This prevents ProtectedRoute from prematurely redirecting in the brief
+      // window between auth state update and user doc being read (e.g. React
+      // StrictMode double-mount re-triggers onAuthStateChanged).
+      setLoading(true)
       setFirebaseUser(firebaseUser)
 
       if (firebaseUser) {

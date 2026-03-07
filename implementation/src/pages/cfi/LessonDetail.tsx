@@ -319,7 +319,7 @@ export const LessonDetail: React.FC = () => {
               scheduledDateObj = new Date(lessonData.scheduledDate as any)
             }
             
-            const dateStr = scheduledDateObj.toISOString().split('T')[0]
+            const dateStr = `${scheduledDateObj.getFullYear()}-${String(scheduledDateObj.getMonth() + 1).padStart(2, '0')}-${String(scheduledDateObj.getDate()).padStart(2, '0')}`
             const timeStr = scheduledDateObj.toTimeString().slice(0, 5)
             setScheduledDate(dateStr)
             setScheduledTime(timeStr)
@@ -352,7 +352,7 @@ export const LessonDetail: React.FC = () => {
               actualDateObj = new Date(lessonData.actualDate as any)
             }
             
-            const dateValue = actualDateObj.toISOString().split('T')[0]
+            const dateValue = `${actualDateObj.getFullYear()}-${String(actualDateObj.getMonth() + 1).padStart(2, '0')}-${String(actualDateObj.getDate()).padStart(2, '0')}`
             const timeValue = actualDateObj.toTimeString().slice(0, 5)
             setActualDate(dateValue)
             setActualTime(timeValue)
@@ -383,7 +383,8 @@ export const LessonDetail: React.FC = () => {
             
             // Only auto-populate if it's not an unscheduled lesson
             if (scheduledDateObj.getFullYear() < 2099) {
-              autoPopulatedDate = scheduledDateObj.toISOString().split('T')[0]
+              // Use local timezone date to avoid UTC off-by-one bug (toISOString returns UTC)
+              autoPopulatedDate = `${scheduledDateObj.getFullYear()}-${String(scheduledDateObj.getMonth() + 1).padStart(2, '0')}-${String(scheduledDateObj.getDate()).padStart(2, '0')}`
               autoPopulatedTime = scheduledDateObj.toTimeString().slice(0, 5)
               setActualDate(autoPopulatedDate)
               setActualTime(autoPopulatedTime)
@@ -1149,7 +1150,8 @@ export const LessonDetail: React.FC = () => {
                 // Auto-populate actual date/time with current date/time if empty
                 if (!actualDate && !actualTime) {
                   const now = new Date()
-                  const dateStr = now.toISOString().split('T')[0]
+                  // Use local timezone date to avoid UTC off-by-one bug (toISOString returns UTC)
+                  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
                   const timeStr = now.toTimeString().slice(0, 5)
                   setActualDate(dateStr)
                   setActualTime(timeStr)

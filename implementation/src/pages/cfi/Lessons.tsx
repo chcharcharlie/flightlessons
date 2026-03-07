@@ -616,7 +616,7 @@ export const Lessons: React.FC = () => {
             {selectedProgram && lessonPlans.length > 0 && (
               <div>
                 <label htmlFor="lessonPlan" className="block text-sm font-medium text-gray-700">
-                  Lesson Plan (optional)
+                  Lesson Template (optional)
                 </label>
                 <select
                   id="lessonPlan"
@@ -632,7 +632,7 @@ export const Lessons: React.FC = () => {
                       : lessonPlans
                     return filteredPlans.map(plan => (
                       <option key={plan.id} value={plan.id}>
-                        Lesson {plan.orderNumber}: {plan.title}
+                        {plan.title}
                       </option>
                     ))
                   })()}
