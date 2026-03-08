@@ -107,7 +107,7 @@ export const CFIDashboard: React.FC = () => {
         </Routes>
       </main>
 
-      {/* AI Assistant */}
+      {/* AI Assistant — temporarily hidden, re-enable when ready
       <FloatingChatButton 
         onClick={() => setIsChatOpen(true)}
       />
@@ -115,6 +115,7 @@ export const CFIDashboard: React.FC = () => {
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
       />
+      */}
 
       {/* Ad Banner — fixed bottom */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex justify-center py-1 shadow-sm">
