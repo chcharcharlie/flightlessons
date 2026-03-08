@@ -292,57 +292,40 @@ const CFIDashboardHome: React.FC = () => {
         )
         const areaIds = areasSnapshot.docs.map(doc => doc.id)
         
-        // Get all study items for these areas
+        // Get all study items for these areas (mirror ProgramProgress: handle both field names)
         const itemsSnapshot = await getDocs(collection(workspaceRef, 'studyItems'))
-        const certificateItems = itemsSnapshot.docs.filter(doc => {
-          const itemData = doc.data()
-          return areaIds.includes(itemData.studyAreaId)
-        })
-        
+        const certificateItems = itemsSnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as any))
+          .filter(item => areaIds.includes(item.studyAreaId || item.areaId))
+
         const totalItems = certificateItems.length
-        
+
         // Skip programs with no study items
         if (totalItems === 0) {
           continue
         }
-        
-        // Count completed items using the same logic as ProgramProgress
-        const itemIds = certificateItems.map(doc => doc.id)
-        const progressMap = new Map<string, Map<'ground' | 'flight', Progress>>()
-        
-        progressSnapshot.docs.forEach(progressDoc => {
-          const progress = progressDoc.data() as Progress
-          if (!itemIds.includes(progress.itemId)) return
-          
-          if (!progressMap.has(progress.itemId)) {
-            progressMap.set(progress.itemId, new Map())
-          }
-          
-          const scoreType = progress.scoreType === 'GROUND' ? 'ground' : 'flight'
-          progressMap.get(progress.itemId)!.set(scoreType, progress)
-        })
-        
-        const completedItems = certificateItems.filter(itemDoc => {
-          const item = itemDoc.data()
-          const itemId = itemDoc.id
-          const itemProgress = progressMap.get(itemId)
-          
-          if (!itemProgress) return false
-          
-          // Check ground completion
+
+        // Build latest-score map — same approach as ProgramProgress.getItemProgress():
+        // group all records by itemId, then pick the latest by createdAt per scoreType
+        const itemIds = certificateItems.map((item: any) => item.id)
+        const allProgressForItems = progressSnapshot.docs
+          .map(d => d.data() as Progress)
+          .filter(p => itemIds.includes(p.itemId))
+
+        const getLatestScore = (itemId: string, scoreType: 'GROUND' | 'FLIGHT') =>
+          allProgressForItems
+            .filter(p => p.itemId === itemId && p.scoreType === scoreType)
+            .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))[0]
+
+        const completedItems = certificateItems.filter((item: any) => {
           if (item.type === 'GROUND' || item.type === 'BOTH') {
-            const groundProgress = itemProgress.get('ground')
-            const groundComplete = groundProgress?.score === 'LEARNED'
-            if (!groundComplete) return false
+            const g = getLatestScore(item.id, 'GROUND')
+            if (g?.score !== 'LEARNED') return false
           }
-          
-          // Check flight completion (score >= 4)
           if (item.type === 'FLIGHT' || item.type === 'BOTH') {
-            const flightProgress = itemProgress.get('flight')
-            const flightComplete = typeof flightProgress?.score === 'number' && flightProgress.score >= 4
-            if (!flightComplete) return false
+            const f = getLatestScore(item.id, 'FLIGHT')
+            if (typeof f?.score !== 'number' || f.score < 4) return false
           }
-          
           return true
         }).length
         
