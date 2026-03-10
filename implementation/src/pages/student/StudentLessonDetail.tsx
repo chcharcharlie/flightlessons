@@ -8,7 +8,8 @@ import {
   where,
   getDocs,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { db, functions } from '@/lib/firebase'
+import { httpsCallable } from 'firebase/functions'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   Lesson,
@@ -59,6 +60,18 @@ export const StudentLessonDetail: React.FC = () => {
         }
 
         setLesson(lessonData)
+
+        // Auto-sync: if lesson has a scheduled date but no calendar event for this user yet, sync now
+        if (
+          lessonData.scheduledDate &&
+          lessonData.status === 'SCHEDULED' &&
+          !lessonData.googleCalendarEventIds?.[user.uid]
+        ) {
+          const syncFn = httpsCallable(functions, 'syncLessonToCalendar')
+          syncFn({ lessonId: lessonData.id }).catch(err =>
+            console.warn('Auto-sync on load failed:', err)
+          )
+        }
 
         // Load CFI info
         const workspaceDoc = await getDoc(doc(db, 'workspaces', user.cfiWorkspaceId))

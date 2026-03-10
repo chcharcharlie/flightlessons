@@ -295,7 +295,19 @@ export const LessonDetail: React.FC = () => {
         }
 
         setLesson(lessonData)
-        
+
+        // Auto-sync: if lesson has a scheduled date but no calendar event for this user yet, sync now
+        if (
+          lessonData.scheduledDate &&
+          lessonData.status === 'SCHEDULED' &&
+          !lessonData.googleCalendarEventIds?.[user.uid]
+        ) {
+          const syncFn = httpsCallable(functions, 'syncLessonToCalendar')
+          syncFn({ lessonId: lessonData.id }).catch(err =>
+            console.warn('Auto-sync on load failed:', err)
+          )
+        }
+
         // Initialize planning fields
         setTitle(lessonData.title || '')
         setMotivation(lessonData.motivation || '')

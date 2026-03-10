@@ -156,6 +156,7 @@ export interface Lesson {
   postNotes?: string
   items: LessonItem[]
   createdAt: Timestamp
+  googleCalendarEventIds?: Record<string, string> // uid → Google Calendar event ID
 }
 
 export interface LessonItem {
