@@ -124,7 +124,14 @@ export const StudentDashboardHome: React.FC = () => {
             const sorted = lessons.sort((a, b) => {
               if (!a.scheduledDate) return 1
               if (!b.scheduledDate) return -1
-              return a.scheduledDate.toMillis() - b.scheduledDate.toMillis()
+              // Use toMillis() if available (Firestore Timestamp), otherwise fall back to seconds
+              const aMs = typeof a.scheduledDate.toMillis === 'function'
+                ? a.scheduledDate.toMillis()
+                : (a.scheduledDate as any).seconds * 1000
+              const bMs = typeof b.scheduledDate.toMillis === 'function'
+                ? b.scheduledDate.toMillis()
+                : (b.scheduledDate as any).seconds * 1000
+              return aMs - bMs
             })
             setUpcomingLessons(sorted)
           } catch (fallbackError) {
@@ -169,7 +176,13 @@ export const StudentDashboardHome: React.FC = () => {
               .sort((a, b) => {
                 if (!a.completedDate) return 1
                 if (!b.completedDate) return -1
-                return b.completedDate.toMillis() - a.completedDate.toMillis()
+                const aMs = typeof a.completedDate.toMillis === 'function'
+                  ? a.completedDate.toMillis()
+                  : (a.completedDate as any).seconds * 1000
+                const bMs = typeof b.completedDate.toMillis === 'function'
+                  ? b.completedDate.toMillis()
+                  : (b.completedDate as any).seconds * 1000
+                return bMs - aMs
               })
               .slice(0, 5) // Get last 5 completed lessons
             

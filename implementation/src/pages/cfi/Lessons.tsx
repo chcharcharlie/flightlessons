@@ -16,6 +16,7 @@ import { db, storage, functions } from '@/lib/firebase'
 import { ref, listAll, getDownloadURL } from 'firebase/storage'
 import { useAuth } from '@/contexts/AuthContext'
 import { Lesson, Student, User, TrainingProgram, LessonPlan, StudyItem, StudyArea, ReferenceMaterial } from '@/types'
+import { localDateTimeToTimestamp } from '@/utils/dateTime'
 import { ReferenceMaterialModal } from '@/components/ReferenceMaterialModal'
 import {
   CalendarDaysIcon,
@@ -371,8 +372,8 @@ export const Lessons: React.FC = () => {
         }),
         createdAt: Timestamp.now(),
         // Add scheduled date only if both date and time are provided
-        scheduledDate: lessonDate && lessonTime 
-          ? Timestamp.fromDate(new Date(`${lessonDate}T${lessonTime}`))
+        scheduledDate: lessonDate && lessonTime
+          ? localDateTimeToTimestamp(lessonDate, lessonTime)
           : null
       }
       

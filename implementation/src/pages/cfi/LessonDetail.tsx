@@ -15,6 +15,7 @@ import { db, functions, storage } from '@/lib/firebase'
 import { ref, listAll, getDownloadURL } from 'firebase/storage'
 import { useAuth } from '@/contexts/AuthContext'
 import { ReferenceMaterialModal } from '@/components/ReferenceMaterialModal'
+import { localDateTimeToTimestamp, timestampToLocalInputs } from '@/utils/dateTime'
 import {
   Lesson,
   User,
@@ -306,109 +307,35 @@ export const LessonDetail: React.FC = () => {
         setReferenceMaterials(lessonData.referenceMaterials || [])
         
         // Initialize scheduled date/time
-        if (lessonData.scheduledDate) {
-          try {
-            let scheduledDateObj: Date
-            if (typeof lessonData.scheduledDate.toDate === 'function') {
-              scheduledDateObj = lessonData.scheduledDate.toDate()
-            } else if (lessonData.scheduledDate instanceof Date) {
-              scheduledDateObj = lessonData.scheduledDate
-            } else if (lessonData.scheduledDate.seconds !== undefined) {
-              scheduledDateObj = new Date(lessonData.scheduledDate.seconds * 1000)
-            } else {
-              scheduledDateObj = new Date(lessonData.scheduledDate as any)
-            }
-            
-            const dateStr = `${scheduledDateObj.getFullYear()}-${String(scheduledDateObj.getMonth() + 1).padStart(2, '0')}-${String(scheduledDateObj.getDate()).padStart(2, '0')}`
-            const timeStr = scheduledDateObj.toTimeString().slice(0, 5)
-            setScheduledDate(dateStr)
-            setScheduledTime(timeStr)
-            setInitialScheduledDate(dateStr)
-            setInitialScheduledTime(timeStr)
-          } catch (error) {
-            console.error('Error parsing scheduledDate:', error)
-          }
+        const scheduledParsed = timestampToLocalInputs(lessonData.scheduledDate)
+        if (scheduledParsed) {
+          setScheduledDate(scheduledParsed.dateStr)
+          setScheduledTime(scheduledParsed.timeStr)
+          setInitialScheduledDate(scheduledParsed.dateStr)
+          setInitialScheduledTime(scheduledParsed.timeStr)
         }
-        
+
         // Initialize execution fields
-        let autoPopulatedDate = ''
-        let autoPopulatedTime = ''
-        
-        if (lessonData.actualDate) {
-          try {
-            // Check if it's a Firestore Timestamp
-            let actualDateObj: Date
-            if (typeof lessonData.actualDate.toDate === 'function') {
-              actualDateObj = lessonData.actualDate.toDate()
-            } else if (lessonData.actualDate instanceof Date) {
-              actualDateObj = lessonData.actualDate
-            } else if (typeof lessonData.actualDate === 'string') {
-              actualDateObj = new Date(lessonData.actualDate)
-            } else if (lessonData.actualDate.seconds !== undefined) {
-              // Handle raw Firestore timestamp format {seconds, nanoseconds}
-              actualDateObj = new Date(lessonData.actualDate.seconds * 1000)
-            } else {
-              // If it's something else, try to convert it
-              actualDateObj = new Date(lessonData.actualDate as any)
-            }
-            
-            const dateValue = `${actualDateObj.getFullYear()}-${String(actualDateObj.getMonth() + 1).padStart(2, '0')}-${String(actualDateObj.getDate()).padStart(2, '0')}`
-            const timeValue = actualDateObj.toTimeString().slice(0, 5)
-            setActualDate(dateValue)
-            setActualTime(timeValue)
-            // Set initial values to compare against
-            setInitialActualDate(dateValue)
-            setInitialActualTime(timeValue)
-          } catch (error) {
-            console.error('Error parsing actualDate:', error, lessonData.actualDate)
+        const actualParsed = timestampToLocalInputs(lessonData.actualDate)
+        if (actualParsed) {
+          setActualDate(actualParsed.dateStr)
+          setActualTime(actualParsed.timeStr)
+          setInitialActualDate(actualParsed.dateStr)
+          setInitialActualTime(actualParsed.timeStr)
+        } else if (scheduledParsed) {
+          // Auto-populate actual date from scheduled date (skip unscheduled placeholder)
+          const year = parseInt(scheduledParsed.dateStr.slice(0, 4))
+          if (year < 2099) {
+            setActualDate(scheduledParsed.dateStr)
+            setActualTime(scheduledParsed.timeStr)
+            setInitialActualDate(scheduledParsed.dateStr)
+            setInitialActualTime(scheduledParsed.timeStr)
+          } else {
             setActualDate('')
             setActualTime('')
             setInitialActualDate('')
             setInitialActualTime('')
           }
-        } else if (lessonData.scheduledDate && lessonData.scheduledDate !== null) {
-          try {
-            // Auto-populate from scheduled date if no actual date set
-            let scheduledDateObj: Date
-            if (typeof lessonData.scheduledDate.toDate === 'function') {
-              scheduledDateObj = lessonData.scheduledDate.toDate()
-            } else if (lessonData.scheduledDate instanceof Date) {
-              scheduledDateObj = lessonData.scheduledDate
-            } else if (lessonData.scheduledDate.seconds !== undefined) {
-              // Handle raw Firestore timestamp format {seconds, nanoseconds}
-              scheduledDateObj = new Date(lessonData.scheduledDate.seconds * 1000)
-            } else {
-              scheduledDateObj = new Date(lessonData.scheduledDate as any)
-            }
-            
-            // Only auto-populate if it's not an unscheduled lesson
-            if (scheduledDateObj.getFullYear() < 2099) {
-              // Use local timezone date to avoid UTC off-by-one bug (toISOString returns UTC)
-              autoPopulatedDate = `${scheduledDateObj.getFullYear()}-${String(scheduledDateObj.getMonth() + 1).padStart(2, '0')}-${String(scheduledDateObj.getDate()).padStart(2, '0')}`
-              autoPopulatedTime = scheduledDateObj.toTimeString().slice(0, 5)
-              setActualDate(autoPopulatedDate)
-              setActualTime(autoPopulatedTime)
-              // Set initial values to auto-populated values
-              setInitialActualDate(autoPopulatedDate)
-              setInitialActualTime(autoPopulatedTime)
-            } else {
-              setActualDate('')
-              setActualTime('')
-              setInitialActualDate('')
-              setInitialActualTime('')
-            }
-          } catch (error) {
-            console.error('Error parsing scheduledDate:', error, lessonData.scheduledDate)
-            setActualDate('')
-            setActualTime('')
-            setInitialActualDate('')
-            setInitialActualTime('')
-          }
-        } else {
-          setActualDate('')
-          setActualTime('')
-          setInitialActualDate('')
-          setInitialActualTime('')
         }
         setActualRoute(lessonData.actualRoute || '')
         setAircraft(lessonData.aircraft || '')
@@ -654,7 +581,7 @@ export const LessonDetail: React.FC = () => {
 
       // Always update execution fields (use null instead of undefined for Firestore)
       if (actualDate && actualTime) {
-        updates.actualDate = Timestamp.fromDate(new Date(`${actualDate}T${actualTime}`))
+        updates.actualDate = localDateTimeToTimestamp(actualDate, actualTime)
       }
       if (actualRoute) updates.actualRoute = actualRoute
       if (aircraft) updates.aircraft = aircraft
@@ -673,7 +600,7 @@ export const LessonDetail: React.FC = () => {
         if (preNotes) updates.preNotes = preNotes
         // Update scheduled date/time
         if (scheduledDate) {
-          updates.scheduledDate = Timestamp.fromDate(new Date(`${scheduledDate}T${scheduledTime || '09:00'}`))
+          updates.scheduledDate = localDateTimeToTimestamp(scheduledDate, scheduledTime || '09:00')
         }
         // Reference materials are now auto-saved, so we don't include them here
       }
@@ -788,7 +715,7 @@ export const LessonDetail: React.FC = () => {
         
         // First check if we have actualDate in state (which was just saved)
         if (actualDate && actualTime) {
-          updates.completedDate = Timestamp.fromDate(new Date(`${actualDate}T${actualTime}`))
+          updates.completedDate = localDateTimeToTimestamp(actualDate, actualTime)
         } else {
           // If no actual date in state, check the lesson's actualDate field
           // (might exist from a previous save)

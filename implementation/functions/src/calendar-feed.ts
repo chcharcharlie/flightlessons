@@ -57,10 +57,11 @@ export const calendarFeed = onRequest({ cors: true }, async (req, res) => {
   }
 
   // Build ICS calendar
+  // No calendar-level timezone → dates are output as UTC (DTSTART:...Z)
+  // Calendar apps will convert to user's local timezone automatically.
   const calendar = ical({
     name: `FirstSolo — ${displayName}`,
     prodId: { company: 'FirstSolo', product: 'firstsolo-app', language: 'EN' },
-    timezone: 'America/Los_Angeles',
   });
 
   for (const lessonDoc of lessonsSnap.docs) {
