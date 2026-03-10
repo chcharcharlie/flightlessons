@@ -11,8 +11,17 @@ export { aiChat } from './ai-chat';
 export { aiChatWithTools } from './ai-chat-with-tools';
 export { studentAiTutor } from './student-ai-tutor';
 
-// Calendar feed
+// Calendar feed (ICS subscription)
 export { calendarFeed } from './calendar-feed';
+
+// Google Calendar OAuth + sync
+export {
+  googleCalendarAuthUrl,
+  googleCalendarCallback,
+  googleCalendarDisconnect,
+  syncLessonToCalendar,
+  syncAllLessonsToCalendar,
+} from './google-calendar';
 
 // Generate calendar token for a user
 import * as crypto from 'crypto';

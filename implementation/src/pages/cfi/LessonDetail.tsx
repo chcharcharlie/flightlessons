@@ -627,6 +627,12 @@ export const LessonDetail: React.FC = () => {
       
       await updateDoc(doc(db, 'lessons', lesson.id), cleanedUpdates)
 
+      // Sync to Google Calendar if scheduled date changed (best-effort)
+      if (updates.scheduledDate !== undefined || updates.status !== undefined) {
+        const syncFn = httpsCallable(functions, 'syncLessonToCalendar')
+        syncFn({ lessonId: lesson.id }).catch(err => console.warn('Calendar sync failed:', err))
+      }
+
       // Note: Progress is now recorded when completing the lesson, not when saving
 
       // Update local state
@@ -743,7 +749,11 @@ export const LessonDetail: React.FC = () => {
       }, {} as Record<string, any>)
       
       await updateDoc(doc(db, 'lessons', lesson.id), cleanedStatusUpdates)
-      
+
+      // Sync calendar on status change (COMPLETED or CANCELLED)
+      const syncFn2 = httpsCallable(functions, 'syncLessonToCalendar')
+      syncFn2({ lessonId: lesson.id }).catch(err => console.warn('Calendar sync failed:', err))
+
       // If completing lesson, record progress
       if (newStatus === 'COMPLETED') {
         const recordProgress = httpsCallable(functions, 'recordProgress')

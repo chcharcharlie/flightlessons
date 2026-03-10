@@ -416,7 +416,13 @@ export const Lessons: React.FC = () => {
       }
 
       const docRef = await addDoc(collection(db, 'lessons'), lessonData)
-      
+
+      // Sync to Google Calendar (best-effort, don't block navigation)
+      if (lessonData.scheduledDate) {
+        const syncFn = httpsCallable(functions, 'syncLessonToCalendar')
+        syncFn({ lessonId: docRef.id }).catch(err => console.warn('Calendar sync failed:', err))
+      }
+
       // Navigate to lesson detail page
       navigate(`/cfi/lessons/${docRef.id}`)
     } catch (error) {
