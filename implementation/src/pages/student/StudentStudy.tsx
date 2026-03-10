@@ -12,9 +12,11 @@ import {
   PencilSquareIcon,
   PlusIcon,
   BookOpenIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline'
+import { AiTutorChat } from '@/components/AiTutorChat'
 
-type TabType = 'instructor' | 'questions' | 'notes'
+type TabType = 'instructor' | 'questions' | 'notes' | 'ai-tutor'
 
 interface StudentNoteEntry {
   studyItemId: string
@@ -81,14 +83,15 @@ export const StudentStudy: React.FC = () => {
         const progs = snap.docs.map(d => ({ id: d.id, ...d.data() } as TrainingProgram))
         // Sort: active first, then by certificate order
         const certOrder = ['PRIVATE', 'INSTRUMENT', 'COMMERCIAL']
+        const isActive = (p: TrainingProgram) => p.status?.toLowerCase() === 'active'
         progs.sort((a, b) => {
-          if (a.status === 'active' && b.status !== 'active') return -1
-          if (a.status !== 'active' && b.status === 'active') return 1
+          if (isActive(a) && !isActive(b)) return -1
+          if (!isActive(a) && isActive(b)) return 1
           return certOrder.indexOf(a.certificate) - certOrder.indexOf(b.certificate)
         })
         setPrograms(progs)
-        // Default: first active, or first overall
-        const defaultProg = progs.find(p => p.status === 'active') || progs[0] || null
+        // Default: first active, or first overall (case-insensitive)
+        const defaultProg = progs.find(p => p.status?.toLowerCase() === 'active') || progs[0] || null
         setSelectedProgram(defaultProg)
       })
       .catch(() => setPrograms([]))
@@ -164,18 +167,22 @@ export const StudentStudy: React.FC = () => {
 
   const areaItemIds = new Set(areaItems.map(i => i.id))
 
+  // All study item IDs for the currently selected program
+  // (studyAreas is already filtered by certificate; studyItems are all from workspace)
+  const programAreaIds = new Set(studyAreas.map(a => a.id))
+  const programItemIds = new Set(studyItems.filter(i => programAreaIds.has(i.areaId)).map(i => i.id))
+
   // ── Derived: filtered content ─────────────────────────────────────────────
-  // Questions: when area selected → only questions linked to items in area
-  //            when no area → all questions (including general with no studyItemId)
+  // Questions: filtered by program first, then by area if one is selected.
+  // General questions (no studyItemId) belong to any program — show when no area filter.
   const filteredQuestions = selectedArea
     ? questions.filter(q => q.studyItemId && areaItemIds.has(q.studyItemId))
-    : questions
+    : questions.filter(q => !q.studyItemId || programItemIds.has(q.studyItemId))
 
-  // Notes: when area selected → notes for items in that area
-  //        when no area → all notes that have content
+  // Notes: filtered by program first, then by area if one is selected.
   const filteredNotes = selectedArea
     ? studentNotes.filter(n => areaItemIds.has(n.studyItemId))
-    : studentNotes
+    : studentNotes.filter(n => programItemIds.has(n.studyItemId))
 
   // CFI notes: filter by selected program's certificate
   const filteredCfiNotes = selectedProgram
@@ -282,6 +289,7 @@ export const StudentStudy: React.FC = () => {
     { key: 'instructor', label: '💡 Instructor Notes' },
     { key: 'questions', label: '❓ Questions' },
     { key: 'notes', label: '📝 My Notes' },
+    { key: 'ai-tutor', label: '✨ AI Tutor' },
   ]
 
   return (
@@ -309,7 +317,7 @@ export const StudentStudy: React.FC = () => {
             {programs.map(p => (
               <option key={p.id} value={p.id}>
                 {CERT_LABELS[p.certificate] ?? p.certificate}
-                {p.status === 'active' ? ' ✓' : ' (completed)'}
+                {p.status?.toLowerCase() === 'active' ? ' — Active' : ' (completed)'}
               </option>
             ))}
           </select>
@@ -662,6 +670,12 @@ export const StudentStudy: React.FC = () => {
                   </div>
                 )
               )}
+            </div>
+          )}
+
+          {activeTab === 'ai-tutor' && (
+            <div className="h-[600px]">
+              <AiTutorChat programCertificate={selectedProgram?.certificate} />
             </div>
           )}
         </div>

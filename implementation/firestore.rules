@@ -231,5 +231,23 @@ service cloud.firestore {
         (isStudent() && (resource.data.targetStudentUid == 'all' || resource.data.targetStudentUid == request.auth.uid))
       );
     }
+
+    // AI Tutor Sessions (student <-> AI conversations, CFI can read)
+    match /aiTutorSessions/{sessionId} {
+      allow read: if isSignedIn() && (
+        resource.data.studentUid == request.auth.uid ||
+        isCFI()
+      );
+      allow create: if isSignedIn() && isStudent();
+      allow update: if isSignedIn() && resource.data.studentUid == request.auth.uid;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/aiTutorSessions/$(sessionId)).data.studentUid == request.auth.uid ||
+          isCFI()
+        );
+        allow create: if isSignedIn();
+      }
+    }
   }
 }

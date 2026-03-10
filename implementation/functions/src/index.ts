@@ -9,6 +9,23 @@ admin.initializeApp();
 // Export AI chat function
 export { aiChat } from './ai-chat';
 export { aiChatWithTools } from './ai-chat-with-tools';
+export { studentAiTutor } from './student-ai-tutor';
+
+// Calendar feed
+export { calendarFeed } from './calendar-feed';
+
+// Generate calendar token for a user
+import * as crypto from 'crypto';
+
+export const generateCalendarToken = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Must be authenticated');
+  }
+  const uid = request.auth.uid;
+  const token = crypto.randomBytes(24).toString('hex');
+  await admin.firestore().collection('users').doc(uid).update({ calendarToken: token });
+  return { token };
+});
 
 // Export document processing
 export { processDocument } from './process-document';

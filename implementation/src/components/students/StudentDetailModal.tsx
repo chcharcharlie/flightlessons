@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { XMarkIcon, ChartBarIcon, CalendarIcon, AcademicCapIcon, PlusIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, ChartBarIcon, CalendarIcon, AcademicCapIcon, PlusIcon, PencilSquareIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { StudentWithDetails } from '@/hooks/useStudents'
 import { Certificate, TrainingProgram } from '@/types'
 import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { StudentAiSessions } from './StudentAiSessions'
 
 interface StudentDetailModalProps {
   student: StudentWithDetails
@@ -31,6 +32,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const [noteTitle, setNoteTitle] = useState('')
   const [noteContent, setNoteContent] = useState('')
   const [savingNote, setSavingNote] = useState(false)
+  const [showAiSessions, setShowAiSessions] = useState(false)
 
   useEffect(() => {
     if (!user?.cfiWorkspaceId) return
@@ -156,7 +158,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             </h3>
             <p className="mt-1 text-sm text-gray-500">{student.email}</p>
           </div>
-          <button
+          <button type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-500"
           >
@@ -175,7 +177,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-medium text-gray-900">Training Programs</h4>
-              <button
+              <button type="button"
                 onClick={() => setShowNewProgram(!showNewProgram)}
                 className="text-sky hover:text-sky-600"
                 title="Add new program"
@@ -204,7 +206,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                         }`}>
                           {program.status}
                         </span>
-                        <button
+                        <button type="button"
                           onClick={() => setSendNoteProgramId(sendNoteProgramId === program.id ? null : program.id)}
                           className="text-amber-500 hover:text-amber-600"
                           title="Send study note"
@@ -220,6 +222,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                           type="text"
                           value={noteTitle}
                           onChange={e => setNoteTitle(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') e.preventDefault() }}
                           placeholder="Note title"
                           className="w-full rounded-md border-gray-300 text-xs focus:ring-amber-400 focus:border-amber-400"
                         />
@@ -231,11 +234,11 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                           className="w-full rounded-md border-gray-300 text-xs focus:ring-amber-400 focus:border-amber-400"
                         />
                         <div className="flex justify-end gap-2">
-                          <button
+                          <button type="button"
                             onClick={() => { setSendNoteProgramId(null); setNoteTitle(''); setNoteContent('') }}
                             className="text-xs text-gray-500 hover:text-gray-700"
                           >Cancel</button>
-                          <button
+                          <button type="button"
                             onClick={() => handleSendNote(program)}
                             disabled={!noteTitle.trim() || !noteContent.trim() || savingNote}
                             className="px-2 py-1 bg-amber-500 text-white rounded text-xs font-medium disabled:opacity-50 hover:bg-amber-600"
@@ -300,7 +303,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   />
                 </div>
                 <div className="flex justify-end space-x-2">
-                  <button
+                  <button type="button"
                     onClick={() => {
                       setShowNewProgram(false)
                       setSelectedCertificate('PRIVATE')
@@ -310,7 +313,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   >
                     Cancel
                   </button>
-                  <button
+                  <button type="button"
                     onClick={handleCreateProgram}
                     disabled={creatingProgram}
                     className="px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-sky hover:bg-sky-600 disabled:opacity-50"
@@ -322,11 +325,29 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             </div>
           )}
 
+          {/* AI Tutor Sessions */}
+          <div>
+            <button type="button"
+              onClick={() => setShowAiSessions(!showAiSessions)}
+              className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2 hover:text-blue-600 transition-colors"
+            >
+              <SparklesIcon className="w-4 h-4 text-blue-400" />
+              AI Tutor Sessions
+              <span className="ml-auto text-xs text-gray-400">{showAiSessions ? '▲' : '▼'}</span>
+            </button>
+            {showAiSessions && user?.cfiWorkspaceId && (
+              <StudentAiSessions
+                studentUid={student.uid}
+                workspaceId={user.cfiWorkspaceId}
+              />
+            )}
+          </div>
+
           <div>
             <h4 className="text-sm font-medium text-gray-900 mb-2">Actions</h4>
             <div className="space-y-2">
               {programs.filter(p => p.status === 'ACTIVE').map(program => (
-                <button
+                <button type="button"
                   key={program.id}
                   onClick={() => {
                     onClose()

@@ -9,14 +9,12 @@
     "deploy": "firebase deploy --only functions --account ccehshmily@gmail.com",
     "logs": "firebase functions:log --account ccehshmily@gmail.com"
   },
-  "engines": {
-    "node": "20"
-  },
   "main": "lib/index.js",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.69.0",
     "firebase-admin": "^11.11.1",
     "firebase-functions": "^6.6.0",
+    "ical-generator": "^10.0.0",
     "pdf-parse": "^1.1.1"
   },
   "devDependencies": {

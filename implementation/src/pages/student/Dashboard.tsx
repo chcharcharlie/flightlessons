@@ -1,6 +1,5 @@
 import React from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import { AdBanner } from '@/components/AdBanner'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   HomeIcon,
@@ -8,6 +7,7 @@ import {
   CalendarDaysIcon,
   BookOpenIcon,
   ArrowLeftOnRectangleIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline'
 import { StudentDashboardHome } from './StudentDashboardHome'
 import { StudentProgress } from './Progress'
@@ -15,11 +15,13 @@ import { StudentProgramProgress } from './StudentProgramProgress'
 import { StudentLessons } from './StudentLessons'
 import { StudentLessonDetail } from './StudentLessonDetail'
 import { StudentStudy } from './StudentStudy'
+import { Settings } from '@/pages/Settings'
 
 const navigation = [
   { name: 'Dashboard', href: '/student', icon: HomeIcon },
   { name: 'Progress', href: '/student/progress', icon: ChartBarIcon },
   { name: 'Study', href: '/student/study', icon: BookOpenIcon },
+  { name: 'Settings', href: '/student/settings', icon: Cog6ToothIcon },
 ]
 
 export const StudentDashboard: React.FC = () => {
@@ -84,13 +86,11 @@ export const StudentDashboard: React.FC = () => {
           <Route path="lessons" element={<StudentLessons />} />
           <Route path="lessons/:lessonId" element={<StudentLessonDetail />} />
           <Route path="study" element={<StudentStudy />} />
+          <Route path="settings" element={<Settings />} />
         </Routes>
       </main>
 
-      {/* Ad Banner — fixed bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex justify-center py-1 shadow-sm">
-        <AdBanner format="horizontal" className="w-full max-w-3xl" />
-      </div>
+
     </div>
   )
 }

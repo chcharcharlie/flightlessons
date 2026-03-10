@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
-import { AdBanner } from '@/components/AdBanner'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   HomeIcon,
@@ -15,6 +14,7 @@ import {
   PencilIcon,
   CheckIcon,
   XMarkIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline'
 import { Students } from './Students'
 import { TrainingPrograms } from './TrainingPrograms'
@@ -25,6 +25,7 @@ import { LessonPlans } from './LessonPlans'
 import { LessonPlanDetail } from './LessonPlanDetail'
 import { FloatingChatButton } from '@/components/ai/FloatingChatButton'
 import { ChatWindow } from '@/components/ai/ChatWindow'
+import { Settings } from '@/pages/Settings'
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc, getDocs, updateDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Lesson, TrainingProgram, Progress, User } from '@/types'
@@ -36,6 +37,7 @@ const navigation = [
   { name: 'Programs', href: '/cfi/programs', icon: AcademicCapIcon },
   { name: 'Curriculum', href: '/cfi/curriculum', icon: BookOpenIcon },
   { name: 'Lessons', href: '/cfi/lessons', icon: ClipboardDocumentListIcon },
+  { name: 'Settings', href: '/cfi/settings', icon: Cog6ToothIcon },
 ]
 
 export const CFIDashboard: React.FC = () => {
@@ -80,7 +82,7 @@ export const CFIDashboard: React.FC = () => {
                 <span className="text-sm text-gray-700">
                   {user?.displayName}
                 </span>
-                <button
+                <button type="button"
                   onClick={logout}
                   className="text-gray-500 hover:text-gray-700"
                 >
@@ -104,6 +106,7 @@ export const CFIDashboard: React.FC = () => {
           <Route path="curriculum/:certificate/:planId/edit" element={<LessonPlanDetail />} />
           <Route path="lessons" element={<Lessons />} />
           <Route path="lessons/:lessonId" element={<LessonDetail />} />
+          <Route path="settings" element={<Settings />} />
         </Routes>
       </main>
 
@@ -117,10 +120,7 @@ export const CFIDashboard: React.FC = () => {
       />
       */}
 
-      {/* Ad Banner — fixed bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex justify-center py-1 shadow-sm">
-        <AdBanner format="horizontal" className="w-full max-w-3xl" />
-      </div>
+
     </div>
   )
 }
@@ -503,17 +503,17 @@ const CFIDashboardHome: React.FC = () => {
                   autoFocus
                   disabled={savingSchoolName}
                 />
-                <button onClick={saveSchoolName} disabled={savingSchoolName} className="text-green-600 hover:text-green-700">
+                <button type="button" onClick={saveSchoolName} disabled={savingSchoolName} className="text-green-600 hover:text-green-700">
                   <CheckIcon className="w-4 h-4" />
                 </button>
-                <button onClick={() => setIsEditingSchoolName(false)} className="text-gray-400 hover:text-gray-500">
+                <button type="button" onClick={() => setIsEditingSchoolName(false)} className="text-gray-400 hover:text-gray-500">
                   <XMarkIcon className="w-4 h-4" />
                 </button>
               </>
             ) : (
               <>
                 <span className="text-sm text-gray-500">{schoolName}</span>
-                <button
+                <button type="button"
                   onClick={() => { setEditSchoolName(schoolName); setIsEditingSchoolName(true) }}
                   className="text-gray-400 hover:text-gray-600"
                   title="Edit school name"
@@ -777,7 +777,7 @@ const CFIDashboardHome: React.FC = () => {
                         {q.createdAt?.toDate ? q.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
                       </p>
                     </div>
-                    <button
+                    <button type="button"
                       onClick={() => { setAnsweringId(q.id); setAnswerText('') }}
                       className="flex-shrink-0 text-sm text-sky-600 hover:text-sky-800 font-medium"
                     >
@@ -795,10 +795,10 @@ const CFIDashboardHome: React.FC = () => {
                         autoFocus
                       />
                       <div className="mt-2 flex justify-end gap-2">
-                        <button onClick={() => setAnsweringId(null)} className="text-sm text-gray-500 hover:text-gray-700">
+                        <button type="button" onClick={() => setAnsweringId(null)} className="text-sm text-gray-500 hover:text-gray-700">
                           Cancel
                         </button>
-                        <button
+                        <button type="button"
                           onClick={() => submitAnswer(q.id)}
                           disabled={!answerText.trim() || submittingAnswer}
                           className="px-3 py-1.5 bg-sky-500 text-white rounded-md text-sm font-medium disabled:opacity-50 hover:bg-sky-600"

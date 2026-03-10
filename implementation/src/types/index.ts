@@ -10,6 +10,7 @@ export interface User {
   cfiWorkspaceId?: string // For students
   createdAt: Timestamp
   settings?: UserSettings
+  calendarToken?: string // For calendar feed URL authentication
 }
 
 export interface UserSettings {
