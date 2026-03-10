@@ -109,10 +109,10 @@ function buildDescription(lesson: FirebaseFirestore.DocumentData): string {
   if (lesson.objectives?.length) {
     parts.push(`🎯 Objectives:\n${lesson.objectives.map((o: string) => `  • ${o}`).join('\n')}`);
   }
-  if (lesson.planDescription) parts.push(`📋 Plan: ${lesson.planDescription}`);
   if (lesson.plannedRoute) parts.push(`🗺️ Route: ${lesson.plannedRoute}`);
-  if (lesson.preStudyHomework) parts.push(`📚 Pre-study: ${lesson.preStudyHomework}`);
-  if (lesson.preNotes) parts.push(`📝 Notes: ${lesson.preNotes}`);
+  if (lesson.planDescription) parts.push(`📋 Plan: ${lesson.planDescription}`);
+  if (lesson.preStudyHomework) parts.push(`📚 Pre-study homework: ${lesson.preStudyHomework}`);
+  if (lesson.preNotes) parts.push(`📝 Pre-lesson notes: ${lesson.preNotes}`);
 
   parts.push('\nPowered by FirstSolo (firstsolo.app)');
   return parts.join('\n\n');

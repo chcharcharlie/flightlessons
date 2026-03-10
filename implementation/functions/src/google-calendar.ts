@@ -198,7 +198,9 @@ async function syncForUser(
   lesson: FirebaseFirestore.DocumentData
 ): Promise<string> {
   const userDoc = await db.collection('users').doc(uid).get();
-  const gcal = userDoc.data()?.googleCalendar;
+  const userData = userDoc.data()!;
+  const gcal = userData?.googleCalendar;
+  const role: string = userData?.role || 'STUDENT';
 
   if (!gcal?.connected || !gcal?.refreshToken) {
     return 'not_connected';
@@ -258,9 +260,35 @@ async function syncForUser(
 
   if (isCancelled) return 'cancelled_no_event';
 
+  // Build role-specific title and description
+  let summary: string;
+  let description: string;
+
+  if (role === 'CFI') {
+    // Fetch student name
+    let studentName = 'Student';
+    try {
+      const studentDoc = await db.collection('users').doc(lesson.studentUid).get();
+      studentName = studentDoc.data()?.displayName || 'Student';
+    } catch { /* ignore */ }
+
+    const titleParts = ['Lesson:', studentName];
+    if (lesson.title) titleParts.push(`- ${lesson.title}`);
+    if (lesson.plannedRoute) titleParts.push(`(${lesson.plannedRoute})`);
+    summary = `✈️ ${titleParts.join(' ')}`;
+    description = buildDescriptionCFI(lesson);
+  } else {
+    // Student
+    const titleParts = ['Lesson:'];
+    if (lesson.title) titleParts.push(lesson.title);
+    if (lesson.plannedRoute) titleParts.push(`(${lesson.plannedRoute})`);
+    summary = `✈️ ${titleParts.join(' ')}`;
+    description = buildDescriptionStudent(lesson);
+  }
+
   const eventBody = {
-    summary: lesson.title ? `✈️ ${lesson.title}` : '✈️ Flight Lesson',
-    description: buildDescription(lesson),
+    summary,
+    description,
     start: { dateTime: startTime.toISOString() },
     end: { dateTime: endTime.toISOString() },
     colorId: '9', // blueberry
@@ -288,14 +316,29 @@ async function syncForUser(
   }
 }
 
-function buildDescription(lesson: FirebaseFirestore.DocumentData): string {
+function buildDescriptionCFI(lesson: FirebaseFirestore.DocumentData): string {
   const parts: string[] = [];
   if (lesson.motivation) parts.push(`📌 ${lesson.motivation}`);
   if (lesson.objectives?.length) {
     parts.push(`🎯 Objectives:\n${lesson.objectives.map((o: string) => `• ${o}`).join('\n')}`);
   }
   if (lesson.plannedRoute) parts.push(`🗺️ Route: ${lesson.plannedRoute}`);
-  if (lesson.preStudyHomework) parts.push(`📚 Pre-study: ${lesson.preStudyHomework}`);
+  if (lesson.planDescription) parts.push(`📋 Plan: ${lesson.planDescription}`);
+  if (lesson.preStudyHomework) parts.push(`📚 Pre-study homework: ${lesson.preStudyHomework}`);
+  if (lesson.preNotes) parts.push(`📝 Pre-lesson notes: ${lesson.preNotes}`);
+  parts.push('\nPowered by FirstSolo (firstsolo.app)');
+  return parts.join('\n\n');
+}
+
+function buildDescriptionStudent(lesson: FirebaseFirestore.DocumentData): string {
+  const parts: string[] = [];
+  if (lesson.motivation) parts.push(`📌 ${lesson.motivation}`);
+  if (lesson.objectives?.length) {
+    parts.push(`🎯 Objectives:\n${lesson.objectives.map((o: string) => `• ${o}`).join('\n')}`);
+  }
+  if (lesson.plannedRoute) parts.push(`🗺️ Route: ${lesson.plannedRoute}`);
+  if (lesson.preStudyHomework) parts.push(`📚 Pre-study homework: ${lesson.preStudyHomework}`);
+  if (lesson.preNotes) parts.push(`📝 Pre-lesson notes: ${lesson.preNotes}`);
   parts.push('\nPowered by FirstSolo (firstsolo.app)');
   return parts.join('\n\n');
 }
