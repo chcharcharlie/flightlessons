@@ -9,6 +9,8 @@ import { RoleSelectionPage } from '@/pages/auth/RoleSelectionPage'
 import { CFIDashboard } from '@/pages/cfi/Dashboard'
 import { StudentDashboard } from '@/pages/student/Dashboard'
 import { AcceptInvitation } from '@/pages/AcceptInvitation'
+import { PrivacyPolicy } from '@/pages/PrivacyPolicy'
+import { TermsOfService } from '@/pages/TermsOfService'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +38,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/accept-invitation" element={<AcceptInvitation />} />
       <Route path="/select-role" element={<RoleSelectionPage />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/tos" element={<TermsOfService />} />
       
       {/* Protected routes */}
       <Route
