@@ -11,6 +11,7 @@ import { StudentDashboard } from '@/pages/student/Dashboard'
 import { AcceptInvitation } from '@/pages/AcceptInvitation'
 import { PrivacyPolicy } from '@/pages/PrivacyPolicy'
 import { TermsOfService } from '@/pages/TermsOfService'
+import { LandingPage } from '@/pages/LandingPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,7 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/accept-invitation" element={<AcceptInvitation />} />
@@ -41,22 +43,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/tos" element={<TermsOfService />} />
       
-      {/* Protected routes */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            {/* If user is authenticated but has no role, redirect to role selection */}
-            {firebaseUser && !user ? (
-              <Navigate to="/select-role" replace />
-            ) : user?.role === 'CFI' ? (
-              <Navigate to="/cfi" replace />
-            ) : (
-              <Navigate to="/student" replace />
-            )}
-          </ProtectedRoute>
-        }
-      />
+
       
       {/* CFI routes */}
       <Route
