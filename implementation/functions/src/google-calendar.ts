@@ -33,7 +33,7 @@ export const googleCalendarAuthUrl = onCall(
     const url = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent', // always show consent to get refresh_token
-      scope: ['https://www.googleapis.com/auth/calendar.events'],
+      scope: ['https://www.googleapis.com/auth/calendar.events.owned'],
       state,
     });
 
