@@ -160,8 +160,8 @@ export const TermsOfService: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900 mb-3">14. Contact</h2>
             <p>
               Questions about these Terms? Contact us at:{' '}
-              <a href="mailto:support@firstsolo.app" className="text-blue-600 hover:underline">
-                support@firstsolo.app
+              <a href="mailto:ccehshmily@gmail.com" className="text-blue-600 hover:underline">
+                ccehshmily@gmail.com
               </a>
             </p>
           </section>

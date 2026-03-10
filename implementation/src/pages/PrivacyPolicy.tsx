@@ -117,8 +117,8 @@ export const PrivacyPolicy: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900 mb-3">10. Contact Us</h2>
             <p>
               If you have questions about this Privacy Policy or your personal data, please contact us at:{' '}
-              <a href="mailto:support@firstsolo.app" className="text-blue-600 hover:underline">
-                support@firstsolo.app
+              <a href="mailto:ccehshmily@gmail.com" className="text-blue-600 hover:underline">
+                ccehshmily@gmail.com
               </a>
             </p>
           </section>
